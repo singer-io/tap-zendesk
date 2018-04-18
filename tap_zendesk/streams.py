@@ -35,6 +35,12 @@ class Stream():
 
         return metadata.to_list(mdata)
 
+class Users(Stream):
+    name = "users"
+
+    def sync(self, bookmark=None):
+        bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
+        return self.client.users.incremental(start_time=bookmark)
 
 class Tickets(Stream):
     name = "tickets"
@@ -55,7 +61,8 @@ class Groups(Stream):
 
 STREAMS = {
     "tickets": Tickets,
-    "groups": Groups
+    "groups": Groups,
+    "users": Users
 }
 
 

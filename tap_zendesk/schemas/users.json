@@ -1,0 +1,164 @@
+{
+  "type": [
+    "null",
+    "object"
+  ],
+  "properties": {
+    "url": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "time_zone": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "created_at": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "verified": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "moderator": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "alias": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "notes": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "signature": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "email": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "last_login_at": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "default_group_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "suspended": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "shared_agent": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "chat_only": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "updated_at": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "role": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "only_private_comments": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "organization_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "details": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "locale_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "restricted_agent": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "locale": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "active": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "shared": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    }
+  }
+}
