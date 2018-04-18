@@ -11,6 +11,7 @@ setup(name='tap-zendesk',
       py_modules=['tap_zendesk'],
       install_requires=[
           'singer-python==5.0.15',
+          'zenpy==2.0.0',
       ],
       entry_points='''
           [console_scripts]
@@ -18,6 +19,9 @@ setup(name='tap-zendesk',
       ''',
       packages=['tap_zendesk'],
       package_data = {
+          'tap_zendesk/schemas': [
+            "tickets.json"
+          ]
       },
       include_package_data=True,
 )
