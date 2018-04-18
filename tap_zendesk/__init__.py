@@ -59,16 +59,8 @@ def main():
     }
     client = Zenpy(**creds)
 
-    # for ticket in client.tickets():
-    #     with open('tickets.json', 'w') as f:
-    #         singer.write_record("tickets", json.loads(json.dumps(ticket, cls=ZendeskEncoder)))
-            #json.dump(ticket, f, cls=ZendeskEncoder)
-
     if parsed_args.discover:
         do_discover(client)
     elif parsed_args.catalog:
         state = {} #validate_state(args.config, args.catalog, args.state)
         do_sync(client, parsed_args.catalog, state)
-
-    #for user in zenpy_client.users():
-    #    print(user.name)
