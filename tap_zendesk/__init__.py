@@ -5,6 +5,7 @@ import sys
 
 from tap_zendesk.discover import discover_streams
 from tap_zendesk.sync import sync_stream
+from singer import metadata
 from zenpy import Zenpy
 
 LOGGER = singer.get_logger()
@@ -21,14 +22,16 @@ def do_discover(client):
     json.dump(catalog, sys.stdout, indent=2)
     LOGGER.info("Finished discover")
 
+def stream_is_selected(mdata):
+    return mdata.get((), {}).get('selected', False)
 
 def do_sync(client, catalog, state):
 
     for stream in catalog.streams:
         stream_name = stream.tap_stream_id
-        #if not stream_is_selected(metadata.to_map(stream.metadata)):
-        #    LOGGER.info("%s: Skipping - not selected", stream_name)
-        #    continue
+        if not stream_is_selected(metadata.to_map(stream.metadata)):
+           LOGGER.info("%s: Skipping - not selected", stream_name)
+           continue
 
         # if starting_stream:
         #     if starting_stream == stream_name:
