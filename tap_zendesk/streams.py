@@ -3,6 +3,7 @@ import os
 import json
 
 from singer import metadata
+from singer import utils
 
 KEY_PROPERTIES = ['id']
 
@@ -42,8 +43,19 @@ class Tickets(Stream):
         bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
         return self.client.tickets.incremental(start_time=bookmark)
 
+class Groups(Stream):
+    name = "groups"
+
+    def sync(self, bookmark=None):
+        bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
+        groups = self.client.groups()
+        for group in groups:
+            if utils.strptime(group.updated_at) >= bookmark:
+                yield group
+
 STREAMS = {
     "tickets": Tickets,
+    "groups": Groups
 }
 
 

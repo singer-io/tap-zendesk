@@ -13,8 +13,13 @@ def process_record(record, mdata):
     rec_str = json.dumps(record, cls=ZendeskEncoder)
     rec_dict =json.loads(rec_str)
 
+    # SCHEMA_GEN: Uncomment this line
+    #return rec_dict
+
     for field_name in list(rec_dict.keys()):
-        if not metadata.get(mdata, ('properties', field_name), 'selected'):
+        selected = metadata.get(mdata, ('properties', field_name), 'selected')
+        inclusion = metadata.get(mdata, ('properties', field_name), 'inclusion')
+        if not selected and inclusion != 'automatic':
             rec_dict.pop(field_name)
 
     return rec_dict
@@ -26,6 +31,7 @@ def sync_stream(client, state, stream):
             counter.increment()
 
             rec = process_record(record, metadata.to_map(stream['metadata']))
+            # SCHEMA_GEN: Comment out transform
             with Transformer() as transformer:
                 rec = transformer.transform(rec, stream['schema'])
             singer.write_record(stream["tap_stream_id"], rec)
