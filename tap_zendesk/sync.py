@@ -3,7 +3,7 @@ import singer
 import singer.metrics as metrics
 
 from singer import metadata
-from tap_zendesk.streams import Tickets
+from tap_zendesk.streams import STREAMS
 from singer import Transformer
 from zenpy.lib.api_objects import BaseObject
 
@@ -20,14 +20,12 @@ def process_record(record, mdata):
     return rec_dict
 
 def sync_stream(client, state, stream):
+    instance = STREAMS[stream['tap_stream_id']](client)
     with metrics.record_counter(stream["tap_stream_id"]) as counter:
-        if stream['stream'] == "tickets":
-            tickets = Tickets(client)
-
-        for ticket in tickets.sync():
+        for record in instance.sync():
             counter.increment()
 
-            rec = process_record(ticket, metadata.to_map(stream['metadata']))
+            rec = process_record(record, metadata.to_map(stream['metadata']))
             with Transformer() as transformer:
                 rec = transformer.transform(rec, stream['schema'])
             singer.write_record(stream["tap_stream_id"], rec)

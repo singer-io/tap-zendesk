@@ -9,25 +9,18 @@ KEY_PROPERTIES = ['id']
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 
-class Tickets():
-
-    name = "tickets"
-
-    def __init__(self, client):
+class Stream():
+    def __init__(self, client=None):
         self.client = client
 
-    @staticmethod
-    def load_schema():
-        schema_file = "schemas/tickets.json"
-
+    def load_schema(self):
+        schema_file = "schemas/{}.json".format(self.name)
         with open(get_abs_path(schema_file)) as f:
             schema = json.load(f)
-
         return schema
 
-    @staticmethod
-    def load_metadata():
-        schema = Tickets.load_schema()
+    def load_metadata(self):
+        schema = self.load_schema()
         mdata = metadata.new()
 
         mdata = metadata.write(mdata, (), 'table-key-properties', KEY_PROPERTIES)
@@ -41,13 +34,17 @@ class Tickets():
 
         return metadata.to_list(mdata)
 
+
+class Tickets(Stream):
+    name = "tickets"
+
     def sync(self, bookmark=None):
         bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
         return self.client.tickets.incremental(start_time=bookmark)
 
-STREAMS = [
-    Tickets,
-]
+STREAMS = {
+    "tickets": Tickets,
+}
 
 
     # stream = {
