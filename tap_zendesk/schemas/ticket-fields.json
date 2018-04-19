@@ -1,0 +1,134 @@
+{
+  "type": [
+    "null",
+    "object"
+  ],
+  "properties": {
+    "description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "updated_at": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "editable_in_portal": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "title_in_portal": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "removable": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "agent_description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "visible_in_portal": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "active": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "regexp_for_validation": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "raw_title_in_portal": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "type": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "created_at": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "required_in_portal": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "position": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "required": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "raw_title": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "raw_description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "title": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "collapsed_for_agents": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "url": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  }
+}
