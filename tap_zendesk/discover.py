@@ -7,8 +7,6 @@ def discover_streams(one):
         streams.append({'stream': s.name, 'tap_stream_id': s.name, 'schema': s.load_schema(), 'metadata': s.load_metadata()})
     return streams
 
-# * Users
-# * Organizations
 # * Audits (P1)
 # * Ticket Fields
 # * Group Memberships

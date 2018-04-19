@@ -1,0 +1,62 @@
+{
+  "properties": {
+    "shared_comments": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "url": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "shared_tickets": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "notes": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "updated_at": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "created_at": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "details": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "type": [
+    "null",
+    "object"
+  ]
+}
