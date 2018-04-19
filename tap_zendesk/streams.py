@@ -81,6 +81,16 @@ class Groups(Stream):
             if utils.strptime(group.updated_at) >= bookmark:
                 yield group
 
+class Macros(Stream):
+    name = "macros"
+
+    def sync(self, bookmark=None):
+        bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
+        macros = self.client.macros()
+        for macro in macros:
+            if utils.strptime(macro.updated_at) >= bookmark:
+                yield macro
+
 class TicketFields(Stream):
     name = "ticket-fields"
 
@@ -88,7 +98,7 @@ class TicketFields(Stream):
         bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
         fields = self.client.ticket_fields()
         for field in fields:
-            if utils.strptime(group.updated_at) >= bookmark:
+            if utils.strptime(field.updated_at) >= bookmark:
                 yield field
 
 class GroupMemberships(Stream):
@@ -105,7 +115,8 @@ STREAMS = {
     "organizations": Organizations,
     #    "ticket-audits": TicketAudits,
     "ticket-fields": TicketFields,
-    "group-memberships": GroupMemberships
+    "group-memberships": GroupMemberships,
+    "macros": Macros
 }
 
 

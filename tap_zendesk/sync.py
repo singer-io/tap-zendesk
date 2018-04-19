@@ -6,7 +6,7 @@ from singer import metadata
 from tap_zendesk.streams import STREAMS
 from singer import Transformer
 from zenpy.lib.api_objects import BaseObject
-
+from zenpy.lib.proxy import ProxyList
 LOGGER = singer.get_logger()
 
 def process_record(record, mdata):
@@ -42,5 +42,12 @@ def sync_stream(client, state, stream):
 class ZendeskEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, BaseObject):
-            return obj.to_dict()
+            obj_dict = obj.to_dict()
+            for k, v in list(obj_dict.items()):
+                # NB: This might fail if the object inside is callable
+                if callable(v):
+                    obj_dict.pop(k)
+            return obj_dict
+        elif isinstance(obj, ProxyList):
+            return obj.copy()
         return json.JSONEncoder.default(self, obj)

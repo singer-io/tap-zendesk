@@ -8,9 +8,6 @@ def discover_streams(one):
     return streams
 
 # * Audits (P1)
-# * Ticket Fields
-# * Group Memberships
-# * Macros
 # * Tags
 # * Ticket Metrics
 
