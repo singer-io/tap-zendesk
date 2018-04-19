@@ -25,6 +25,7 @@ def process_record(record, mdata):
     return rec_dict
 
 def sync_stream(client, state, stream):
+    # we do this before hand.
     instance = STREAMS[stream['tap_stream_id']](client)
     with metrics.record_counter(stream["tap_stream_id"]) as counter:
         for record in instance.sync():

@@ -52,9 +52,24 @@ class Users(Stream):
 class Tickets(Stream):
     name = "tickets"
 
+    # def __init__(self, client, ticket_audits):
+      # pass
+      # Get state up here somewhere
+
     def sync(self, bookmark=None):
         bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
+        # Get first audit, and if it's not in state, add the cursor value for it to state
         return self.client.tickets.incremental(start_time=bookmark)
+
+class TicketAudits(Stream):
+    name = "ticket-audits"
+
+    def sync(self, bookmark=None):
+        # The bookmark value is not a datetime here
+        # Ex: zenpy_client.tickets.audits(cursor='fDE1MTc2MjkwNTQuMHx8')
+        # Max of 1000 (default)
+        #bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
+        return self.client.tickets.audits(cursor=bookmark)
 
 class Groups(Stream):
     name = "groups"
@@ -70,7 +85,8 @@ STREAMS = {
     "tickets": Tickets,
     "groups": Groups,
     "users": Users,
-    "organizations": Organizations
+    "organizations": Organizations,
+#    "ticket-audits": TicketAudits
 }
 
 
