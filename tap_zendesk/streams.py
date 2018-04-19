@@ -25,7 +25,7 @@ class Stream():
         mdata = metadata.new()
 
         mdata = metadata.write(mdata, (), 'table-key-properties', KEY_PROPERTIES)
-        mdata = metadata.write(mdata, (), 'forced-replication-method', 'INCREMENTAL')
+        mdata = metadata.write(mdata, (), 'forced-replication-method', self.replication_method)
 
         for field_name, props in schema['properties'].items():
             if field_name in KEY_PROPERTIES:
@@ -37,6 +37,7 @@ class Stream():
 
 class Organizations(Stream):
     name = "organizations"
+    replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
         bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
@@ -44,6 +45,7 @@ class Organizations(Stream):
 
 class Users(Stream):
     name = "users"
+    replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
         bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
@@ -51,6 +53,7 @@ class Users(Stream):
 
 class Tickets(Stream):
     name = "tickets"
+    replication_method = "INCREMENTAL"
 
     # def __init__(self, client, ticket_audits):
       # pass
@@ -63,6 +66,7 @@ class Tickets(Stream):
 
 class TicketAudits(Stream):
     name = "ticket-audits"
+    replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
         # The bookmark value is not a datetime here
@@ -73,6 +77,7 @@ class TicketAudits(Stream):
 
 class Groups(Stream):
     name = "groups"
+    replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
         bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
@@ -83,6 +88,7 @@ class Groups(Stream):
 
 class Macros(Stream):
     name = "macros"
+    replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
         bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
@@ -93,13 +99,14 @@ class Macros(Stream):
 
 class Tags(Stream):
     name = "tags"
+    replication_method = "FULL_TABLE"
 
-    # NB: This stream is actually syncing FULL TABLE -> Need to properly set metadata
     def sync(self, bookmark=None):
         return self.client.tags()
 
 class TicketFields(Stream):
     name = "ticket-fields"
+    replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
         bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
@@ -110,6 +117,7 @@ class TicketFields(Stream):
 
 class TicketMetrics(Stream):
     name = "ticket-metrics"
+    replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
         bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
@@ -118,8 +126,8 @@ class TicketMetrics(Stream):
 
 class GroupMemberships(Stream):
     name = "group-memberships"
+    replication_method = "FULL_TABLE"
 
-    # NB: This stream is actually syncing FULL TABLE -> Need to properly set metadata
     def sync(self, bookmark=None):
         return self.client.group_memberships()
 
