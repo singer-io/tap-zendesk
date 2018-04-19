@@ -86,10 +86,17 @@ class TicketFields(Stream):
 
     def sync(self, bookmark=None):
         bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
-        groups = self.client.ticket_fields()
-        for group in groups:
+        fields = self.client.ticket_fields()
+        for field in fields:
             if utils.strptime(group.updated_at) >= bookmark:
-                yield group
+                yield field
+
+class GroupMemberships(Stream):
+    name = "group-memberships"
+
+    def sync(self, bookmark=None):
+        return self.client.group_memberships()
+
 
 STREAMS = {
     "tickets": Tickets,
@@ -97,7 +104,8 @@ STREAMS = {
     "users": Users,
     "organizations": Organizations,
     #    "ticket-audits": TicketAudits,
-    "ticket-fields": TicketFields
+    "ticket-fields": TicketFields,
+    "group-memberships": GroupMemberships
 }
 
 
