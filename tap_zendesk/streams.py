@@ -108,6 +108,14 @@ class TicketFields(Stream):
             if utils.strptime(field.updated_at) >= bookmark:
                 yield field
 
+class TicketMetrics(Stream):
+    name = "ticket-metrics"
+
+    def sync(self, bookmark=None):
+        bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
+        return self.client.tickets.metrics_incremental(start_time=bookmark)
+
+
 class GroupMemberships(Stream):
     name = "group-memberships"
 
@@ -125,7 +133,8 @@ STREAMS = {
     "ticket-fields": TicketFields,
     "group-memberships": GroupMemberships,
     "macros": Macros,
-    "tags": Tags
+    "tags": Tags,
+    "ticket-metrics": TicketMetrics
 }
 
 

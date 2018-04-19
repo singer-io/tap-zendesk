@@ -8,8 +8,6 @@ def discover_streams(one):
     return streams
 
 # * Audits (P1)
-# * Tags
-# * Ticket Metrics
 
 # * Ticket Comments (P2)
 # * Others from Audit (P2)
