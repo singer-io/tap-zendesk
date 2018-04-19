@@ -40,7 +40,6 @@ class Organizations(Stream):
     replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
-        bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
         return self.client.organizations.incremental(start_time=bookmark)
 
 class Users(Stream):
@@ -48,7 +47,6 @@ class Users(Stream):
     replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
-        bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
         return self.client.users.incremental(start_time=bookmark)
 
 class Tickets(Stream):
@@ -60,7 +58,6 @@ class Tickets(Stream):
       # Get state up here somewhere
 
     def sync(self, bookmark=None):
-        bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
         # Get first audit, and if it's not in state, add the cursor value for it to state
         return self.client.tickets.incremental(start_time=bookmark)
 
@@ -80,10 +77,9 @@ class Groups(Stream):
     replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
-        bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
         groups = self.client.groups()
         for group in groups:
-            if utils.strptime(group.updated_at) >= bookmark:
+            if utils.strptime_with_tz(group.updated_at) >= bookmark:
                 yield group
 
 class Macros(Stream):
@@ -91,10 +87,9 @@ class Macros(Stream):
     replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
-        bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
         macros = self.client.macros()
         for macro in macros:
-            if utils.strptime(macro.updated_at) >= bookmark:
+            if utils.strptime_with_tz(macro.updated_at) >= bookmark:
                 yield macro
 
 class Tags(Stream):
@@ -109,10 +104,9 @@ class TicketFields(Stream):
     replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
-        bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
         fields = self.client.ticket_fields()
         for field in fields:
-            if utils.strptime(field.updated_at) >= bookmark:
+            if utils.strptime_with_tz(field.updated_at) >= bookmark:
                 yield field
 
 class TicketMetrics(Stream):
@@ -120,7 +114,6 @@ class TicketMetrics(Stream):
     replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
-        bookmark = datetime.datetime.now() - datetime.timedelta(days=3)
         return self.client.tickets.metrics_incremental(start_time=bookmark)
 
 

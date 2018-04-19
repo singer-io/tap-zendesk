@@ -25,7 +25,7 @@ def do_discover(client):
 def stream_is_selected(mdata):
     return mdata.get((), {}).get('selected', False)
 
-def do_sync(client, catalog, state):
+def do_sync(client, catalog, state, start_date):
 
     # filter our selected.
     # check to see if both tickets and audits are selected.
@@ -51,7 +51,7 @@ def do_sync(client, catalog, state):
 
         singer.write_state(state)
         singer.write_schema(stream_name, stream.schema.to_dict(), stream.key_properties)
-        counter_value = sync_stream(client, state, stream.to_dict())
+        counter_value = sync_stream(client, state, start_date, stream.to_dict())
         LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
 
     singer.write_state(state)
@@ -71,5 +71,5 @@ def main():
     if parsed_args.discover:
         do_discover(client)
     elif parsed_args.catalog:
-        state = {} #validate_state(args.config, args.catalog, args.state)
-        do_sync(client, parsed_args.catalog, state)
+        state = parsed_args.state
+        do_sync(client, parsed_args.catalog, state, parsed_args.config['start_date'])
