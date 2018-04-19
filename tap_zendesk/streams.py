@@ -91,6 +91,13 @@ class Macros(Stream):
             if utils.strptime(macro.updated_at) >= bookmark:
                 yield macro
 
+class Tags(Stream):
+    name = "tags"
+
+    # NB: This stream is actually syncing FULL TABLE -> Need to properly set metadata
+    def sync(self, bookmark=None):
+        return self.client.tags()
+
 class TicketFields(Stream):
     name = "ticket-fields"
 
@@ -104,6 +111,7 @@ class TicketFields(Stream):
 class GroupMemberships(Stream):
     name = "group-memberships"
 
+    # NB: This stream is actually syncing FULL TABLE -> Need to properly set metadata
     def sync(self, bookmark=None):
         return self.client.group_memberships()
 
@@ -116,7 +124,8 @@ STREAMS = {
     #    "ticket-audits": TicketAudits,
     "ticket-fields": TicketFields,
     "group-memberships": GroupMemberships,
-    "macros": Macros
+    "macros": Macros,
+    "tags": Tags
 }
 
 

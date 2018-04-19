@@ -7,6 +7,7 @@ from tap_zendesk.streams import STREAMS
 from singer import Transformer
 from zenpy.lib.api_objects import BaseObject
 from zenpy.lib.proxy import ProxyList
+
 LOGGER = singer.get_logger()
 
 def process_record(record, mdata):

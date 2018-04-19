@@ -1,0 +1,82 @@
+{
+  "properties": {
+    "active": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "title": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "created_at": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "position": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "url": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "actions": {
+      "items": {
+        "properties": {
+          "field": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "type": [
+          "null",
+          "object"
+        ]
+      },
+      "type": [
+        "null",
+        "array"
+      ]
+    },
+    "updated_at": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    }
+  },
+  "type": [
+    "null",
+    "object"
+  ]
+}
