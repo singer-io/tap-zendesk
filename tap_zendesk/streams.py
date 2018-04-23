@@ -11,6 +11,8 @@ def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 
 class Stream():
+    key_properties = KEY_PROPERTIES
+
     def __init__(self, client=None):
         self.client = client
 
@@ -24,7 +26,7 @@ class Stream():
         schema = self.load_schema()
         mdata = metadata.new()
 
-        mdata = metadata.write(mdata, (), 'table-key-properties', KEY_PROPERTIES)
+        mdata = metadata.write(mdata, (), 'table-key-properties', self.key_properties)
         mdata = metadata.write(mdata, (), 'forced-replication-method', self.replication_method)
 
         for field_name, props in schema['properties'].items():
@@ -95,6 +97,7 @@ class Macros(Stream):
 class Tags(Stream):
     name = "tags"
     replication_method = "FULL_TABLE"
+    key_properties = []
 
     def sync(self, bookmark=None):
         return self.client.tags()
@@ -120,6 +123,7 @@ class TicketMetrics(Stream):
 class GroupMemberships(Stream):
     name = "group-memberships"
     replication_method = "FULL_TABLE"
+    key_properties = []
 
     def sync(self, bookmark=None):
         return self.client.group_memberships()
