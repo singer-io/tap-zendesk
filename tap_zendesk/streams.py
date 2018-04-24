@@ -122,11 +122,13 @@ class TicketMetrics(Stream):
 
 class GroupMemberships(Stream):
     name = "group-memberships"
-    replication_method = "FULL_TABLE"
-    key_properties = []
+    replication_method = "INCREMENTAL"
 
     def sync(self, bookmark=None):
-        return self.client.group_memberships()
+        memberships = self.client.group_memberships()
+        for membership in memberships:
+            if utils.strptime_with_tz(membership.updated_at) >= bookmark:
+                yield membership
 
 
 STREAMS = {
