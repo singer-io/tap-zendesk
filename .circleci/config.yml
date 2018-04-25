@@ -29,7 +29,7 @@ jobs:
             run-a-test --tap=tap-zendesk \
                        --target=target-stitch \
                        --orchestrator=stitch-orchestrator \
-                       --email=kyle+test8@stitchdata.com \
+                       --email=harrison+sandboxtest@stitchdata.com \
                        --password=$SANDBOX_PASSWORD \
-                       --client-id=38 \
+                       --client-id=50 \
                        tap_tester.suites.zendesk
