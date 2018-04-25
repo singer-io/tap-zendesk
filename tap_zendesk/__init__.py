@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import json
-import singer
 import sys
+import singer
 
-from tap_zendesk.discover import discover_streams
-from tap_zendesk.sync import sync_stream
 from singer import metadata
 from zenpy import Zenpy
+from tap_zendesk.discover import discover_streams
+from tap_zendesk.sync import sync_stream
 
 LOGGER = singer.get_logger()
 
@@ -16,9 +16,9 @@ REQUIRED_CONFIG_KEYS = [
     "access_token"
 ]
 
-def do_discover(client):
+def do_discover():
     LOGGER.info("Starting discover")
-    catalog = {"streams": discover_streams(client)}
+    catalog = {"streams": discover_streams()}
     json.dump(catalog, sys.stdout, indent=2)
     LOGGER.info("Finished discover")
 
@@ -37,8 +37,8 @@ def do_sync(client, catalog, state, start_date):
         stream_name = stream.tap_stream_id
         mdata = metadata.to_map(stream.metadata)
         if not stream_is_selected(mdata):
-           LOGGER.info("%s: Skipping - not selected", stream_name)
-           continue
+            LOGGER.info("%s: Skipping - not selected", stream_name)
+            continue
 
         # if starting_stream:
         #     if starting_stream == stream_name:
@@ -71,7 +71,7 @@ def main():
     client = Zenpy(**creds)
 
     if parsed_args.discover:
-        do_discover(client)
+        do_discover()
     elif parsed_args.catalog:
         state = parsed_args.state
         do_sync(client, parsed_args.catalog, state, parsed_args.config['start_date'])

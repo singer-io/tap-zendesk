@@ -1,4 +1,3 @@
-import datetime
 import os
 import json
 
@@ -11,6 +10,8 @@ def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 
 class Stream():
+    name = None
+    replication_method = None
     key_properties = KEY_PROPERTIES
 
     def __init__(self, client=None):
@@ -29,7 +30,7 @@ class Stream():
         mdata = metadata.write(mdata, (), 'table-key-properties', self.key_properties)
         mdata = metadata.write(mdata, (), 'forced-replication-method', self.replication_method)
 
-        for field_name, props in schema['properties'].items():
+        for field_name in schema['properties'].keys():
             if field_name in KEY_PROPERTIES:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
             else:
@@ -99,7 +100,7 @@ class Tags(Stream):
     replication_method = "FULL_TABLE"
     key_properties = []
 
-    def sync(self, bookmark=None):
+    def sync(self, bookmark=None): # pylint: disable=unused-argument
         return self.client.tags()
 
 class TicketFields(Stream):
