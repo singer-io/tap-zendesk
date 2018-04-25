@@ -1,6 +1,6 @@
 from tap_zendesk.streams import STREAMS
 
-def discover_streams(one):
+def discover_streams():
     streams = []
     for s in STREAMS.values():
         s = s()

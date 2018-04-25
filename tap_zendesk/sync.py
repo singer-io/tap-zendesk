@@ -4,10 +4,10 @@ import singer.metrics as metrics
 import singer.utils as utils
 
 from singer import metadata
-from tap_zendesk.streams import STREAMS
 from singer import Transformer
 from zenpy.lib.api_objects import BaseObject
 from zenpy.lib.proxy import ProxyList
+from tap_zendesk.streams import STREAMS
 
 LOGGER = singer.get_logger()
 
@@ -50,7 +50,7 @@ def sync_stream(client, state, start_date, stream):
         return counter.value
 
 class ZendeskEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj): # pylint: disable=arguments-differ,method-hidden
         if isinstance(obj, BaseObject):
             obj_dict = obj.to_dict()
             for k, v in list(obj_dict.items()):
