@@ -22,16 +22,16 @@ def sync_stream(client, state, start_date, stream):
     instance = STREAMS[stream['tap_stream_id']](client)
 
     # If we have a bookmark, use it; otherwise use start_date
-    if state.get('bookmarks', {}).get(stream['tap_stream_id']):
-        bookmark = state['bookmarks'][stream['tap_stream_id']]['updated_at']
-    else:
-        bookmark = start_date
-
-    bookmark = utils.strptime_with_tz(bookmark)
+    if (instance.replication_method == 'INCREMENTAL' and
+        not state.get('bookmarks', {}).get(stream['tap_stream_id'])):
+        singer.write_bookmark(state,
+                              stream['tap_stream_id'],
+                              instance.replication_key,
+                              start_date)
 
     sync_start = utils.now()
     with metrics.record_counter(stream['tap_stream_id']) as counter:
-        for record in instance.sync(bookmark=bookmark):
+        for record in instance.sync(state):
             counter.increment()
 
             rec = process_record(record)
@@ -44,7 +44,6 @@ def sync_stream(client, state, start_date, stream):
             #  but we don't know if we can guarentee the order of emitted records.
 
         if instance.replication_method == "INCREMENTAL":
-            state = singer.write_bookmark(state, stream['tap_stream_id'], 'updated_at', utils.strftime(sync_start))
             singer.write_state(state)
 
         return counter.value
