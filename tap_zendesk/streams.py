@@ -1,8 +1,10 @@
 import os
 import json
+import singer
 
 from singer import metadata
 from singer import utils
+
 
 KEY_PROPERTIES = ['id']
 
