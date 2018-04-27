@@ -38,6 +38,7 @@ def sync_stream(client, state, start_date, stream):
             # SCHEMA_GEN: Comment out transform
             with Transformer() as transformer:
                 rec = transformer.transform(rec, stream['schema'], metadata.to_map(stream['metadata']))
+
             singer.write_record(stream['tap_stream_id'], rec)
             # NB: We will only write state at the end of a stream's sync:
             #  We may find out that there exists a sync that takes too long and can never emit a bookmark
