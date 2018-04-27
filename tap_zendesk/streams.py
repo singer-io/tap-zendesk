@@ -25,7 +25,7 @@ class Stream():
 
     def update_bookmark(self, state, value):
         current_bookmark = self.get_bookmark(state)
-        if utils.strptime_with_tz(value) > current_bookmark:
+        if value and utils.strptime_with_tz(value) > current_bookmark:
             singer.write_bookmark(state, self.name, self.replication_key, value)
 
     def load_schema(self):
@@ -155,15 +155,15 @@ class TicketMetrics(Stream):
     name = "ticket-metrics"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
-    # TODO: State isn't updating, is null at end of sync
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        ticket_metrics = self.client.tickets.metrics_incremental(start_time=bookmark)
+        ticket_metrics = self.client.ticket_metrics()
 
         for ticket_metric in ticket_metrics:
-            self.update_bookmark(state, ticket_metric.updated_at)
-            yield ticket_metric
+            if utils.strptime_with_tz(ticket_metric.updated_at) >= bookmark:
+                self.update_bookmark(state, ticket_metric.updated_at)
+                yield ticket_metric
 
 class GroupMemberships(Stream):
     name = "group-memberships"

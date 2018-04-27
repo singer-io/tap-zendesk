@@ -18,7 +18,6 @@ def process_record(record):
     return rec_dict
 
 def sync_stream(client, state, start_date, stream):
-    # we do this before hand.
     instance = STREAMS[stream['tap_stream_id']](client)
 
     # If we have a bookmark, use it; otherwise use start_date
