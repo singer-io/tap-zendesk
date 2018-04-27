@@ -24,7 +24,9 @@ class Stream():
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
 
     def update_bookmark(self, state, value):
-        singer.write_bookmark(state, self.name, self.replication_key, value)
+        current_bookmark = self.get_bookmark(state)
+        if utils.strptime_with_tz(value) > current_bookmark:
+            singer.write_bookmark(state, self.name, self.replication_key, value)
 
     def load_schema(self):
         schema_file = "schemas/{}.json".format(self.name)
@@ -88,38 +90,14 @@ class TicketAudits(Stream):
     replication_method = "INCREMENTAL"
     replication_key = "created_at"
 
-    def update_cursor_bookmark(self, state, audit_generator):
-        # NB: Zenpy auto-advances cursor's pages, so each iteration, we need to
-        #  check if our most-recent-previous-cursor-bookmark has changed
-        cursor_advanced = audit_generator.before_cursor != singer.get_bookmark(state, self.name, 'cursor_value')
-        if cursor_advanced:
-            singer.write_bookmark(state, self.name, 'cursor_value', audit_generator.before_cursor)
-
-    def advance_cursor(self, audit_generator, bookmark, state):
-        for audit in reversed(audit_generator):
-            self.update_cursor_bookmark(state, audit_generator)
-            if utils.strptime_with_tz(audit.created_at) < bookmark:
-                continue
-            else:
-                audit_generator.position -= 1
-                break
-
-        return audit_generator
-
     def sync(self, state):
         bookmark = self.get_bookmark(state)
+        audit_generator = self.client.tickets.audits()
 
-        cursor_bookmark = singer.get_bookmark(state, self.name, 'cursor_value')
-        if cursor_bookmark:
-            audit_generator = self.client.tickets.audits(cursor=cursor_bookmark)
-        else:
-            audit_generator = self.client.tickets.audits()
-
-
-        # TODO: Records seem to be emitting in reverse order
-        self.advance_cursor(audit_generator, bookmark, state)
+        # NB: Zenpy's audit generator iterates in reverse order (most recent -> least recent)
         for audit in audit_generator:
-            self.update_cursor_bookmark(state, audit_generator)
+            if utils.strptime_with_tz(audit.created_at) < bookmark:
+                break
             self.update_bookmark(state, audit.created_at)
             yield audit
 

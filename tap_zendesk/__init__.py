@@ -27,12 +27,6 @@ def stream_is_selected(mdata):
 
 def do_sync(client, catalog, state, start_date):
 
-    # filter our selected.
-    # check to see if both tickets and audits are selected.
-    # selected_streams = [ class instances ]
-    #   if tickets and audits: Tickets(client, TicketAudits())
-
-
     for stream in catalog.streams:
         stream_name = stream.tap_stream_id
         mdata = metadata.to_map(stream.metadata)
