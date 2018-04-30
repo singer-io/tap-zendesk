@@ -1,9 +1,47 @@
 {
   "properties": {
-    "active": {
+    "id": {
       "type": [
         "null",
-        "boolean"
+        "integer"
+      ]
+    },
+    "position": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "restriction": {
+      "properties": {
+        "id": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "ids": {
+          "items": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "type": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "type": [
+        "null",
+        "object"
       ]
     },
     "title": {
@@ -18,10 +56,10 @@
         "string"
       ]
     },
-    "position": {
+    "url": {
       "type": [
         "null",
-        "integer"
+        "string"
       ]
     },
     "description": {
@@ -30,10 +68,16 @@
         "string"
       ]
     },
-    "url": {
+    "updated_at": {
       "type": [
         "null",
         "string"
+      ]
+    },
+    "active": {
+      "type": [
+        "null",
+        "boolean"
       ]
     },
     "actions": {
@@ -60,18 +104,6 @@
       "type": [
         "null",
         "array"
-      ]
-    },
-    "updated_at": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "id": {
-      "type": [
-        "null",
-        "integer"
       ]
     }
   },
