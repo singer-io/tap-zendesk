@@ -1,22 +1,32 @@
 {
+  "type": [
+    "null",
+    "object"
+  ],
   "properties": {
-    "shared_comments": {
+    "group_id": {
       "type": [
         "null",
-        "boolean"
+        "integer"
       ]
     },
-    "name": {
+    "created_at": {
       "type": [
         "null",
         "string"
       ]
     },
-    "url": {
+    "tags": {
       "type": [
         "null",
-        "string"
-      ]
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "string"
+        ]
+      }
     },
     "shared_tickets": {
       "type": [
@@ -24,7 +34,38 @@
         "boolean"
       ]
     },
+    "organization_fields": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "additionalProperties": true
+     },
     "notes": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "domain_names": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "string"
+        ]
+      }
+    },
+    "shared_comments": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "details": {
       "type": [
         "null",
         "string"
@@ -36,7 +77,19 @@
         "string"
       ]
     },
-    "created_at": {
+    "name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "external_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "url": {
       "type": [
         "null",
         "string"
@@ -47,16 +100,6 @@
         "null",
         "integer"
       ]
-    },
-    "details": {
-      "type": [
-        "null",
-        "string"
-      ]
     }
-  },
-  "type": [
-    "null",
-    "object"
-  ]
+  }
 }

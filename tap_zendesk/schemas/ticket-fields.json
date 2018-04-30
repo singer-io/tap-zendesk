@@ -1,46 +1,12 @@
 {
-  "type": [
-    "null",
-    "object"
-  ],
   "properties": {
-    "description": {
+    "created_at": {
       "type": [
         "null",
         "string"
-      ]
-    },
-    "updated_at": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "editable_in_portal": {
-      "type": [
-        "null",
-        "boolean"
       ]
     },
     "title_in_portal": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "id": {
-      "type": [
-        "null",
-        "integer"
-      ]
-    },
-    "removable": {
-      "type": [
-        "null",
-        "boolean"
-      ]
-    },
-    "agent_description": {
       "type": [
         "null",
         "string"
@@ -52,7 +18,7 @@
         "boolean"
       ]
     },
-    "active": {
+    "collapsed_for_agents": {
       "type": [
         "null",
         "boolean"
@@ -64,28 +30,10 @@
         "string"
       ]
     },
-    "raw_title_in_portal": {
+    "title": {
       "type": [
         "null",
         "string"
-      ]
-    },
-    "type": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "created_at": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "required_in_portal": {
-      "type": [
-        "null",
-        "boolean"
       ]
     },
     "position": {
@@ -94,13 +42,19 @@
         "integer"
       ]
     },
-    "required": {
+    "type": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "editable_in_portal": {
       "type": [
         "null",
         "boolean"
       ]
     },
-    "raw_title": {
+    "raw_title_in_portal": {
       "type": [
         "null",
         "string"
@@ -112,13 +66,69 @@
         "string"
       ]
     },
-    "title": {
+    "custom_field_options": {
+      "items": {
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          },
+          "default": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "raw_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "type": [
+          "null",
+          "object"
+        ]
+      },
+      "type": [
+        "null",
+        "array"
+      ]
+    },
+    "updated_at": {
       "type": [
         "null",
         "string"
       ]
     },
-    "collapsed_for_agents": {
+    "tag": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "removable": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "active": {
       "type": [
         "null",
         "boolean"
@@ -129,6 +139,46 @@
         "null",
         "string"
       ]
+    },
+    "raw_title": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "required": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "agent_description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "required_in_portal": {
+      "type": [
+        "null",
+        "boolean"
+      ]
     }
-  }
+  },
+  "type": [
+    "null",
+    "object"
+  ]
 }
