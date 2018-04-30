@@ -22,13 +22,12 @@ def sync_stream(client, state, start_date, stream):
 
     # If we have a bookmark, use it; otherwise use start_date
     if (instance.replication_method == 'INCREMENTAL' and
-        not state.get('bookmarks', {}).get(stream['tap_stream_id'])):
+            not state.get('bookmarks', {}).get(stream['tap_stream_id'])):
         singer.write_bookmark(state,
                               stream['tap_stream_id'],
                               instance.replication_key,
                               start_date)
 
-    sync_start = utils.now()
     with metrics.record_counter(stream['tap_stream_id']) as counter:
         for record in instance.sync(state):
             counter.increment()
