@@ -1,7 +1,6 @@
 import json
 import singer
 import singer.metrics as metrics
-import singer.utils as utils
 
 from singer import metadata
 from singer import Transformer

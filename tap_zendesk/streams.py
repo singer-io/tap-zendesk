@@ -92,9 +92,10 @@ class TicketAudits(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        audit_generator = self.client.tickets.audits()
-
         # NB: Zenpy's audit generator iterates in reverse order (most recent -> least recent)
+        #     reversed(...) will swap the before_cursor and after_cursor to iterate backwards in time
+        audit_generator = reversed(self.client.tickets.audits())
+
         for audit in audit_generator:
             if utils.strptime_with_tz(audit.created_at) < bookmark:
                 break
