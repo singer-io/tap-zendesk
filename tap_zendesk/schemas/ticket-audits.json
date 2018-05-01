@@ -1,0 +1,284 @@
+{
+  "type": [
+    "null",
+    "object"
+  ],
+  "properties": {
+    "id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "ticket_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "via": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "channel": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "events": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "macro_deleted": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "id": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          },
+          "macro_title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "via": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "channel": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "source": {
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "rel": {
+                    "type": [
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "body": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "html_body": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "plain_body": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "public": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "value": {
+            "type": [
+              "null",
+              "array",
+              "string"
+            ],
+            "items": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "field_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "audit_id": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          },
+          "recipients": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": [
+                "null",
+                "integer"
+              ]
+            }
+          },
+          "author_id": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          },
+          "macro_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "system": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "longitude": {
+              "type": [
+                "null",
+                "number"
+              ]
+            },
+            "latitude": {
+              "type": [
+                "null",
+                "number"
+              ]
+            },
+            "client": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "location": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "ip_address": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          }
+        },
+        "flags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          }
+        },
+        "trusted": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        },
+        "flags_options": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "11": {
+              "type": [
+                "null",
+                "object"
+              ],
+              "properties": {
+                "trusted": {
+                  "type": [
+                    "null",
+                    "boolean"
+                  ]
+                },
+                "message": {
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "properties": {
+                    "user": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "author_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "created_at": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  }
+}
