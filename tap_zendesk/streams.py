@@ -95,8 +95,8 @@ class Organizations(Stream):
         #     Calling into underlying query method to grab all fields
         field_gen = self.client.organizations._query_zendesk(endpoint.organization_fields,
                                                              'organization_field')
+        schema['properties']['organization_fields']['properties'] = {}
         for field in field_gen:
-            schema['properties']['organization_fields']['properties'] = {}
             schema['properties']['organization_fields']['properties'][field.key] = process_custom_field(field)
 
         return schema
@@ -115,8 +115,8 @@ class Users(Stream):
 
     def _add_custom_fields(self, schema):
         field_gen = self.client.user_fields()
+        schema['properties']['user_fields']['properties'] = {}
         for field in field_gen:
-            schema['properties']['user_fields']['properties'] = {}
             schema['properties']['user_fields']['properties'][field.key] = process_custom_field(field)
 
         return schema
