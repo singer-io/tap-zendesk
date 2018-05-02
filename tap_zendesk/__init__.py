@@ -16,9 +16,9 @@ REQUIRED_CONFIG_KEYS = [
     "access_token"
 ]
 
-def do_discover():
+def do_discover(client):
     LOGGER.info("Starting discover")
-    catalog = {"streams": discover_streams()}
+    catalog = {"streams": discover_streams(client)}
     json.dump(catalog, sys.stdout, indent=2)
     LOGGER.info("Finished discover")
 
@@ -47,6 +47,8 @@ def do_sync(client, catalog, state, start_date):
         singer.write_state(state)
         key_properties = metadata.get(mdata, (), 'table-key-properties')
         singer.write_schema(stream_name, stream.schema.to_dict(), key_properties)
+
+        LOGGER.info("%s: Starting sync", stream_name)
         counter_value = sync_stream(client, state, start_date, stream.to_dict())
         LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
 
@@ -65,7 +67,7 @@ def main():
     client = Zenpy(**creds)
 
     if parsed_args.discover:
-        do_discover()
+        do_discover(client)
     elif parsed_args.catalog:
         state = parsed_args.state
         do_sync(client, parsed_args.catalog, state, parsed_args.config['start_date'])
