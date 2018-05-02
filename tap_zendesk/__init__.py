@@ -47,6 +47,8 @@ def do_sync(client, catalog, state, start_date):
         singer.write_state(state)
         key_properties = metadata.get(mdata, (), 'table-key-properties')
         singer.write_schema(stream_name, stream.schema.to_dict(), key_properties)
+
+        LOGGER.info("%s: Starting sync", stream_name)
         counter_value = sync_stream(client, state, start_date, stream.to_dict())
         LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
 
