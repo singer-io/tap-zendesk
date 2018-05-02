@@ -66,7 +66,7 @@ class Stream():
             schema = json.load(f)
         return self._add_custom_fields(schema)
 
-    def _add_custom_fields(self, schema):
+    def _add_custom_fields(self, schema): # pylint: disable=no-self-use
         return schema
 
     def load_metadata(self):
@@ -93,7 +93,7 @@ class Organizations(Stream):
         endpoint = self.client.organizations.endpoint
         # NB: Zenpy doesn't have a public endpoint for this at time of writing
         #     Calling into underlying query method to grab all fields
-        field_gen = self.client.organizations._query_zendesk(endpoint.organization_fields,
+        field_gen = self.client.organizations._query_zendesk(endpoint.organization_fields, # pylint: disable=protected-access
                                                              'organization_field')
         schema['properties']['organization_fields']['properties'] = {}
         for field in field_gen:
