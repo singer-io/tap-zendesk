@@ -8,8 +8,40 @@ from singer import utils
 LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
 
+CUSTOM_TYPES = {
+    'text': 'string',
+    'textarea': 'string',
+    'date': 'string',
+    'regexp': 'string',
+    'dropdown': 'string',
+    'integer': 'integer',
+    'decimal': 'number',
+    'checkbox': 'boolean',
+}
+
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
+
+def process_custom_field(field):
+    """ Take a custom field description and return a schema for it. """
+    zendesk_type = field.type
+    json_type = CUSTOM_TYPES.get(zendesk_type)
+    if json_type is None:
+        raise Exception("Discovered unsupported type for custom field {} (key: {}): {}"
+                        .format(field.title,
+                                field.key,
+                                zendesk_type))
+    field_schema = {'type': [
+        json_type,
+        'null'
+    ]}
+
+    if zendesk_type == 'date':
+        field_schema['format'] = 'datetime'
+    if zendesk_type == 'dropdown':
+        field_schema['enum'] = [o['value'] for o in field.custom_field_options]
+
+    return field_schema
 
 class Stream():
     name = None
@@ -32,6 +64,9 @@ class Stream():
         schema_file = "schemas/{}.json".format(self.name)
         with open(get_abs_path(schema_file)) as f:
             schema = json.load(f)
+        return self._add_custom_fields(schema)
+
+    def _add_custom_fields(self, schema):
         return schema
 
     def load_metadata(self):
@@ -54,6 +89,17 @@ class Organizations(Stream):
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
 
+    def _add_custom_fields(self, schema):
+        endpoint = self.client.organizations.endpoint
+        # NB: Zenpy doesn't have a public endpoint for this at time of writing
+        #     Calling into underlying query method to grab all fields
+        field_gen = self.client.organizations._query_zendesk(endpoint.organization_fields,
+                                                             'organization_field')
+        for field in field_gen:
+            schema['properties']['organization_fields']['properties'][field.key] = process_custom_field(field)
+
+        return schema
+
     def sync(self, state):
         bookmark = self.get_bookmark(state)
         organizations = self.client.organizations.incremental(start_time=bookmark)
@@ -65,6 +111,13 @@ class Users(Stream):
     name = "users"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+
+    def _add_custom_fields(self, schema):
+        field_gen = self.client.user_fields()
+        for field in field_gen:
+            schema['properties']['user_fields']['properties'][field.key] = process_custom_field(field)
+
+        return schema
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
