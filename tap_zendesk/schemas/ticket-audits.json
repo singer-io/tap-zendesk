@@ -4,32 +4,6 @@
     "object"
   ],
   "properties": {
-    "id": {
-      "type": [
-        "null",
-        "integer"
-      ]
-    },
-    "ticket_id": {
-      "type": [
-        "null",
-        "integer"
-      ]
-    },
-    "via": {
-      "type": [
-        "null",
-        "object"
-      ],
-      "properties": {
-        "channel": {
-          "type": [
-            "null",
-            "string"
-          ]
-        }
-      }
-    },
     "events": {
       "type": [
         "null",
@@ -41,55 +15,152 @@
           "object"
         ],
         "properties": {
-          "macro_deleted": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "id": {
-            "type": [
-              "null",
-              "integer"
-            ]
-          },
-          "macro_title": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "via": {
-            "type": [
-              "null",
-              "object"
-            ],
-            "properties": {
-              "channel": {
-                "type": [
-                  "null",
-                  "string"
-                ]
-              },
-              "source": {
-                "type": [
-                  "null",
-                  "object"
-                ],
-                "properties": {
-                  "rel": {
+          "attachments": {
+            "items": {
+              "properties": {
+                "id": {
+                  "type": [
+                    "null",
+                    "integer"
+                  ]
+                },
+                "size": {
+                  "type": [
+                    "null",
+                    "integer"
+                  ]
+                },
+                "url": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "inline": {
+                  "type": [
+                    "null",
+                    "boolean"
+                  ]
+                },
+                "height": {
+                  "type": [
+                    "null",
+                    "integer"
+                  ]
+                },
+                "width": {
+                  "type": [
+                    "null",
+                    "integer"
+                  ]
+                },
+                "content_url": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "mapped_content_url": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "content_type": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "file_name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "thumbnails": {
+                  "items": {
+                    "properties": {
+                      "id": {
+                        "type": [
+                          "null",
+                          "integer"
+                        ]
+                      },
+                      "size": {
+                        "type": [
+                          "null",
+                          "integer"
+                        ]
+                      },
+                      "url": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      },
+                      "inline": {
+                        "type": [
+                          "null",
+                          "boolean"
+                        ]
+                      },
+                      "height": {
+                        "type": [
+                          "null",
+                          "integer"
+                        ]
+                      },
+                      "width": {
+                        "type": [
+                          "null",
+                          "integer"
+                        ]
+                      },
+                      "content_url": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      },
+                      "mapped_content_url": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      },
+                      "content_type": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      },
+                      "file_name": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      }
+                    },
                     "type": [
-                      "null"
+                      "null",
+                      "object"
                     ]
-                  }
+                  },
+                  "type": [
+                    "null",
+                    "array"
+                  ]
                 }
-              }
-            }
-          },
-          "body": {
+              },
+              "type": [
+                "null",
+                "object"
+              ]
+            },
             "type": [
               "null",
-              "string"
+              "array"
             ]
           },
           "html_body": {
@@ -98,36 +169,11 @@
               "string"
             ]
           },
-          "plain_body": {
+          "subject": {
             "type": [
               "null",
               "string"
             ]
-          },
-          "type": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "public": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "value": {
-            "type": [
-              "null",
-              "array",
-              "string"
-            ],
-            "items": {
-              "type": [
-                "null",
-                "string"
-              ]
-            }
           },
           "field_name": {
             "type": [
@@ -139,6 +185,159 @@
             "type": [
               "null",
               "integer"
+            ]
+          },
+          "value": {
+            "type": [
+              "null",
+              "string",
+              "array"
+            ],
+            "items": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "author_id": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          },
+          "via": {
+            "properties": {
+              "channel": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "source": {
+                "properties": {
+                  "to": {
+                    "properties": {
+                      "address": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      },
+                      "name": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      }
+                    },
+                    "type": [
+                      "null",
+                      "object"
+                    ]
+                  },
+                  "from": {
+                    "properties": {
+                      "title": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      },
+                      "address": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      },
+                      "subject": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      },
+                      "deleted": {
+                        "type": [
+                          "null",
+                          "boolean"
+                        ]
+                      },
+                      "name": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      },
+                      "original_recipients": {
+                        "items": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "type": [
+                          "null",
+                          "array"
+                        ]
+                      },
+                      "id": {
+                        "type": [
+                          "null",
+                          "integer"
+                        ]
+                      },
+                      "ticket_id": {
+                        "type": [
+                          "null",
+                          "integer"
+                        ]
+                      },
+                      "revision_id": {
+                        "type": [
+                          "null",
+                          "integer"
+                        ]
+                      }
+                    },
+                    "type": [
+                      "null",
+                      "object"
+                    ]
+                  },
+                  "rel": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  }
+                },
+                "type": [
+                  "null",
+                  "object"
+                ]
+              }
+            },
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "macro_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "body": {
+            "type": [
+              "null",
+              "string"
             ]
           },
           "recipients": {
@@ -153,20 +352,57 @@
               ]
             }
           },
-          "author_id": {
+          "macro_deleted": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "plain_body": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
             "type": [
               "null",
               "integer"
             ]
           },
-          "macro_id": {
+          "previous_value": {
+            "type": [
+              "null",
+              "string",
+              "array"
+            ],
+            "items": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "macro_title": {
             "type": [
               "null",
               "string"
             ]
+          },
+          "public": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       }
+    },
+    "author_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
     },
     "metadata": {
       "type": [
@@ -174,45 +410,14 @@
         "object"
       ],
       "properties": {
-        "system": {
+        "custom": {},
+        "trusted": {
           "type": [
             "null",
-            "object"
-          ],
-          "properties": {
-            "longitude": {
-              "type": [
-                "null",
-                "number"
-              ]
-            },
-            "latitude": {
-              "type": [
-                "null",
-                "number"
-              ]
-            },
-            "client": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "location": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "ip_address": {
-              "type": [
-                "null",
-                "string"
-              ]
-            }
-          }
+            "boolean"
+          ]
         },
-        "flags": {
+        "notifications_suppressed_for": {
           "type": [
             "null",
             "array"
@@ -224,18 +429,26 @@
             ]
           }
         },
-        "trusted": {
-          "type": [
-            "null",
-            "boolean"
-          ]
-        },
         "flags_options": {
           "type": [
             "null",
             "object"
           ],
           "properties": {
+            "2": {
+              "type": [
+                "null",
+                "object"
+              ],
+              "properties": {
+                "trusted": {
+                  "type": [
+                    "null",
+                    "boolean"
+                  ]
+                }
+              }
+            },
             "11": {
               "type": [
                 "null",
@@ -265,10 +478,78 @@
               }
             }
           }
+        },
+        "flags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          }
+        },
+        "system": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "location": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "longitude": {
+              "type": [
+                "null",
+                "number"
+              ]
+            },
+            "message_id": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "raw_email_identifier": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "ip_address": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "json_email_identifier": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "client": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "latitude": {
+              "type": [
+                "null",
+                "number"
+              ]
+            }
+          }
         }
       }
     },
-    "author_id": {
+    "id": {
       "type": [
         "null",
         "integer"
@@ -279,6 +560,122 @@
         "null",
         "string"
       ]
+    },
+    "ticket_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "via": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "channel": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "source": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "from": {
+              "type": [
+                "null",
+                "object"
+              ],
+              "properties": {
+                "subject": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "address": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "original_recipients": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  }
+                },
+                "id": {
+                  "type": [
+                    "null",
+                    "integer"
+                  ]
+                },
+                "ticket_id": {
+                  "type": [
+                    "null",
+                    "integer"
+                  ]
+                },
+                "deleted": {
+                  "type": [
+                    "null",
+                    "boolean"
+                  ]
+                },
+                "title": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                }
+              }
+            },
+            "to": {
+              "type": [
+                "null",
+                "object"
+              ],
+              "properties": {
+                "name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "address": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                }
+              }
+            },
+            "rel": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          }
+        }
+      }
     }
   }
 }
