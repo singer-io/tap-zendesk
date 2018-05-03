@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.1
+  * Update streams' schemas to reflect testing data
+
 ## 0.1.0
   * Add audits stream
   * Update schemas for other streams
