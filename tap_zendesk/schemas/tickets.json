@@ -306,40 +306,6 @@
         "integer"
       ]
     },
-    "fields": {
-      "items": {
-        "properties": {
-          "id": {
-            "type": [
-              "null",
-              "integer"
-            ]
-          },
-          "value": {
-            "items": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "type": [
-              "null",
-              "string",
-              "boolean",
-              "array"
-            ]
-          }
-        },
-        "type": [
-          "null",
-          "object"
-        ]
-      },
-      "type": [
-        "null",
-        "array"
-      ]
-    },
     "sharing_agreement_ids": {
       "type": [
         "null",
