@@ -339,6 +339,30 @@
         "null",
         "array"
       ]
+    },
+    "sharing_agreement_ids": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "integer"
+        ]
+      }
+    },
+    "email_cc_ids": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "integer"
+        ]
+      }
     }
   },
   "type": [
