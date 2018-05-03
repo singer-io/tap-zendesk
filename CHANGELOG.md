@@ -2,6 +2,7 @@
 
 ## 0.1.1
   * Update streams' schemas to reflect testing data
+  * Add discovery of custom fields for organizations and users (fixes error when syncing these streams due to incorrect schema)
 
 ## 0.1.0
   * Add audits stream
