@@ -306,39 +306,29 @@
         "integer"
       ]
     },
-    "fields": {
-      "items": {
-        "properties": {
-          "id": {
-            "type": [
-              "null",
-              "integer"
-            ]
-          },
-          "value": {
-            "items": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "type": [
-              "null",
-              "string",
-              "boolean",
-              "array"
-            ]
-          }
-        },
-        "type": [
-          "null",
-          "object"
-        ]
-      },
+    "sharing_agreement_ids": {
       "type": [
         "null",
         "array"
-      ]
+      ],
+      "items": {
+        "type": [
+          "null",
+          "integer"
+        ]
+      }
+    },
+    "email_cc_ids": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "integer"
+        ]
+      }
     }
   },
   "type": [
