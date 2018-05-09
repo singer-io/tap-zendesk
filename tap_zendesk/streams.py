@@ -75,9 +75,10 @@ class Stream():
 
         mdata = metadata.write(mdata, (), 'table-key-properties', self.key_properties)
         mdata = metadata.write(mdata, (), 'forced-replication-method', self.replication_method)
+        mdata = metadata.write(mdata, (), 'valid-replication-keys', [self.replication_key])
 
         for field_name in schema['properties'].keys():
-            if field_name in KEY_PROPERTIES:
+            if field_name in KEY_PROPERTIES or field_name == self.replication_key:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
             else:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
