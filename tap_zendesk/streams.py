@@ -138,7 +138,9 @@ class Tickets(Stream):
         tickets = self.client.tickets.incremental(start_time=bookmark)
         for ticket in tickets:
             self.update_bookmark(state, ticket.updated_at)
-            yield ticket
+            ticket_dict = ticket.to_dict()
+            ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+            yield ticket_dict
 
 class TicketAudits(Stream):
     name = "ticket-audits"
@@ -188,7 +190,7 @@ class Macros(Stream):
 class Tags(Stream):
     name = "tags"
     replication_method = "FULL_TABLE"
-    key_properties = []
+    key_properties = ["name"]
 
     def sync(self, state): # pylint: disable=unused-argument
         # NB: Setting page to force it to paginate all tags, instead of just the

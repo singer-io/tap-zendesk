@@ -22,7 +22,8 @@
       "type": [
         "null",
         "string"
-      ]
+      ],
+      "format": "date-time"
     },
     "group_id": {
       "type": [
@@ -34,7 +35,8 @@
       "type": [
         "null",
         "string"
-      ]
+      ],
+      "format": "date-time"
     },
     "id": {
       "type": [

@@ -112,7 +112,8 @@
       "type": [
         "null",
         "string"
-      ]
+      ],
+      "format": "date-time"
     },
     "raw_subject": {
       "type": [
@@ -130,7 +131,8 @@
       "type": [
         "null",
         "string"
-      ]
+      ],
+      "format": "date-time"
     },
     "custom_fields": {
       "items": {
@@ -141,20 +143,7 @@
               "integer"
             ]
           },
-          "value": {
-            "items": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "type": [
-              "null",
-              "string",
-              "boolean",
-              "array"
-            ]
-          }
+          "value": { }
         },
         "type": [
           "null",
@@ -182,7 +171,8 @@
       "type": [
         "null",
         "string"
-      ]
+      ],
+      "format": "date-time"
     },
     "followup_ids": {
       "items": {

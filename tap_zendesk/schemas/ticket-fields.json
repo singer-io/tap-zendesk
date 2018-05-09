@@ -4,7 +4,8 @@
       "type": [
         "null",
         "string"
-      ]
+      ],
+      "format": "date-time"
     },
     "title_in_portal": {
       "type": [
@@ -114,7 +115,8 @@
       "type": [
         "null",
         "string"
-      ]
+      ],
+      "format": "date-time"
     },
     "tag": {
       "type": [
