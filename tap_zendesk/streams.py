@@ -75,9 +75,10 @@ class Stream():
 
         mdata = metadata.write(mdata, (), 'table-key-properties', self.key_properties)
         mdata = metadata.write(mdata, (), 'forced-replication-method', self.replication_method)
+        mdata = metadata.write(mdata, (), 'valid-replication-keys', [self.replication_key])
 
         for field_name in schema['properties'].keys():
-            if field_name in KEY_PROPERTIES:
+            if field_name in KEY_PROPERTIES or field_name == self.replication_key:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
             else:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
@@ -137,8 +138,15 @@ class Tickets(Stream):
         bookmark = self.get_bookmark(state)
         tickets = self.client.tickets.incremental(start_time=bookmark)
         for ticket in tickets:
+            if utils.strptime_with_tz(ticket.updated_at) < bookmark:
+                # NB: Skip tickets that might show up because of Zendesk behavior:
+                #   The Incremental Ticket Export endpoint also returns tickets that
+                #   were updated for reasons not related to ticket events, such as a system update or a database backfill.
+                continue
             self.update_bookmark(state, ticket.updated_at)
-            yield ticket
+            ticket_dict = ticket.to_dict()
+            ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+            yield ticket_dict
 
 class TicketAudits(Stream):
     name = "ticket-audits"
@@ -188,7 +196,7 @@ class Macros(Stream):
 class Tags(Stream):
     name = "tags"
     replication_method = "FULL_TABLE"
-    key_properties = []
+    key_properties = ["name"]
 
     def sync(self, state): # pylint: disable=unused-argument
         # NB: Setting page to force it to paginate all tags, instead of just the

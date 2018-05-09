@@ -14,7 +14,8 @@
       "type": [
         "null",
         "string"
-      ]
+      ],
+      "format": "date-time"
     },
     "url": {
       "type": [
@@ -26,7 +27,8 @@
       "type": [
         "null",
         "string"
-      ]
+      ],
+      "format": "date-time"
     },
     "deleted": {
       "type": [
