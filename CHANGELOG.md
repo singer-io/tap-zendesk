@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+  * Sets replication-keys to 'automatic' inclusion
+  * Removes "fields" because they duplicate "custom-fields"
+  * Skips tickets that come back by accident (out of the date range)
+  * Updates to schemas [#7](https://github.com/singer-io/tap-zendesk/pull/7)
+
 ## 0.1.1
   * Update streams' schemas to reflect testing data
   * Add discovery of custom fields for organizations and users (fixes error when syncing these streams due to incorrect schema)
