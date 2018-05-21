@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.1
+  * Fixed a bug in metadata generation for the Tags stream [#8](https://github.com/singer-io/tap-zendesk/pull/8)
+
 ## 0.2.0
   * Sets replication-keys to 'automatic' inclusion
   * Removes "fields" because they duplicate "custom-fields"
