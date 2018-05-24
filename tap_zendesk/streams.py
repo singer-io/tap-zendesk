@@ -261,7 +261,6 @@ STREAMS = {
     "ticket_metrics": TicketMetrics
 }
 
-
     # stream = {
     #     "tap_stream_id": stream_name,
     #     "stream": stream_name,
