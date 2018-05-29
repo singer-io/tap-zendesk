@@ -55,7 +55,6 @@ def do_sync(client, catalog, state, start_date):
     singer.write_state(state)
     LOGGER.info("Finished sync")
 
-
 @singer.utils.handle_top_exception(LOGGER)
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
