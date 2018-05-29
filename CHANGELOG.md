@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.0
+  * Changed the '-' to a '_' in stream names [#9](https://github.com/singer-io/tap-zendesk/pull/9)
+
 ## 0.2.1
   * Fixed a bug in metadata generation for the Tags stream [#8](https://github.com/singer-io/tap-zendesk/pull/8)
 
