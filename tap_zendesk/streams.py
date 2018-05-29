@@ -151,7 +151,7 @@ class Tickets(Stream):
             yield ticket_dict
 
 class TicketAudits(Stream):
-    name = "ticket-audits"
+    name = "ticket_audits"
     replication_method = "INCREMENTAL"
     replication_key = "created_at"
 
@@ -206,7 +206,7 @@ class Tags(Stream):
         return self.client.tags(page=1)
 
 class TicketFields(Stream):
-    name = "ticket-fields"
+    name = "ticket_fields"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
 
@@ -220,7 +220,7 @@ class TicketFields(Stream):
                 yield field
 
 class TicketMetrics(Stream):
-    name = "ticket-metrics"
+    name = "ticket_metrics"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
 
@@ -234,7 +234,7 @@ class TicketMetrics(Stream):
                 yield ticket_metric
 
 class GroupMemberships(Stream):
-    name = "group-memberships"
+    name = "group_memberships"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
 
@@ -253,14 +253,13 @@ STREAMS = {
     "groups": Groups,
     "users": Users,
     "organizations": Organizations,
-    "ticket-audits": TicketAudits,
-    "ticket-fields": TicketFields,
-    "group-memberships": GroupMemberships,
+    "ticket_audits": TicketAudits,
+    "ticket_fields": TicketFields,
+    "group_memberships": GroupMemberships,
     "macros": Macros,
     "tags": Tags,
-    "ticket-metrics": TicketMetrics
+    "ticket_metrics": TicketMetrics
 }
-
 
     # stream = {
     #     "tap_stream_id": stream_name,
