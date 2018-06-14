@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+  * Bumped `singer-python` to 5.1.5 to get fix for empty `properties` subschema
+  * Added `deleted_at` to organizations schema
+
 ## 0.3.0
   * Changed the '-' to a '_' in stream names [#9](https://github.com/singer-io/tap-zendesk/pull/9)
 
