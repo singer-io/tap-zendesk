@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2
+  * Adding additional fields to the tickets schema [#13](https://github.com/singer-io/tap-zendesk/pull/13)
+
 ## 0.3.1
   * Bumped `singer-python` to 5.1.5 to get fix for empty `properties` subschema
   * Added `deleted_at` to organizations schema
