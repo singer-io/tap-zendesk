@@ -296,6 +296,43 @@
         "integer"
       ]
     },
+    "satisfaction_rating": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "id": {
+          "type": ["null", "integer"]
+        },
+                  "assignee_id": {
+          "type": ["null", "integer"]
+        },
+        "group_id": {
+          "type": ["null", "integer"]
+        },
+        "requester_id": {
+          "type": ["null", "integer"]
+        },
+        "ticket_id": {
+          "type": ["null", "integer"]
+        },
+        "updated_at": {
+            "type": ["null", "string"],
+            "format": "date-time"
+        },
+        "created_at": {
+            "type": ["null", "string"],
+            "format": "date-time"
+        },
+        "url": {
+            "type": ["null", "string"]
+        },
+        "score": {
+            "type": ["null", "string"]
+        }
+      }
+    },
     "sharing_agreement_ids": {
       "type": [
         "null",
