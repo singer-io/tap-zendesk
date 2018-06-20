@@ -12,6 +12,12 @@
         "integer"
       ]
     },
+    "problem_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
     "is_public": {
       "type": [
         "null",
@@ -167,6 +173,12 @@
         "boolean"
       ]
     },
+    "allow_attachments": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
     "due_at": {
       "type": [
         "null",
@@ -305,10 +317,13 @@
         "id": {
           "type": ["null", "integer"]
         },
-                  "assignee_id": {
+        "assignee_id": {
           "type": ["null", "integer"]
         },
         "group_id": {
+          "type": ["null", "integer"]
+        },
+        "reason_id": {
           "type": ["null", "integer"]
         },
         "requester_id": {
@@ -329,6 +344,12 @@
             "type": ["null", "string"]
         },
         "score": {
+            "type": ["null", "string"]
+        },
+        "reason": {
+            "type": ["null", "string"]
+        },
+        "comment": {
             "type": ["null", "string"]
         }
       }
