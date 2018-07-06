@@ -48,6 +48,7 @@ class Stream():
     replication_method = None
     replication_key = None
     key_properties = KEY_PROPERTIES
+    stream = None
 
     def __init__(self, client=None):
         self.client = client
@@ -86,6 +87,9 @@ class Stream():
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
 
         return metadata.to_list(mdata)
+
+    def is_selected(self):
+        return self.stream is not None
 
 class Organizations(Stream):
     name = "organizations"
@@ -139,6 +143,7 @@ class Tickets(Stream):
     def sync(self, state):
         bookmark = self.get_bookmark(state)
         tickets = self.client.tickets.incremental(start_time=bookmark)
+        audits_stream = TicketAudits(self.client)
         for ticket in tickets:
             if utils.strptime_with_tz(ticket.updated_at) < bookmark:
                 # NB: Skip tickets that might show up because of Zendesk behavior:

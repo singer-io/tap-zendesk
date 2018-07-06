@@ -6,7 +6,6 @@ from singer import metadata
 from singer import Transformer
 from zenpy.lib.api_objects import BaseObject
 from zenpy.lib.proxy import ProxyList
-from tap_zendesk.streams import STREAMS
 
 LOGGER = singer.get_logger()
 
@@ -16,9 +15,9 @@ def process_record(record):
     rec_dict = json.loads(rec_str)
     return rec_dict
 
-def sync_stream(client, state, start_date, stream):
-    instance = STREAMS[stream['tap_stream_id']](client)
-
+def sync_stream(client, state, start_date, instance):
+    stream = instance.stream.to_dict()
+    
     # If we have a bookmark, use it; otherwise use start_date
     if (instance.replication_method == 'INCREMENTAL' and
             not state.get('bookmarks', {}).get(stream['tap_stream_id'])):
