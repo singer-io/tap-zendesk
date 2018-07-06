@@ -66,7 +66,7 @@ def populate_class_schemas(catalog, selected_stream_names):
     for stream in catalog.streams:
         if stream.tap_stream_id in selected_stream_names:
             STREAMS[stream.tap_stream_id].stream = stream
-    
+
 def do_sync(client, catalog, state, start_date):
 
     selected_stream_names = get_selected_streams(catalog)

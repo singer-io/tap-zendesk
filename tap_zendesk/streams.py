@@ -155,22 +155,34 @@ class Tickets(Stream):
             ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
             yield ticket_dict
 
+            if audits_stream.is_selected():
+                for audit in audits_stream.sync(ticket_dict["id"]):
+                    yield audit
+
+
 class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
     replication_key = "created_at"
 
-    def sync(self, state):
-        bookmark = self.get_bookmark(state)
+    def sync(self, ticket_id):
+        # TODO: Remove all bookmarking from audits stream
+        #bookmark = self.get_bookmark(state)
+
+        ticket_audits = self.client.tickets.audits(ticket_id=ticket_id)
+        for ticket_audit in ticket_audits:
+            ticket_audit_dict = ticket_audit.to_dict()
+            yield ticket_audit_dict
+
         # NB: Zenpy's audit generator iterates in reverse order (most recent -> least recent)
         #     reversed(...) will swap the before_cursor and after_cursor to iterate backwards in time
-        audit_generator = reversed(self.client.tickets.audits())
+        #audit_generator = reversed(self.client.tickets.audits())
 
-        for audit in audit_generator:
-            if utils.strptime_with_tz(audit.created_at) < bookmark:
-                break
-            self.update_bookmark(state, audit.created_at)
-            yield audit
+        #for audit in audit_generator:
+        #    if utils.strptime_with_tz(audit.created_at) < bookmark:
+        #        break
+        #    self.update_bookmark(state, audit.created_at)
+        #    yield audit
 
 class Groups(Stream):
     name = "groups"

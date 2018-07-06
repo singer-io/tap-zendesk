@@ -17,7 +17,7 @@ def process_record(record):
 
 def sync_stream(client, state, start_date, instance):
     stream = instance.stream.to_dict()
-    
+
     # If we have a bookmark, use it; otherwise use start_date
     if (instance.replication_method == 'INCREMENTAL' and
             not state.get('bookmarks', {}).get(stream['tap_stream_id'])):
