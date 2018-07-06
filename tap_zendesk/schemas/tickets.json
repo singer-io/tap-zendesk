@@ -377,6 +377,26 @@
           "integer"
         ]
       }
+    },
+    "problem_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "forum_topic_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "satisfaction_rating": {
+      "type": [
+        "null",
+        "object",
+        "string"
+      ],
+      "properties": {}
     }
   },
   "type": [

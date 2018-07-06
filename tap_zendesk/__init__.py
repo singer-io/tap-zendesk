@@ -97,6 +97,8 @@ def do_sync(client, catalog, state, start_date):
         sub_stream_names = SUB_STREAMS.get(stream_name)
         if sub_stream_names:
             for sub_stream_name in sub_stream_names:
+                if sub_stream_name not in selected_stream_names:
+                    continue
                 sub_stream = STREAMS[sub_stream_name].stream
                 sub_mdata = metadata.to_map(sub_stream.metadata)
                 sub_key_properties = metadata.get(sub_mdata, (), 'table-key-properties')
