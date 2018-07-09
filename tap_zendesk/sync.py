@@ -26,9 +26,12 @@ def sync_stream(client, state, start_date, instance):
                               instance.replication_key,
                               start_date)
 
+    parent_stream = stream
     with metrics.record_counter(stream.tap_stream_id) as counter:
         for (stream, record) in instance.sync(state):
-            counter.increment()
+            # NB: Only count parent records in the case of sub-streams
+            if stream.tap_stream_id == parent_stream.tap_stream_id:
+                counter.increment()
 
             rec = process_record(record)
             # SCHEMA_GEN: Comment out transform

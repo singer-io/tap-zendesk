@@ -4,6 +4,7 @@ import singer
 
 from singer import metadata
 from singer import utils
+from singer.metrics import Point
 
 LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
@@ -135,8 +136,6 @@ class Users(Stream):
             self.update_bookmark(state, user.updated_at)
             yield (self.stream, user)
 
-# TODO: Make these track and log metrics themselves when yielding, much like singer.metrics
-# - Could use singer.metrics.log() manually to handle the interleaved streams
 class Tickets(Stream):
     name = "tickets"
     replication_method = "INCREMENTAL"
@@ -148,6 +147,9 @@ class Tickets(Stream):
         audits_stream = TicketAudits(self.client)
         ticket_buffer = []
         audit_buffer = []
+        if audits_stream.is_selected():
+            LOGGER.info("Syncing ticket_audits per ticket...")
+
         for ticket in tickets:
             if utils.strptime_with_tz(ticket.updated_at) < bookmark:
                 # NB: Skip tickets that might show up because of Zendesk behavior:
@@ -159,16 +161,19 @@ class Tickets(Stream):
             ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
 
             ticket_buffer.append((self.stream, ticket_dict))
-            if len(ticket_buffer) >= 10:
+            if len(ticket_buffer) >= 100:
                 for t in ticket_buffer:
                     yield t
                 ticket_buffer = []
 
             if audits_stream.is_selected():
+                if ticket_dict["status"] == "deleted":
+                    LOGGER.warn("Unable to retrieve audits for deleted ticket (ID: %s), skipping...", ticket_dict["id"])
+                    continue
                 for audit in audits_stream.sync(ticket_dict["id"]):
                     audit_buffer.append(audit)
 
-                    if len(audit_buffer) >= 10:
+                    if len(audit_buffer) >= 100:
                         for a in audit_buffer:
                             yield a
                         audit_buffer = []
@@ -178,6 +183,11 @@ class Tickets(Stream):
         if audit_buffer:
             for a in audit_buffer:
                 yield a
+
+        singer.metrics.log(LOGGER, Point(metric_type='counter',
+                                         metric=audits_stream.stream.tap_stream_id,
+                                         value=audits_stream.count,
+                                         tags=None))
 
 class TicketAudits(Stream):
     name = "ticket_audits"
