@@ -140,13 +140,32 @@ class Tickets(Stream):
     name = "tickets"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
-    
+
+    last_record_emit = {}
+    def _buffer_record(self, buf, record):
+        stream_name = record[0].tap_stream_id
+        if self.last_record_emit.get(stream_name) is None:
+            self.last_record_emit[stream_name] = utils.now()
+        buf.append(record)
+        if (utils.now() - self.last_record_emit[stream_name]).total_seconds() > 300:
+            self.last_record_emit[stream_name] = utils.now()
+            return True
+        return False
+
     def sync(self, state):
         bookmark = self.get_bookmark(state)
         tickets = self.client.tickets.incremental(start_time=bookmark)
         audits_stream = TicketAudits(self.client)
         ticket_buffer = []
         audit_buffer = []
+
+        def emit_audits_metric():
+            singer.metrics.log(LOGGER, Point(metric_type='counter',
+                                             metric=singer.metrics.Metric.record_count,
+                                             value=audits_stream.count,
+                                             tags={'endpoint':audits_stream.stream.tap_stream_id}))
+            audits_stream.count = 0
+
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
 
@@ -156,12 +175,13 @@ class Tickets(Stream):
                 #   The Incremental Ticket Export endpoint also returns tickets that
                 #   were updated for reasons not related to ticket events, such as a system update or a database backfill.
                 continue
+
             self.update_bookmark(state, ticket.updated_at)
             ticket_dict = ticket.to_dict()
             ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
 
-            ticket_buffer.append((self.stream, ticket_dict))
-            if len(ticket_buffer) >= 100:
+            should_yield = self._buffer_record(ticket_buffer, (self.stream, ticket_dict))
+            if should_yield:
                 for t in ticket_buffer:
                     yield t
                 ticket_buffer = []
@@ -171,23 +191,19 @@ class Tickets(Stream):
                     LOGGER.warn("Unable to retrieve audits for deleted ticket (ID: %s), skipping...", ticket_dict["id"])
                     continue
                 for audit in audits_stream.sync(ticket_dict["id"]):
-                    audit_buffer.append(audit)
-
-                    if len(audit_buffer) >= 100:
+                    should_yield = self._buffer_record(audit_buffer, audit)
+                    if should_yield:
                         for a in audit_buffer:
                             yield a
                         audit_buffer = []
+                        emit_audits_metric()
         if ticket_buffer:
             for t in ticket_buffer:
                 yield t
         if audit_buffer:
             for a in audit_buffer:
                 yield a
-
-        singer.metrics.log(LOGGER, Point(metric_type='counter',
-                                         metric=audits_stream.stream.tap_stream_id,
-                                         value=audits_stream.count,
-                                         tags=None))
+        emit_audits_metric()
 
 class TicketAudits(Stream):
     name = "ticket_audits"
