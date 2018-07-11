@@ -42,7 +42,7 @@ SUB_STREAMS = {
 
 def get_sub_stream_names():
     sub_stream_names = []
-    for parent_stream in SUB_STREAMS.keys():
+    for parent_stream in SUB_STREAMS:
         sub_stream_names.extend(SUB_STREAMS[parent_stream])
     return sub_stream_names
 
@@ -53,7 +53,7 @@ def validate_dependencies(selected_stream_ids):
     errs = []
     msg_tmpl = ("Unable to extract {0} data. "
                 "To receive {0} data, you also need to select {1}.")
-    for parent_stream_name in SUB_STREAMS.keys():
+    for parent_stream_name in SUB_STREAMS:
         sub_stream_names = SUB_STREAMS[parent_stream_name]
         for sub_stream_name in sub_stream_names:
             if sub_stream_name in selected_stream_ids and parent_stream_name not in selected_stream_ids:
@@ -110,7 +110,7 @@ def do_sync(client, catalog, state, start_date):
 
         LOGGER.info("%s: Starting sync", stream_name)
         instance = STREAMS[stream_name](client)
-        counter_value = sync_stream(client, state, start_date, instance)
+        counter_value = sync_stream(state, start_date, instance)
         LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
 
     singer.write_state(state)

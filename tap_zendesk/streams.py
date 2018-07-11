@@ -188,7 +188,7 @@ class Tickets(Stream):
 
             if audits_stream.is_selected():
                 if ticket_dict["status"] == "deleted":
-                    LOGGER.warn("Unable to retrieve audits for deleted ticket (ID: %s), skipping...", ticket_dict["id"])
+                    LOGGER.warning("Unable to retrieve audits for deleted ticket (ID: %s), skipping...", ticket_dict["id"])
                     continue
                 for audit in audits_stream.sync(ticket_dict["id"]):
                     should_yield = self._buffer_record(audit_buffer, audit)
@@ -210,13 +210,13 @@ class TicketAudits(Stream):
     replication_method = "INCREMENTAL"
     oldest_date = utils.strptime_with_tz('2018-07-06T18:01:35Z')
     count = 0
-    
+
     def sync(self, ticket_id):
         ticket_audits = self.client.tickets.audits(ticket=ticket_id)
         for ticket_audit in ticket_audits:
             ticket_audit_dict = ticket_audit.to_dict()
             self.count += 1
-                
+
             if utils.strptime_with_tz(ticket_audit_dict["created_at"]) < self.oldest_date:
                 self.oldest_date = utils.strptime_with_tz(ticket_audit_dict["created_at"])
             yield (self.stream, ticket_audit_dict)

@@ -15,7 +15,7 @@ def process_record(record):
     rec_dict = json.loads(rec_str)
     return rec_dict
 
-def sync_stream(client, state, start_date, instance):
+def sync_stream(state, start_date, instance):
     stream = instance.stream
 
     # If we have a bookmark, use it; otherwise use start_date
