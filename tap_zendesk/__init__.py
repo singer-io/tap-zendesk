@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 import json
 import sys
-
+import singer
+from singer import metadata
 from zenpy import Zenpy
 from tap_zendesk.discover import discover_streams
 from tap_zendesk.sync import sync_stream
 from tap_zendesk.streams import STREAMS
-
-import singer
-from singer import metadata
 
 LOGGER = singer.get_logger()
 
@@ -95,6 +93,7 @@ def do_sync(client, catalog, state, start_date):
         singer.write_state(state)
         key_properties = metadata.get(mdata, (), 'table-key-properties')
         singer.write_schema(stream_name, stream.schema.to_dict(), key_properties)
+
         sub_stream_names = SUB_STREAMS.get(stream_name)
         if sub_stream_names:
             for sub_stream_name in sub_stream_names:
