@@ -1,6 +1,8 @@
 import os
 import json
 import singer
+import datetime
+import pytz
 
 from singer import metadata
 from singer import utils
@@ -139,76 +141,90 @@ class Users(Stream):
 class Tickets(Stream):
     name = "tickets"
     replication_method = "INCREMENTAL"
-    replication_key = "updated_at"
+    replication_key = "generated_timestamp"
 
     last_record_emit = {}
-    def _buffer_record(self, buf, record):
+    buf = {}
+    buf_time = 60
+    def _buffer_record(self, record):
         stream_name = record[0].tap_stream_id
         if self.last_record_emit.get(stream_name) is None:
             self.last_record_emit[stream_name] = utils.now()
-        buf.append(record)
-        if (utils.now() - self.last_record_emit[stream_name]).total_seconds() > 300:
+
+        if self.buf.get(stream_name) is None:
+            self.buf[stream_name] = []
+        self.buf[stream_name].append(record)
+
+        if (utils.now() - self.last_record_emit[stream_name]).total_seconds() > self.buf_time:
             self.last_record_emit[stream_name] = utils.now()
             return True
+
         return False
+
+    def _empty_buffer(self):
+        for stream_name, stream_buf in self.buf.items():
+            for rec in stream_buf:
+                yield rec
+            self.buf[stream_name] = []
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
         tickets = self.client.tickets.incremental(start_time=bookmark)
         audits_stream = TicketAudits(self.client)
-        ticket_buffer = []
-        audit_buffer = []
+        metrics_stream = TicketMetrics(self.client)
 
-        def emit_audits_metric():
-            singer.metrics.log(LOGGER, Point(metric_type='counter',
-                                             metric=singer.metrics.Metric.record_count,
-                                             value=audits_stream.count,
-                                             tags={'endpoint':audits_stream.stream.tap_stream_id}))
-            audits_stream.count = 0
+        def emit_sub_stream_metrics(sub_stream):
+            if sub_stream.is_selected():
+                singer.metrics.log(LOGGER, Point(metric_type='counter',
+                                                 metric=singer.metrics.Metric.record_count,
+                                                 value=sub_stream.count,
+                                                 tags={'endpoint':sub_stream.stream.tap_stream_id}))
+                sub_stream.count = 0
 
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
 
         for ticket in tickets:
-            if utils.strptime_with_tz(ticket.updated_at) < bookmark:
+            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(tzinfo=pytz.UTC)
+            if generated_timestamp_dt < bookmark:
                 # NB: Skip tickets that might show up because of Zendesk behavior:
                 #   The Incremental Ticket Export endpoint also returns tickets that
                 #   were updated for reasons not related to ticket events, such as a system update or a database backfill.
                 continue
 
-            self.update_bookmark(state, ticket.updated_at)
+            self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
             ticket_dict = ticket.to_dict()
             ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+            is_deleted = (ticket_dict["status"] == "deleted")
+            should_yield = self._buffer_record((self.stream, ticket_dict))
 
-            should_yield = self._buffer_record(ticket_buffer, (self.stream, ticket_dict))
-            if should_yield:
-                for t in ticket_buffer:
-                    yield t
-                ticket_buffer = []
+            if is_deleted:
+                LOGGER.warning("Unable to retrieve audits/metrics for deleted ticket (ID: %s), skipping...", ticket_dict["id"])
 
-            if audits_stream.is_selected():
-                if ticket_dict["status"] == "deleted":
-                    LOGGER.warning("Unable to retrieve audits for deleted ticket (ID: %s), skipping...", ticket_dict["id"])
-                    continue
+            if audits_stream.is_selected() and not is_deleted:
                 for audit in audits_stream.sync(ticket_dict["id"]):
-                    should_yield = self._buffer_record(audit_buffer, audit)
-                    if should_yield:
-                        for a in audit_buffer:
-                            yield a
-                        audit_buffer = []
-                        emit_audits_metric()
-        if ticket_buffer:
-            for t in ticket_buffer:
-                yield t
-        if audit_buffer:
-            for a in audit_buffer:
-                yield a
-        emit_audits_metric()
+                    self._buffer_record(audit)
+
+            if metrics_stream.is_selected() and not is_deleted:
+                for metric in metrics_stream.sync(ticket_dict["id"]):
+                    self._buffer_record(metric)
+
+            if should_yield:
+                for rec in self._empty_buffer():
+                    yield rec
+                emit_sub_stream_metrics(audits_stream)
+                emit_sub_stream_metrics(metrics_stream)
+                singer.write_state(state)
+
+        for rec in self._empty_buffer():
+            yield rec
+        emit_sub_stream_metrics(audits_stream)
+        emit_sub_stream_metrics(metrics_stream)
+        singer.write_state(state)
 
 class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
-    oldest_date = utils.strptime_with_tz('2018-07-06T18:01:35Z')
     count = 0
 
     def sync(self, ticket_id):
@@ -216,10 +232,18 @@ class TicketAudits(Stream):
         for ticket_audit in ticket_audits:
             ticket_audit_dict = ticket_audit.to_dict()
             self.count += 1
-
-            if utils.strptime_with_tz(ticket_audit_dict["created_at"]) < self.oldest_date:
-                self.oldest_date = utils.strptime_with_tz(ticket_audit_dict["created_at"])
             yield (self.stream, ticket_audit_dict)
+
+class TicketMetrics(Stream):
+    name = "ticket_metrics"
+    replication_method = "INCREMENTAL"
+    count = 0
+
+    def sync(self, ticket_id):
+        ticket_metric = self.client.tickets.metrics(ticket=ticket_id)
+        ticket_metric_dict = ticket_metric.to_dict()
+        self.count += 1
+        yield (self.stream, ticket_metric_dict)
 
 class Groups(Stream):
     name = "groups"
@@ -273,19 +297,6 @@ class TicketFields(Stream):
                 self.update_bookmark(state, field.updated_at)
                 yield (self.stream, field)
 
-class TicketMetrics(Stream):
-    name = "ticket_metrics"
-    replication_method = "INCREMENTAL"
-    replication_key = "updated_at"
-
-    def sync(self, state):
-        bookmark = self.get_bookmark(state)
-        ticket_metrics = self.client.ticket_metrics()
-
-        for ticket_metric in ticket_metrics:
-            if utils.strptime_with_tz(ticket_metric.updated_at) >= bookmark:
-                self.update_bookmark(state, ticket_metric.updated_at)
-                yield (self.stream, ticket_metric)
 
 class GroupMemberships(Stream):
     name = "group_memberships"
