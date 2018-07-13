@@ -1,11 +1,11 @@
 import json
-import singer
-import singer.metrics as metrics
-
-from singer import metadata
-from singer import Transformer
 from zenpy.lib.api_objects import BaseObject
 from zenpy.lib.proxy import ProxyList
+
+import singer
+import singer.metrics as metrics
+from singer import metadata
+from singer import Transformer
 
 LOGGER = singer.get_logger()
 

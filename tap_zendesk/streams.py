@@ -1,8 +1,8 @@
 import os
 import json
-import singer
 import datetime
 import pytz
+import singer
 
 from singer import metadata
 from singer import utils
