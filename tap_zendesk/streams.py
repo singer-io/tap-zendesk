@@ -281,7 +281,7 @@ class Tags(Stream):
     def sync(self, state): # pylint: disable=unused-argument
         # NB: Setting page to force it to paginate all tags, instead of just the
         #     top 100 popular tags
-        return self.client.tags(page=1)
+        return (self.stream, self.client.tags(page=1))
 
 class TicketFields(Stream):
     name = "ticket_fields"
