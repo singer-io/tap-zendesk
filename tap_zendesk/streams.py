@@ -295,7 +295,6 @@ class TicketFields(Stream):
                 self.update_bookmark(state, field.updated_at)
                 yield (self.stream, field)
 
-
 class GroupMemberships(Stream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"
