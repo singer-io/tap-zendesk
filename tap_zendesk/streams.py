@@ -186,28 +186,26 @@ class Tickets(Stream):
 
         for ticket in tickets:
             generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(tzinfo=pytz.UTC)
-            if generated_timestamp_dt < bookmark:
-                # NB: Skip tickets that might show up because of Zendesk behavior:
-                #   The Incremental Ticket Export endpoint also returns tickets that
-                #   were updated for reasons not related to ticket events, such as a system update or a database backfill.
-                continue
-
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
+
             ticket_dict = ticket.to_dict()
             ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
             is_deleted = (ticket_dict["status"] == "deleted")
             should_yield = self._buffer_record((self.stream, ticket_dict))
 
-            if is_deleted:
-                LOGGER.warning("Unable to retrieve audits/metrics for deleted ticket (ID: %s), skipping...", ticket_dict["id"])
+            if audits_stream.is_selected():
+                if not is_deleted:
+                    for audit in audits_stream.sync(ticket_dict["id"]):
+                        self._buffer_record(audit)
+                else:
+                    LOGGER.warning("Unable to retrieve audits for deleted ticket (ID: %s), skipping...", ticket_dict["id"])
 
-            if audits_stream.is_selected() and not is_deleted:
-                for audit in audits_stream.sync(ticket_dict["id"]):
-                    self._buffer_record(audit)
-
-            if metrics_stream.is_selected() and not is_deleted:
-                for metric in metrics_stream.sync(ticket_dict["id"]):
-                    self._buffer_record(metric)
+            if metrics_stream.is_selected():
+                if not is_deleted:
+                    for metric in metrics_stream.sync(ticket_dict["id"]):
+                        self._buffer_record(metric)
+                else:
+                    LOGGER.warning("Unable to retrieve metrics for deleted ticket (ID: %s), skipping...", ticket_dict["id"])
 
             if should_yield:
                 for rec in self._empty_buffer():
@@ -230,9 +228,8 @@ class TicketAudits(Stream):
     def sync(self, ticket_id):
         ticket_audits = self.client.tickets.audits(ticket=ticket_id)
         for ticket_audit in ticket_audits:
-            ticket_audit_dict = ticket_audit.to_dict()
             self.count += 1
-            yield (self.stream, ticket_audit_dict)
+            yield (self.stream, ticket_audit)
 
 class TicketMetrics(Stream):
     name = "ticket_metrics"
@@ -241,9 +238,8 @@ class TicketMetrics(Stream):
 
     def sync(self, ticket_id):
         ticket_metric = self.client.tickets.metrics(ticket=ticket_id)
-        ticket_metric_dict = ticket_metric.to_dict()
         self.count += 1
-        yield (self.stream, ticket_metric_dict)
+        yield (self.stream, ticket_metric)
 
 class Groups(Stream):
     name = "groups"
