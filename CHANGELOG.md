@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+  * The following changes are included in [#14](https://github.com/singer-io/tap-zendesk/pull/14):
+      * Made ticket_audits and ticket_metrics substreams of tickets stream.  This allows audits and metrics to be retrieved for archived tickets
+      * Changed replication key to `generated_timestamp` for tickets, ticket_audits, and ticket_metrics
+      * Added `problem_id`, `forum_topic_id`, and `satisfaction_rating` fields to tickets schema (addresses [#10](https://github.com/singer-io/tap-zendesk/issues/10))
+      * Added `system_field_options` and `sub_type_id` to ticket_fields schema (addresses [#11](https://github.com/singer-io/tap-zendesk/issues/11))
+
 ## 0.3.2
   * Adding additional fields to the tickets schema [#13](https://github.com/singer-io/tap-zendesk/pull/13)
 
