@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.1
+  * Bug fix to populate tickets bookmark if replication_key changes
+
 ## 0.4.0
   * The following changes are included in [#14](https://github.com/singer-io/tap-zendesk/pull/14):
       * Made ticket_audits and ticket_metrics substreams of tickets stream.  This allows audits and metrics to be retrieved for archived tickets
