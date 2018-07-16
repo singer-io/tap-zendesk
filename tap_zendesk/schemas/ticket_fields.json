@@ -177,6 +177,19 @@
         "null",
         "boolean"
       ]
+    },
+    "system_field_options": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {}
+    },
+    "sub_type_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
     }
   },
   "type": [

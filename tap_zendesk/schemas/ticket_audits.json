@@ -394,6 +394,12 @@
               "null",
               "boolean"
             ]
+          },
+          "resource": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       }
