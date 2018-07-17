@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.3
+  * Catch RecordNotFound exceptions in ticket_audits and ticket_metrics
+
 ## 0.4.2
   * Bug fix to populate tickets bookmark if replication_key changes
 
