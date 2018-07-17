@@ -4,6 +4,7 @@ import datetime
 import pytz
 import singer
 
+from zenpy.lib.exception import RecordNotFoundException
 from singer import metadata
 from singer import utils
 from singer.metrics import Point
@@ -190,22 +191,23 @@ class Tickets(Stream):
 
             ticket_dict = ticket.to_dict()
             ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
-            is_deleted = (ticket_dict["status"] == "deleted")
             should_yield = self._buffer_record((self.stream, ticket_dict))
 
             if audits_stream.is_selected():
-                if not is_deleted:
+                try:
                     for audit in audits_stream.sync(ticket_dict["id"]):
                         self._buffer_record(audit)
-                else:
-                    LOGGER.warning("Unable to retrieve audits for deleted ticket (ID: %s), skipping...", ticket_dict["id"])
+                except RecordNotFoundException as R:
+                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), "
+                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
             if metrics_stream.is_selected():
-                if not is_deleted:
+                try:
                     for metric in metrics_stream.sync(ticket_dict["id"]):
                         self._buffer_record(metric)
-                else:
-                    LOGGER.warning("Unable to retrieve metrics for deleted ticket (ID: %s), skipping...", ticket_dict["id"])
+                except RecordNotFoundException as R:
+                    LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), "
+                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
             if should_yield:
                 for rec in self._empty_buffer():
