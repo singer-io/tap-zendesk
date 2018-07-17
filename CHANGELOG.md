@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.1
+## 0.4.2
   * Bug fix to populate tickets bookmark if replication_key changes
 
 ## 0.4.0
