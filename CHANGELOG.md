@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.0
+  * Version bump for initial release
+
 ## 0.4.3
   * Catch RecordNotFound exceptions in ticket_audits and ticket_metrics
 
