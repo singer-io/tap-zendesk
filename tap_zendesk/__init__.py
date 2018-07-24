@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import json
 import sys
+from zenpy import Zenpy
 import singer
 from singer import metadata
-from zenpy import Zenpy
 from tap_zendesk.discover import discover_streams
 from tap_zendesk.sync import sync_stream
 from tap_zendesk.streams import STREAMS

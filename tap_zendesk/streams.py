@@ -2,12 +2,12 @@ import os
 import json
 import datetime
 import pytz
-import singer
-
 from zenpy.lib.exception import RecordNotFoundException
+import singer
 from singer import metadata
 from singer import utils
 from singer.metrics import Point
+
 
 LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
@@ -197,16 +197,16 @@ class Tickets(Stream):
                 try:
                     for audit in audits_stream.sync(ticket_dict["id"]):
                         self._buffer_record(audit)
-                except RecordNotFoundException as R:
-                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), "
+                except RecordNotFoundException:
+                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
                     "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
             if metrics_stream.is_selected():
                 try:
                     for metric in metrics_stream.sync(ticket_dict["id"]):
                         self._buffer_record(metric)
-                except RecordNotFoundException as R:
-                    LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), "
+                except RecordNotFoundException:
+                    LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), " \
                     "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
             if should_yield:
