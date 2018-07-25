@@ -37,50 +37,6 @@
         "string"
       ]
     },
-    "custom_field_options": {
-      "items": {
-        "properties": {
-          "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "value": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "id": {
-            "type": [
-              "null",
-              "integer"
-            ]
-          },
-          "default": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "raw_name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        },
-        "type": [
-          "null",
-          "object"
-        ]
-      },
-      "type": [
-        "null",
-        "array"
-      ]
-    },
     "updated_at": {
       "type": [
         "null",
