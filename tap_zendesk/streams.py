@@ -299,7 +299,7 @@ class TicketFields(Stream):
 
 class TicketForms(Stream):
     name = "ticket_forms"
-    replication_method  = "INCREMENTAL"
+    replication_method = "INCREMENTAL"
     replication_key = "updated_at"
 
     def sync(self, state):
