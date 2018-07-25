@@ -297,6 +297,20 @@ class TicketFields(Stream):
                 self.update_bookmark(state, field.updated_at)
                 yield (self.stream, field)
 
+class TicketForms(Stream):
+    name = "ticket_forms"
+    replication_method  = "INCREMENTAL"
+    replication_key = "updated_at"
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+
+        forms = self.client.ticket_forms()
+        for form in forms:
+            if utils.strptime_with_tz(form.updated_at) >= bookmark:
+                self.update_bookmark(state, form.updated_at)
+                yield (self.stream, form)
+
 class GroupMemberships(Stream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"
@@ -319,6 +333,7 @@ STREAMS = {
     "organizations": Organizations,
     "ticket_audits": TicketAudits,
     "ticket_fields": TicketFields,
+    "ticket_forms": TicketForms,
     "group_memberships": GroupMemberships,
     "macros": Macros,
     "tags": Tags,
