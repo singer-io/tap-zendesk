@@ -311,7 +311,8 @@
     "satisfaction_rating": {
       "type": [
         "null",
-        "object"
+        "object",
+        "string"
       ],
       "properties": {
         "id": {
@@ -389,14 +390,6 @@
         "null",
         "integer"
       ]
-    },
-    "satisfaction_rating": {
-      "type": [
-        "null",
-        "object",
-        "string"
-      ],
-      "properties": {}
     }
   },
   "type": [

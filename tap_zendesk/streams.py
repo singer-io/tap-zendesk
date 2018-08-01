@@ -339,15 +339,3 @@ STREAMS = {
     "tags": Tags,
     "ticket_metrics": TicketMetrics
 }
-
-    # stream = {
-    #     "tap_stream_id": stream_name,
-    #     "stream": stream_name,
-    #     "key_properties": ["Id"],
-    #     "schema": {
-    #         "type": "object",
-    #         "additionalProperties": False,
-    #         "properties": properties,
-    #     },
-    #     'metadata': metadata.to_list(mdata)
-    # }
