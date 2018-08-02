@@ -163,6 +163,95 @@
               "array"
             ]
           },
+          "created_at": {
+            "type": [
+              "null",
+              "string"
+             ],
+             "format": "date-time"
+          },
+          "data": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "transcription_status": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "transcription_text": {
+                 "type": [
+                   "null",
+                   "string"
+                 ]
+              },
+              "to": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "call_duration": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "answered_by_name": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "recording_url": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "started_at": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "answered_by_id": {
+                "type": [
+                  "null",
+                  "integer"
+                ]
+              },
+              "from": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
+            }
+          },
+          "formatted_from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "formatted_to": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "transcription_visible": {},
+          "trusted": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
           "html_body": {
             "type": [
               "null",
@@ -598,6 +687,18 @@
                 "object"
               ],
               "properties": {
+                "ticket_ids": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": [
+                      "null",
+                      "integer"
+                    ]
+                  }
+                },
                 "subject": {
                   "type": [
                     "null",
