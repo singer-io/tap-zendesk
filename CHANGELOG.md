@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.1
+  * Adds more JSON Schema to the tickets and ticket_audits schemas [#16](https://github.com/singer-io/tap-zendesk/pull/16)
+
 ## 1.1.0
   * Add ticket_forms stream [#15](https://github.com/singer-io/tap-zendesk/pull/15)
 
