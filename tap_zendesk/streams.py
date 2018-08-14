@@ -171,8 +171,10 @@ class Tickets(Stream):
     def sync(self, state):
         bookmark = self.get_bookmark(state)
         tickets = self.client.tickets.incremental(start_time=bookmark)
+
         audits_stream = TicketAudits(self.client)
         metrics_stream = TicketMetrics(self.client)
+        comments_stream = TicketComments(self.client)
 
         def emit_sub_stream_metrics(sub_stream):
             if sub_stream.is_selected():
@@ -209,17 +211,27 @@ class Tickets(Stream):
                     LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), " \
                     "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
+            if comments_stream.is_selected():
+                try:
+                    for comment in comments_stream.sync(ticket_dict["id"]):
+                        self._buffer_record(comment)
+                except RecordNotFoundException:
+                    LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
+                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+
             if should_yield:
                 for rec in self._empty_buffer():
                     yield rec
                 emit_sub_stream_metrics(audits_stream)
                 emit_sub_stream_metrics(metrics_stream)
+                emit_sub_stream_metrics(comments_stream)
                 singer.write_state(state)
 
         for rec in self._empty_buffer():
             yield rec
         emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
+        emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
 
 class TicketAudits(Stream):
@@ -242,6 +254,17 @@ class TicketMetrics(Stream):
         ticket_metric = self.client.tickets.metrics(ticket=ticket_id)
         self.count += 1
         yield (self.stream, ticket_metric)
+
+class TicketComments(Stream):
+    name = "ticket_comments"
+    replication_method = "INCREMENTAL"
+    count = 0
+
+    def sync(self, ticket_id):
+        ticket_comments = self.client.tickets.comments(ticket=ticket_id)
+        for ticket_comment in ticket_comments:
+            self.count += 1
+            yield (self.stream, ticket_comment)
 
 class Groups(Stream):
     name = "groups"
@@ -332,6 +355,7 @@ STREAMS = {
     "users": Users,
     "organizations": Organizations,
     "ticket_audits": TicketAudits,
+    "ticket_comments": TicketComments,
     "ticket_fields": TicketFields,
     "ticket_forms": TicketForms,
     "group_memberships": GroupMemberships,
