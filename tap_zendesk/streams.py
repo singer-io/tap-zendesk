@@ -65,10 +65,25 @@ class Stream():
         if value and utils.strptime_with_tz(value) > current_bookmark:
             singer.write_bookmark(state, self.name, self.replication_key, value)
 
+    def load_shared_schema_refs(self):
+        shared_schemas_path = get_abs_path('schemas/shared')
+
+        shared_file_names = [f for f in os.listdir(shared_schemas_path)
+                             if os.path.isfile(os.path.join(shared_schemas_path, f))]
+
+        shared_schema_refs = {}
+        for shared_file in shared_file_names:
+            with open(os.path.join(shared_schemas_path, shared_file)) as data_file:
+                shared_schema_refs[shared_file] = json.load(data_file)
+
+        return shared_schema_refs
+
     def load_schema(self):
         schema_file = "schemas/{}.json".format(self.name)
         with open(get_abs_path(schema_file)) as f:
-            schema = json.load(f)
+            schema_with_refs = json.load(f)
+        refs = self.load_shared_schema_refs()
+        schema = singer.resolve_schema_references(schema_with_refs, refs)
         return self._add_custom_fields(schema)
 
     def _add_custom_fields(self, schema): # pylint: disable=no-self-use
