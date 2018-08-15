@@ -279,6 +279,20 @@ class TicketComments(Stream):
             self.count += 1
             yield (self.stream, ticket_comment)
 
+class SatisfactionRatings(Stream):
+    name = "satisfaction_ratings"
+    replication_method = "INCREMENTAL"
+    replication_key = "updated_at"
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+
+        satisfaction_ratings = self.client.satisfaction_ratings()
+        for satisfaction_rating in satisfaction_ratings:
+            if utils.strptime_with_tz(satisfaction_rating.updated_at) >= bookmark:
+                self.update_bookmark(state, satisfaction_rating.updated_at)
+                yield (self.stream, satisfaction_rating)
+
 class Groups(Stream):
     name = "groups"
     replication_method = "INCREMENTAL"
@@ -373,6 +387,7 @@ STREAMS = {
     "ticket_forms": TicketForms,
     "group_memberships": GroupMemberships,
     "macros": Macros,
+    "satisfaction_ratings": SatisfactionRatings,
     "tags": Tags,
     "ticket_metrics": TicketMetrics
 }
