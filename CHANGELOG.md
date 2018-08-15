@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.1
+  * Include shared schema refs in package
+
 ## 1.2.0
   * Add `satisfaction_ratings` and `ticket_comment` streams [#17](https://github.com/singer-io/tap-zendesk/pull/17)
 
