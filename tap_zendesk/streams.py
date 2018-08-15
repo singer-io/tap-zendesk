@@ -81,9 +81,7 @@ class Stream():
     def load_schema(self):
         schema_file = "schemas/{}.json".format(self.name)
         with open(get_abs_path(schema_file)) as f:
-            schema_with_refs = json.load(f)
-        refs = self.load_shared_schema_refs()
-        schema = singer.resolve_schema_references(schema_with_refs, refs)
+            schema = json.load(f)
         return self._add_custom_fields(schema)
 
     def _add_custom_fields(self, schema): # pylint: disable=no-self-use
