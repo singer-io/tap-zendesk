@@ -1,10 +1,13 @@
 # Changelog
 
+## 1.2.0
+  * Add `satisfaction_ratings` and `ticket_comment` streams [#17](https://github.com/singer-io/tap-zendesk/pull/17)
+
 ## 1.1.1
   * Adds more JSON Schema to the tickets and ticket_audits schemas [#16](https://github.com/singer-io/tap-zendesk/pull/16)
 
 ## 1.1.0
-  * Add ticket_forms stream [#15](https://github.com/singer-io/tap-zendesk/pull/15)
+  * Add `ticket_forms` stream [#15](https://github.com/singer-io/tap-zendesk/pull/15)
 
 ## 1.0.0
   * Version bump for initial release
