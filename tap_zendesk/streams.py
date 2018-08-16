@@ -359,10 +359,18 @@ class GroupMemberships(Stream):
 
         memberships = self.client.group_memberships()
         for membership in memberships:
-            if utils.strptime_with_tz(membership.updated_at) >= bookmark:
-                self.update_bookmark(state, membership.updated_at)
-                yield (self.stream, membership)
-
+            # some group memberships come back without an updated_at
+            if membership.updated_at:
+                if utils.strptime_with_tz(membership.updated_at) >= bookmark:
+                    self.update_bookmark(state, membership.updated_at)
+                    yield (self.stream, membership)
+            else:
+                if membership.id:
+                    LOGGER.info('group_membership record with id: ' + str(membership.id) +
+                                ' does not have an updated_at field so it will be syncd...')
+                    yield (self.stream, membership)
+                else:
+                    LOGGER.info('Received group_membership record with no id or updated_at, skipping...')
 
 STREAMS = {
     "tickets": Tickets,

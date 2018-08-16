@@ -55,9 +55,9 @@
         "integer"
       ]
     },
-    "via": {"$ref": "via.json"},
-    "metadata": {"$ref": "metadata.json"},
-    "attachments": {"$ref": "attachments.json"}
+    "via": {"$ref": "shared/via.json"},
+    "metadata": {"$ref": "shared/metadata.json"},
+    "attachments": {"$ref": "shared/attachments.json"}
   },
   "type": [
     "null",
