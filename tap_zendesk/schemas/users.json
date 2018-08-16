@@ -371,6 +371,12 @@
         "null",
         "string"
       ]
+    },
+    "report_csv": {
+      "type": [
+        "null",
+        "boolean"
+      ]
     }
   }
 }
