@@ -278,6 +278,9 @@ class SatisfactionRatings(Stream):
         satisfaction_ratings = self.client.satisfaction_ratings()
         for satisfaction_rating in satisfaction_ratings:
             if utils.strptime_with_tz(satisfaction_rating.updated_at) >= bookmark:
+                # NB: We don't trust that the records come back ordered by
+                # updated_at (we've observed out-of-order records),
+                # so we can't save state until we've seen all records
                 self.update_bookmark(state, satisfaction_rating.updated_at)
                 yield (self.stream, satisfaction_rating)
 
@@ -292,6 +295,9 @@ class Groups(Stream):
         groups = self.client.groups()
         for group in groups:
             if utils.strptime_with_tz(group.updated_at) >= bookmark:
+                # NB: We don't trust that the records come back ordered by
+                # updated_at (we've observed out-of-order records),
+                # so we can't save state until we've seen all records
                 self.update_bookmark(state, group.updated_at)
                 yield (self.stream, group)
 
@@ -306,6 +312,9 @@ class Macros(Stream):
         macros = self.client.macros()
         for macro in macros:
             if utils.strptime_with_tz(macro.updated_at) >= bookmark:
+                # NB: We don't trust that the records come back ordered by
+                # updated_at (we've observed out-of-order records),
+                # so we can't save state until we've seen all records
                 self.update_bookmark(state, macro.updated_at)
                 yield (self.stream, macro)
 
@@ -332,6 +341,9 @@ class TicketFields(Stream):
         fields = self.client.ticket_fields()
         for field in fields:
             if utils.strptime_with_tz(field.updated_at) >= bookmark:
+                # NB: We don't trust that the records come back ordered by
+                # updated_at (we've observed out-of-order records),
+                # so we can't save state until we've seen all records
                 self.update_bookmark(state, field.updated_at)
                 yield (self.stream, field)
 
@@ -346,6 +358,9 @@ class TicketForms(Stream):
         forms = self.client.ticket_forms()
         for form in forms:
             if utils.strptime_with_tz(form.updated_at) >= bookmark:
+                # NB: We don't trust that the records come back ordered by
+                # updated_at (we've observed out-of-order records),
+                # so we can't save state until we've seen all records
                 self.update_bookmark(state, form.updated_at)
                 yield (self.stream, form)
 
@@ -362,6 +377,9 @@ class GroupMemberships(Stream):
             # some group memberships come back without an updated_at
             if membership.updated_at:
                 if utils.strptime_with_tz(membership.updated_at) >= bookmark:
+                    # NB: We don't trust that the records come back ordered by
+                    # updated_at (we've observed out-of-order records),
+                    # so we can't save state until we've seen all records
                     self.update_bookmark(state, membership.updated_at)
                     yield (self.stream, membership)
             else:
