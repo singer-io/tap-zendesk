@@ -2,6 +2,7 @@ import os
 import json
 import datetime
 import pytz
+import zenpy
 from zenpy.lib.exception import RecordNotFoundException
 import singer
 from singer import metadata
@@ -96,6 +97,20 @@ class Stream():
     def is_selected(self):
         return self.stream is not None
 
+def raise_or_log_zenpy_apiexception(schema, e):
+    # There are multiple tiers of Zendesk accounts. Some of them have
+    # access to `custom_fields` and some do not. This is the specific
+    # error that appears to be return from the API call in the event that
+    # it doesn't have access.
+    if not isinstance(e, zenpy.lib.exception.APIException):
+        raise ValueError("Called with a bad exception type") from e
+    if json.loads(e.args[0])['error']['message'] == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
+        LOGGER.warning("The account credentials supplied do not have access to custom fields.")
+        return schema
+    else:
+        raise e
+
+
 class Organizations(Stream):
     name = "organizations"
     replication_method = "INCREMENTAL"
@@ -105,8 +120,11 @@ class Organizations(Stream):
         endpoint = self.client.organizations.endpoint
         # NB: Zenpy doesn't have a public endpoint for this at time of writing
         #     Calling into underlying query method to grab all fields
-        field_gen = self.client.organizations._query_zendesk(endpoint.organization_fields, # pylint: disable=protected-access
-                                                             'organization_field')
+        try:
+            field_gen = self.client.organizations._query_zendesk(endpoint.organization_fields, # pylint: disable=protected-access
+                                                                 'organization_field')
+        except zenpy.lib.exception.APIException as e:
+            return raise_or_log_zenpy_apiexception(schema, e)
         schema['properties']['organization_fields']['properties'] = {}
         for field in field_gen:
             schema['properties']['organization_fields']['properties'][field.key] = process_custom_field(field)
@@ -126,7 +144,10 @@ class Users(Stream):
     replication_key = "updated_at"
 
     def _add_custom_fields(self, schema):
-        field_gen = self.client.user_fields()
+        try:
+            field_gen = self.client.user_fields()
+        except zenpy.lib.exception.APIException as e:
+            return raise_or_log_zenpy_apiexception(schema, e)
         schema['properties']['user_fields']['properties'] = {}
         for field in field_gen:
             schema['properties']['user_fields']['properties'][field.key] = process_custom_field(field)
