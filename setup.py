@@ -13,6 +13,12 @@ setup(name='tap-zendesk',
           'singer-python==5.1.5',
           'zenpy==2.0.0',
       ],
+      extras_require={
+          'dev': [
+              'ipdb',
+              'pylint',
+          ]
+      },
       entry_points='''
           [console_scripts]
           tap-zendesk=tap_zendesk:main
