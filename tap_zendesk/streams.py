@@ -97,7 +97,7 @@ class Stream():
     def is_selected(self):
         return self.stream is not None
 
-def raise_or_log_zenpy_apiexception(schema, e):
+def raise_or_log_zenpy_apiexception(schema, stream, e):
     # There are multiple tiers of Zendesk accounts. Some of them have
     # access to `custom_fields` and some do not. This is the specific
     # error that appears to be return from the API call in the event that
@@ -105,7 +105,8 @@ def raise_or_log_zenpy_apiexception(schema, e):
     if not isinstance(e, zenpy.lib.exception.APIException):
         raise ValueError("Called with a bad exception type") from e
     if json.loads(e.args[0])['error']['message'] == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
-        LOGGER.warning("The account credentials supplied do not have access to custom fields.")
+        LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
+                       stream)
         return schema
     else:
         raise e
@@ -124,7 +125,7 @@ class Organizations(Stream):
             field_gen = self.client.organizations._query_zendesk(endpoint.organization_fields, # pylint: disable=protected-access
                                                                  'organization_field')
         except zenpy.lib.exception.APIException as e:
-            return raise_or_log_zenpy_apiexception(schema, e)
+            return raise_or_log_zenpy_apiexception(schema, self.name, e)
         schema['properties']['organization_fields']['properties'] = {}
         for field in field_gen:
             schema['properties']['organization_fields']['properties'][field.key] = process_custom_field(field)
@@ -147,7 +148,7 @@ class Users(Stream):
         try:
             field_gen = self.client.user_fields()
         except zenpy.lib.exception.APIException as e:
-            return raise_or_log_zenpy_apiexception(schema, e)
+            return raise_or_log_zenpy_apiexception(schema, self.name, e)
         schema['properties']['user_fields']['properties'] = {}
         for field in field_gen:
             schema['properties']['user_fields']['properties'][field.key] = process_custom_field(field)
