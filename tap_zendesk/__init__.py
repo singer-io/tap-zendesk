@@ -13,7 +13,15 @@ LOGGER = singer.get_logger()
 REQUIRED_CONFIG_KEYS = [
     "start_date",
     "subdomain",
-    "access_token"
+]
+
+API_CONFIG_KEYS = [
+    "email",
+    "api_token",
+]
+
+OAUTH_CONFIG_KEYS = [
+    "access_token",
 ]
 
 
@@ -121,11 +129,27 @@ def do_sync(client, catalog, state, start_date):
 @singer.utils.handle_top_exception(LOGGER)
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
-
     creds = {
-        "subdomain": parsed_args.config['subdomain'],
-        "oauth_token": parsed_args.config['access_token'],
+        "subdomain": parsed_args.config['subdomain']
     }
+
+    try:
+        oauth_args = singer.utils.parse_args(OAUTH_CONFIG_KEYS)
+        creds.update({
+            "oauth_token": oauth_args.config['access_token'],
+        })
+    except:
+        LOGGER.debug("Cannot find oauth configuration.")
+
+    try:
+        api_args = singer.utils.parse_args(API_CONFIG_KEYS)
+        creds.update({
+            "email": api_args.config['email'],
+            "token": api_args.config['api_token']
+        })
+    except:
+        LOGGER.debug("Cannot find oauth configuration.")
+
     client = Zenpy(**creds)
 
     if parsed_args.discover:
