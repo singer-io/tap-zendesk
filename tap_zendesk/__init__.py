@@ -148,7 +148,7 @@ def main():
             "token": api_args.config['api_token']
         })
     except:
-        LOGGER.debug("Cannot find oauth configuration.")
+        LOGGER.debug("Cannot find api token configuration.")
 
     client = Zenpy(**creds)
 
