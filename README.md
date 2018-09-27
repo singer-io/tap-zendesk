@@ -25,7 +25,7 @@ Tap for Zendesk
 
 Use the following configuration:
 
-**config.json**:
+**config.json**
 ```json
 {
   "email": "user@domain.com",
