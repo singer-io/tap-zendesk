@@ -2,6 +2,7 @@
 import json
 import sys
 from zenpy import Zenpy
+from zenpy.lib.exception import ZenpyException
 import singer
 from singer import metadata
 from tap_zendesk.discover import discover_streams
@@ -15,12 +16,12 @@ REQUIRED_CONFIG_KEYS = [
     "subdomain",
 ]
 
-API_CONFIG_KEYS = [
+API_CONFIG_KEYS = REQUIRED_CONFIG_KEYS + [
     "email",
     "api_token",
 ]
 
-OAUTH_CONFIG_KEYS = [
+OAUTH_CONFIG_KEYS = REQUIRED_CONFIG_KEYS + [
     "access_token",
 ]
 
@@ -125,32 +126,43 @@ def do_sync(client, catalog, state, start_date):
     singer.write_state(state)
     LOGGER.info("Finished sync")
 
+def oauth_auth():
+    try:
+        oauth_args = singer.utils.parse_args(OAUTH_CONFIG_KEYS)
+        creds = {
+            "subdomain": args['subdomain'],
+            "oauth_token": oauth_args.config['access_token'],
+        }
+
+        client = Zenpy(**creds)
+        LOGGER.info("OAuth authentication successful.")
+        return client
+    except ZenpyException:
+        LOGGER.error("OAuth authentication failed.")
+    except Exception:
+        LOGGER.error("Cannot find OAuth configuration.")
+
+def api_token_auth():
+    try:
+        api_args = singer.utils.parse_args(API_CONFIG_KEYS)
+        creds = {
+            "subdomain": api_args.config['subdomain'],
+            "email": api_args.config['email'],
+            "token": api_args.config['api_token']
+        }
+
+        client = Zenpy(**creds)
+        LOGGER.info("API Token authentication successful.")
+        return client
+    except ZenpyException:
+        LOGGER.error("API Token authentication failed.")
+    except Exception:
+        LOGGER.error("Cannot find API Token configuration.")
 
 @singer.utils.handle_top_exception(LOGGER)
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
-    creds = {
-        "subdomain": parsed_args.config['subdomain']
-    }
-
-    try:
-        oauth_args = singer.utils.parse_args(OAUTH_CONFIG_KEYS)
-        creds.update({
-            "oauth_token": oauth_args.config['access_token'],
-        })
-    except:
-        LOGGER.debug("Cannot find oauth configuration.")
-
-    try:
-        api_args = singer.utils.parse_args(API_CONFIG_KEYS)
-        creds.update({
-            "email": api_args.config['email'],
-            "token": api_args.config['api_token']
-        })
-    except:
-        LOGGER.debug("Cannot find api token configuration.")
-
-    client = Zenpy(**creds)
+    client = oauth_auth() or api_token_auth()
 
     if parsed_args.discover:
         do_discover(client)
