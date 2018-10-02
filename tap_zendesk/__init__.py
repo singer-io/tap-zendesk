@@ -2,6 +2,7 @@
 import json
 import sys
 from zenpy import Zenpy
+from zenpy.lib.exception import ZenpyException
 import singer
 from singer import metadata
 from tap_zendesk.discover import discover_streams
@@ -13,9 +14,18 @@ LOGGER = singer.get_logger()
 REQUIRED_CONFIG_KEYS = [
     "start_date",
     "subdomain",
-    "access_token"
 ]
 
+# default authentication
+OAUTH_CONFIG_KEYS = [
+    "access_token",
+]
+
+# email + api_token authentication
+API_TOKEN_CONFIG_KEYS = [
+    "email",
+    "api_token",
+]
 
 def do_discover(client):
     LOGGER.info("Starting discover")
@@ -117,16 +127,46 @@ def do_sync(client, catalog, state, start_date):
     singer.write_state(state)
     LOGGER.info("Finished sync")
 
+def oauth_auth(args):
+    if not set(OAUTH_CONFIG_KEYS).issubset(args.config.keys()):
+        LOGGER.debug("OAuth authentication unavailable.")
+        return None
+
+    creds = {
+        "subdomain": args.config['subdomain'],
+        "oauth_token": args.config['access_token'],
+    }
+
+    client = Zenpy(**creds)
+    LOGGER.info("Using OAuth authentication.")
+    return client
+
+def api_token_auth(args):
+    if not set(API_TOKEN_CONFIG_KEYS).issubset(args.config.keys()):
+        LOGGER.debug("API Token authentication unavailable.")
+        return None
+
+    creds = {
+        "subdomain": args.config['subdomain'],
+        "email": args.config['email'],
+        "token": args.config['api_token']
+    }
+
+    client = Zenpy(**creds)
+    LOGGER.info("Using API Token authentication.")
+    return client
 
 @singer.utils.handle_top_exception(LOGGER)
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
-    creds = {
-        "subdomain": parsed_args.config['subdomain'],
-        "oauth_token": parsed_args.config['access_token'],
-    }
-    client = Zenpy(**creds)
+    # OAuth has precedence
+    client = oauth_auth(parsed_args) or api_token_auth(parsed_args)
+
+    if not client:
+        LOGGER.error("""No suitable authentication keys provided.
+  OAuth:\t\taccess_token
+  API Token:\t\temail, api_token""")
 
     if parsed_args.discover:
         do_discover(client)
