@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.0
+  * Add ability to auth with API token [#20](https://github.com/singer-io/tap-zendesk/pull/20)
+
 ## 1.2.2
   * The Following changes included in [#18](https://github.com/singer-io/tap-zendesk/pull/18):
       * Fixes a bug where some `group_membership` records were being returned without an `updated_at` field.  The solution is to check for the `updated_at`, and if it is not present, log an info message and sync it.  This means records without an `updated_at` field will be sync'd on every run.
