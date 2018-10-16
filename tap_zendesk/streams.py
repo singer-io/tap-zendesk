@@ -412,6 +412,14 @@ class GroupMemberships(Stream):
                 else:
                     LOGGER.info('Received group_membership record with no id or updated_at, skipping...')
 
+class SLAPolicies(Stream):
+    name = "sla_policies"
+    replication_method = "FULL_TABLE"
+
+    def sync(self, state):
+        for policy in self.client.sla_policies():
+            yield (self.stream, policy)
+
 STREAMS = {
     "tickets": Tickets,
     "groups": Groups,
@@ -425,5 +433,6 @@ STREAMS = {
     "macros": Macros,
     "satisfaction_ratings": SatisfactionRatings,
     "tags": Tags,
-    "ticket_metrics": TicketMetrics
+    "ticket_metrics": TicketMetrics,
+    "sla_policies": SLAPolicies,
 }
