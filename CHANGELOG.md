@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.0
+  * Adds the SLA Policies stream [#21](https://github.com/singer-io/tap-zendesk/pull/21)
+
 ## 1.3.0
   * Add ability to auth with API token [#20](https://github.com/singer-io/tap-zendesk/pull/20)
 
