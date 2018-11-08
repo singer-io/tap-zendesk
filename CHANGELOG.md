@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.1
+  * Make some fields for the `sla_policies` stream nullable
+
 ## 1.4.0
   * Adds the SLA Policies stream [#21](https://github.com/singer-io/tap-zendesk/pull/21)
 
