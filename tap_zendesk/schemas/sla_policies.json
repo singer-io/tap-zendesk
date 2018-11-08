@@ -35,20 +35,53 @@
           "type": ["null", "array"],
           "items": {
             "properties": {
-              "field": { "type": ["string"] },
-              "operator": { "type": ["string"] },
-              "value": { "type": ["string"] }
+              "field": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "operator": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "value": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
             },
             "type": ["object"]
           }
         },
         "any": {
-          "type": ["null", "array"],
+          "type": [
+            "null",
+            "array"
+          ],
           "items": {
             "properties": {
-              "field": { "type": ["string"] },
-              "operator": { "type": ["string"] },
-              "value": { "type": ["string"] }
+              "field": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "operator": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "value": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
             },
             "type": ["object"]
           }
