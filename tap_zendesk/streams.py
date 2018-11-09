@@ -237,6 +237,7 @@ class Tickets(Stream):
             if comments_stream.is_selected():
                 try:
                     for comment in comments_stream.sync(ticket_dict["id"]):
+                        comment["ticket_id"] = ticket_dict["id"]
                         self._buffer_record(comment)
                 except RecordNotFoundException:
                     LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
