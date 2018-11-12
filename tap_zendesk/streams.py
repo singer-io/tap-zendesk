@@ -236,8 +236,10 @@ class Tickets(Stream):
 
             if comments_stream.is_selected():
                 try:
+                    # add ticket_id to ticket_comment so the comment can
+                    # be linked back to it's corresponding ticket
                     for comment in comments_stream.sync(ticket_dict["id"]):
-                        comment["ticket_id"] = ticket_dict["id"]
+                        comment[1].ticket_id = ticket_dict["id"]
                         self._buffer_record(comment)
                 except RecordNotFoundException:
                     LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
