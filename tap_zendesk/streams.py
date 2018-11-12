@@ -419,7 +419,7 @@ class SLAPolicies(Stream):
     name = "sla_policies"
     replication_method = "FULL_TABLE"
 
-    def sync(self, state):
+    def sync(self, state): # pylint: disable=unused-argument
         for policy in self.client.sla_policies():
             yield (self.stream, policy)
 
