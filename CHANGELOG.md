@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.2
+  * Add `ticket_id` field to `ticket_comments` stream [#22](https://github.com/singer-io/tap-zendesk/pull/22)
+
 ## 1.4.1
   * Make some fields for the `sla_policies` stream nullable
 
