@@ -301,6 +301,7 @@ class SatisfactionRatings(Stream):
         bookmark = self.get_bookmark(state)
 
         satisfaction_ratings = self.client.satisfaction_ratings()
+        skipped_count = 0
         for satisfaction_rating in satisfaction_ratings:
             if utils.strptime_with_tz(satisfaction_rating.updated_at) >= bookmark:
                 # NB: We don't trust that the records come back ordered by
@@ -308,6 +309,10 @@ class SatisfactionRatings(Stream):
                 # so we can't save state until we've seen all records
                 self.update_bookmark(state, satisfaction_rating.updated_at)
                 yield (self.stream, satisfaction_rating)
+            else:
+                skipped_count += 1
+                if skipped_count % 10000 == 0:
+                    LOGGER.info("Skipped 10,000 rows as they occur before bookmark: %s", bookmark)
 
 class Groups(Stream):
     name = "groups"
