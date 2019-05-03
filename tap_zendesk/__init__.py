@@ -8,6 +8,7 @@ from singer import metadata
 from tap_zendesk.discover import discover_streams
 from tap_zendesk.sync import sync_stream
 from tap_zendesk.streams import STREAMS
+from tap_zendesk import metrics as zendesk_metrics
 
 LOGGER = singer.get_logger()
 
@@ -123,9 +124,11 @@ def do_sync(client, catalog, state, start_date):
         counter_value = sync_stream(state, start_date, instance)
         singer.write_state(state)
         LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
+        zendesk_metrics.log_aggregate_rates()
 
     singer.write_state(state)
     LOGGER.info("Finished sync")
+    zendesk_metrics.log_aggregate_rates()
 
 def oauth_auth(args):
     if not set(OAUTH_CONFIG_KEYS).issubset(args.config.keys()):
@@ -164,9 +167,7 @@ def main():
     client = oauth_auth(parsed_args) or api_token_auth(parsed_args)
 
     if not client:
-        LOGGER.error("""No suitable authentication keys provided.
-  OAuth:\t\taccess_token
-  API Token:\t\temail, api_token""")
+        LOGGER.error("""No suitable authentication keys provided.""")
 
     if parsed_args.discover:
         do_discover(client)

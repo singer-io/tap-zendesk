@@ -8,6 +8,7 @@ import singer
 from singer import metadata
 from singer import utils
 from singer.metrics import Point
+from tap_zendesk import metrics as zendesk_metrics
 
 
 LOGGER = singer.get_logger()
@@ -211,6 +212,7 @@ class Tickets(Stream):
             LOGGER.info("Syncing ticket_audits per ticket...")
 
         for ticket in tickets:
+            zendesk_metrics.capture('ticket')
             generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(tzinfo=pytz.UTC)
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
@@ -221,6 +223,7 @@ class Tickets(Stream):
             if audits_stream.is_selected():
                 try:
                     for audit in audits_stream.sync(ticket_dict["id"]):
+                        zendesk_metrics.capture('ticket_audit')
                         self._buffer_record(audit)
                 except RecordNotFoundException:
                     LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
@@ -229,6 +232,7 @@ class Tickets(Stream):
             if metrics_stream.is_selected():
                 try:
                     for metric in metrics_stream.sync(ticket_dict["id"]):
+                        zendesk_metrics.capture('ticket_metric')
                         self._buffer_record(metric)
                 except RecordNotFoundException:
                     LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), " \
@@ -239,6 +243,7 @@ class Tickets(Stream):
                     # add ticket_id to ticket_comment so the comment can
                     # be linked back to it's corresponding ticket
                     for comment in comments_stream.sync(ticket_dict["id"]):
+                        zendesk_metrics.capture('ticket_comment')
                         comment[1].ticket_id = ticket_dict["id"]
                         self._buffer_record(comment)
                 except RecordNotFoundException:
