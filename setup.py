@@ -17,6 +17,8 @@ setup(name='tap-zendesk',
           'dev': [
               'ipdb',
               'pylint',
+              'nose',
+              'nose-watch',
           ]
       },
       entry_points='''
