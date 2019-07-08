@@ -35,7 +35,7 @@ API_TOKEN_CONFIG_KEYS = [
 request = Session.request
 
 def request_metrics_patch(self, method, url, **kwargs):
-    with singer_metrics.http_request_timer(urlparse(url).path):
+    with singer_metrics.http_request_timer(None):
         return request(self, method, url, **kwargs)
 
 Session.request = request_metrics_patch
