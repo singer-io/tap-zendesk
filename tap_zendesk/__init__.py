@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import json
 import sys
+import requests
+from requests.adapters import HTTPAdapter
 from zenpy import Zenpy
 from zenpy.lib.exception import ZenpyException
 import singer
@@ -135,36 +137,47 @@ def oauth_auth(args):
         LOGGER.debug("OAuth authentication unavailable.")
         return None
 
-    creds = {
+    LOGGER.info("Using OAuth authentication.")
+    return {
         "subdomain": args.config['subdomain'],
         "oauth_token": args.config['access_token'],
     }
-
-    client = Zenpy(**creds)
-    LOGGER.info("Using OAuth authentication.")
-    return client
 
 def api_token_auth(args):
     if not set(API_TOKEN_CONFIG_KEYS).issubset(args.config.keys()):
         LOGGER.debug("API Token authentication unavailable.")
         return None
 
-    creds = {
+    LOGGER.info("Using API Token authentication.")
+    return {
         "subdomain": args.config['subdomain'],
         "email": args.config['email'],
         "token": args.config['api_token']
     }
 
-    client = Zenpy(**creds)
-    LOGGER.info("Using API Token authentication.")
-    return client
+def get_session(config):
+    """ Add partner information to requests Session object if specified in the config. """
+    if not all(k in config for k in ["marketplace_name",
+                                     "marketplace_organization_id",
+                                     "marketplace_app_id"]):
+        return None
+    session = requests.Session()
+    # Using Zenpy's default adapter args, following the method outlined here:
+    # https://github.com/facetoe/zenpy/blob/master/docs/zenpy.rst#usage
+    session.mount("https://", HTTPAdapter(**Zenpy.http_adapter_kwargs()))
+    session.headers["X-Zendesk-Marketplace-Name"] = config.get("marketplace_name", "")
+    session.headers["X-Zendesk-Marketplace-Organization-Id"] = str(config.get("marketplace_organization_id", ""))
+    session.headers["X-Zendesk-Marketplace-App-Id"] = str(config.get("marketplace_app_id", ""))
+    return session
 
 @singer.utils.handle_top_exception(LOGGER)
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
     # OAuth has precedence
-    client = oauth_auth(parsed_args) or api_token_auth(parsed_args)
+    creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
+    session = get_session(parsed_args.config)
+    client = Zenpy(session=session, **creds)
 
     if not client:
         LOGGER.error("""No suitable authentication keys provided.""")
