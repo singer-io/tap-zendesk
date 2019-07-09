@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.4
+  * Add zendesk partner headers to all requests [#27](https://github.com/singer-io/tap-zendesk/pull/27)
+
 ## 1.4.2
   * Add `ticket_id` field to `ticket_comments` stream [#22](https://github.com/singer-io/tap-zendesk/pull/22)
 
