@@ -177,7 +177,13 @@ def main():
     # OAuth has precedence
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
     session = get_session(parsed_args.config)
-    client = Zenpy(session=session, **creds)
+
+    # Pass some config options into the client
+    client_kwargs = {}
+    for key in ('proactive_ratelimit', 'proactive_ratelimit_request_interval', 'ratelimit_budget'):
+        if key in parsed_args.config:
+            client_kwargs[key] = parsed_args.config[key]
+    client = Zenpy(session=session, **client_kwargs, **creds)
 
     if not client:
         LOGGER.error("""No suitable authentication keys provided.""")
