@@ -194,11 +194,15 @@ class Tickets(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        tickets = self.client.tickets.incremental(start_time=bookmark)
 
         audits_stream = TicketAudits(self.client)
         metrics_stream = TicketMetrics(self.client)
         comments_stream = TicketComments(self.client)
+
+        include = []
+        if metrics_stream.is_selected():
+            include.append('metric_sets')
+        tickets = self.client.tickets.incremental(start_time=bookmark, include=include)
 
         def emit_sub_stream_metrics(sub_stream):
             if sub_stream.is_selected():
@@ -231,7 +235,7 @@ class Tickets(Stream):
 
             if metrics_stream.is_selected():
                 try:
-                    for metric in metrics_stream.sync(ticket_dict["id"]):
+                    for metric in metrics_stream.sync(ticket_dict):
                         zendesk_metrics.capture('ticket_metric')
                         self._buffer_record(metric)
                 except RecordNotFoundException:
@@ -281,8 +285,8 @@ class TicketMetrics(Stream):
     replication_method = "INCREMENTAL"
     count = 0
 
-    def sync(self, ticket_id):
-        ticket_metric = self.client.tickets.metrics(ticket=ticket_id)
+    def sync(self, ticket_dict):
+        ticket_metric = ticket_dict['metric_set']
         self.count += 1
         yield (self.stream, ticket_metric)
 
