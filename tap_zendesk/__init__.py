@@ -180,7 +180,7 @@ def main():
 
     # Pass some config options into the client
     rate_limit_settings = {}
-    for key in ('ratelimit', 'ratelimit_budget'):
+    for key in ('proactive_ratelimit', 'proactive_ratelimit_request_interval', 'ratelimit_budget'):
         if key in parsed_args.config:
             rate_limit_settings[key] = parsed_args.config.pop(key)
     LOGGER.info('zenpy rate limit settings = %r', rate_limit_settings)
