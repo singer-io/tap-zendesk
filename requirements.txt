@@ -1,1 +1,0 @@
-git+ssh://git@github.com:Pathlight/singer-python.git@v5.7.1#egg=singer-python

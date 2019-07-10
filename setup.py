@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='tap-zendesk',
-      version='1.4.14',
+      version='1.4.15',
       description='Singer.io tap for extracting data from the Zendesk API',
       author='Stitch',
       url='https://singer.io',
@@ -12,6 +12,9 @@ setup(name='tap-zendesk',
       install_requires=[
           'singer-python==5.7.1',
           'zenpy==2.0.12',
+      ],
+      dependency_links=[
+          'https://github.com/Pathlight/singer-python/archive/v5.7.1.tar.gz#egg=singer-python-5.7.1',
       ],
       extras_require={
           'dev': [
