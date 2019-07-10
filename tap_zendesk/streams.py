@@ -275,10 +275,12 @@ class TicketAudits(Stream):
     count = 0
 
     def sync(self, ticket_id):
-        ticket_audits = self.client.tickets.audits(ticket=ticket_id)
-        for ticket_audit in ticket_audits:
-            self.count += 1
-            yield (self.stream, ticket_audit)
+        LOGGER.warning('Refusing to request ticket audits since it generates one request per ticket')
+        yield from ()
+        # ticket_audits = self.client.tickets.audits(ticket=ticket_id)
+        # for ticket_audit in ticket_audits:
+        #     self.count += 1
+        #     yield (self.stream, ticket_audit)
 
 class TicketMetrics(Stream):
     name = "ticket_metrics"
@@ -296,10 +298,12 @@ class TicketComments(Stream):
     count = 0
 
     def sync(self, ticket_id):
-        ticket_comments = self.client.tickets.comments(ticket=ticket_id)
-        for ticket_comment in ticket_comments:
-            self.count += 1
-            yield (self.stream, ticket_comment)
+        LOGGER.warning('Refusing to request ticket comments since it generates one request per ticket')
+        yield from ()
+        # ticket_comments = self.client.tickets.comments(ticket=ticket_id)
+        # for ticket_comment in ticket_comments:
+        #     self.count += 1
+        #     yield (self.stream, ticket_comment)
 
 class SatisfactionRatings(Stream):
     name = "satisfaction_ratings"
