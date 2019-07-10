@@ -179,11 +179,12 @@ def main():
     session = get_session(parsed_args.config)
 
     # Pass some config options into the client
-    client_kwargs = {}
+    rate_limit_settings = {}
     for key in ('proactive_ratelimit', 'proactive_ratelimit_request_interval', 'ratelimit_budget'):
         if key in parsed_args.config:
-            client_kwargs[key] = parsed_args.config[key]
-    client = Zenpy(session=session, **client_kwargs, **creds)
+            rate_limit_settings[key] = parsed_args.config[key]
+    LOGGER.info('zenpy rate limit settings = %r', rate_limit_settings)
+    client = Zenpy(session=session, **rate_limit_settings, **creds)
 
     if not client:
         LOGGER.error("""No suitable authentication keys provided.""")
