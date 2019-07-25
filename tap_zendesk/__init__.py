@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 import json
 import sys
+
 import requests
-from requests.adapters import HTTPAdapter
-from zenpy import Zenpy
-from zenpy.lib.exception import ZenpyException
 import singer
-from singer import metadata
-from tap_zendesk.discover import discover_streams
-from tap_zendesk.sync import sync_stream
-from tap_zendesk.streams import STREAMS
+from requests import Session
+from requests.adapters import HTTPAdapter
+from singer import metadata, metrics as singer_metrics
 from tap_zendesk import metrics as zendesk_metrics
+from tap_zendesk.discover import discover_streams
+from tap_zendesk.streams import STREAMS
+from tap_zendesk.sync import sync_stream
+from zenpy import Zenpy
 
 LOGGER = singer.get_logger()
 
@@ -29,6 +30,16 @@ API_TOKEN_CONFIG_KEYS = [
     "email",
     "api_token",
 ]
+
+# patch Session.request to record HTTP request metrics
+request = Session.request
+
+def request_metrics_patch(self, method, url, **kwargs):
+    with singer_metrics.http_request_timer(None):
+        return request(self, method, url, **kwargs)
+
+Session.request = request_metrics_patch
+# end patch
 
 def do_discover(client):
     LOGGER.info("Starting discover")
