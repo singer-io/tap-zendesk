@@ -27,7 +27,7 @@ def sync_stream(state, start_date, instance):
                               start_date)
 
     parent_stream = stream
-    with metrics.record_counter(stream.tap_stream_id) as counter:
+    with metrics.record_counter(stream.tap_stream_id) as counter, Transformer() as transformer:
         for (stream, record) in instance.sync(state):
             # NB: Only count parent records in the case of sub-streams
             if stream.tap_stream_id == parent_stream.tap_stream_id:
@@ -35,8 +35,7 @@ def sync_stream(state, start_date, instance):
 
             rec = process_record(record)
             # SCHEMA_GEN: Comment out transform
-            with Transformer() as transformer:
-                rec = transformer.transform(rec, stream.schema.to_dict(), metadata.to_map(stream.metadata))
+            rec = transformer.transform(rec, stream.schema.to_dict(), metadata.to_map(stream.metadata))
 
             singer.write_record(stream.tap_stream_id, rec)
             # NB: We will only write state at the end of a stream's sync:
