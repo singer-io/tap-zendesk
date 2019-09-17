@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.6
+  * Reduce the number of `Transformer` log messages from 1 per record to 1
+    per stream [#28](https://github.com/singer-io/tap-zendesk/pull/28)
+
 ## 1.4.4
   * Add zendesk partner headers to all requests [#27](https://github.com/singer-io/tap-zendesk/pull/27)
 
