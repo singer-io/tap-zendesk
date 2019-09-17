@@ -2,16 +2,16 @@
 import json
 import sys
 
+from zenpy import Zenpy
 import requests
-import singer
 from requests import Session
 from requests.adapters import HTTPAdapter
+import singer
 from singer import metadata, metrics as singer_metrics
 from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk.discover import discover_streams
 from tap_zendesk.streams import STREAMS
 from tap_zendesk.sync import sync_stream
-from zenpy import Zenpy
 
 LOGGER = singer.get_logger()
 
