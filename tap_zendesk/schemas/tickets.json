@@ -379,12 +379,6 @@
         ]
       }
     },
-    "problem_id": {
-      "type": [
-        "null",
-        "integer"
-      ]
-    },
     "forum_topic_id": {
       "type": [
         "null",
