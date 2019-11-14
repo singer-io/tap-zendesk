@@ -276,12 +276,15 @@ class Tickets(Stream):
         start_time = datetime.datetime.now()
         for idx, ticket in enumerate(tickets):
             zendesk_metrics.capture('ticket')
-            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(tzinfo=pytz.UTC)
-            self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
             ticket_dict = ticket.to_dict()
             ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
             should_yield = self._buffer_record((self.stream, ticket_dict))
+
+            if not tasks_batch:
+                generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(
+                    tzinfo=pytz.UTC)
+                self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
             for name in [AUDITS, METRICS, COMMENTS]:
                 tasks_batch.append((name, ticket_dict))
