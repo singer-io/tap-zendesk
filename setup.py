@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-setup(name='tap-zendesk',
+setup(name='tap-zendesk-parallel',
       version='1.4.6',
       description='Singer.io tap for extracting data from the Zendesk API',
       author='Stitch',
