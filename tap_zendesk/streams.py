@@ -266,11 +266,17 @@ class Tickets(Stream):
 
             name_to_process_job[name](ticket_dict)
 
+        def execute_batch(tasks_batch):
+            max_workers = self.client.internal_config['max_workers']
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # 'for' is needed here to raise an exception if there is an exception occurred in any of functions.
+                for _ in executor.map(_process_task, tasks_batch):
+                    pass
+
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
 
-        MAX_WORKERS = 10
-        BATCH_SIZE = 50
+        batch_size = self.client.internal_config['batch_size']
         tasks_batch = []
 
         start_time = datetime.datetime.now()
@@ -289,12 +295,8 @@ class Tickets(Stream):
             for name in [AUDITS, METRICS, COMMENTS]:
                 tasks_batch.append((name, ticket_dict))
 
-            if len(tasks_batch) >= BATCH_SIZE:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-                    # 'for' is needed here to raise an exception if there is an exception occurred in any of functions.
-                    for _ in executor.map(_process_task, tasks_batch):
-                        pass
-
+            if len(tasks_batch) >= batch_size:
+                execute_batch(tasks_batch)
                 tasks_batch = []
 
                 LOGGER.info(f"Processed {idx + 1} tickets. Time: {datetime.datetime.now() - start_time}")
@@ -311,9 +313,7 @@ class Tickets(Stream):
 
         # Finish processing left requests
         if tasks_batch:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-                for _ in executor.map(_process_task, tasks_batch):
-                    pass
+            execute_batch(tasks_batch)
 
         for rec in self._empty_buffer():
             yield rec

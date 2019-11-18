@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 import sys
 
 from zenpy import Zenpy
@@ -181,15 +182,23 @@ def get_session(config):
     session.headers["X-Zendesk-Marketplace-App-Id"] = str(config.get("marketplace_app_id", ""))
     return session
 
+
+def get_internal_config():
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'internal_config.json')) as f:
+        config = json.loads(f.read())
+
+    return config
+
 @singer.utils.handle_top_exception(LOGGER)
 def main():
-    RATE_LIMIT_FLOOR = 1000
+    internal_config = get_internal_config()
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
     # OAuth has precedence
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
     session = get_session(parsed_args.config)
-    client = Zenpy(session=session, ratelimit=RATE_LIMIT_FLOOR, **creds)
+    client = Zenpy(session=session, ratelimit=internal_config['rate_limit'], **creds)
+    client.internal_config = internal_config
 
     if not client:
         LOGGER.error("""No suitable authentication keys provided.""")
