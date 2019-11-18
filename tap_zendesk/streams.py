@@ -291,7 +291,9 @@ class Tickets(Stream):
 
             if len(tasks_batch) >= BATCH_SIZE:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-                    executor.map(_process_task, tasks_batch)
+                    # 'for' is needed here to raise an exception if there is an exception occurred in any of functions.
+                    for _ in executor.map(_process_task, tasks_batch):
+                        pass
 
                 tasks_batch = []
 
@@ -306,6 +308,11 @@ class Tickets(Stream):
                 singer.write_state(state)
 
             LOGGER.info(f"Processed {idx + 1} tickets. Time: {datetime.datetime.now() - start_time}")
+
+        # Finish processing left requests
+        if tasks_batch:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+                executor.map(_process_task, tasks_batch)
 
         for rec in self._empty_buffer():
             yield rec
