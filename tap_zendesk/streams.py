@@ -312,7 +312,8 @@ class Tickets(Stream):
         # Finish processing left requests
         if tasks_batch:
             with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-                executor.map(_process_task, tasks_batch)
+                for _ in executor.map(_process_task, tasks_batch):
+                    pass
 
         for rec in self._empty_buffer():
             yield rec
