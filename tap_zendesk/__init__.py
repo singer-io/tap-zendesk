@@ -167,6 +167,17 @@ def api_token_auth(args):
         "token": args.config['api_token']
     }
 
+def convert_x_rate_limit_remaining_to_int(response, *args, **kwargs):
+    if 'X-Rate-Limit-Remaining' in response.headers and isinstance(response.headers['X-Rate-Limit-Remaining'], str):
+        response.headers['X-Rate-Limit-Remaining'] = int(response.headers['X-Rate-Limit-Remaining'])
+
+    return response
+
+def add_session_hooks(session):
+    # This is due version conflict between singer-python and ZenPy
+    # Link: https://github.com/singer-io/singer-python/issues/114
+    session.hooks['response'].append(convert_x_rate_limit_remaining_to_int)
+
 def get_session(config):
     """ Add partner information to requests Session object if specified in the config. """
     if not all(k in config for k in ["marketplace_name",
@@ -174,6 +185,7 @@ def get_session(config):
                                      "marketplace_app_id"]):
         return None
     session = requests.Session()
+
     # Using Zenpy's default adapter args, following the method outlined here:
     # https://github.com/facetoe/zenpy/blob/master/docs/zenpy.rst#usage
     session.mount("https://", HTTPAdapter(**Zenpy.http_adapter_kwargs()))
@@ -199,6 +211,8 @@ def main():
     session = get_session(parsed_args.config)
     client = Zenpy(session=session, ratelimit=internal_config['rate_limit'], **creds)
     client.internal_config = internal_config
+
+    add_session_hooks(client.tickets.session)
 
     if not client:
         LOGGER.error("""No suitable authentication keys provided.""")
