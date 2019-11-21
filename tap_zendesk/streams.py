@@ -65,10 +65,14 @@ class Stream():
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
 
     def update_bookmark(self, state, value):
+        LOGGER.info(f"Looking to update state {state} with new value {value}")
         current_bookmark = self.get_bookmark(state)
-        if value and utils.strptime_with_tz(value) > current_bookmark:
-            singer.write_bookmark(state, self.name, self.replication_key, value)
 
+        if value and utils.strptime_with_tz(value) > current_bookmark:
+            LOGGER.info(f"Updating state for ({self.name}, {self.replication_key}) with new value {value}")
+            singer.write_bookmark(state, self.name, self.replication_key, value)
+        else:
+            LOGGER.info(f"Not updating state, because {utils.strptime_with_tz(value)} <= {current_bookmark}")
 
     def load_schema(self):
         schema_file = "schemas/{}.json".format(self.name)
@@ -281,6 +285,8 @@ class Tickets(Stream):
 
         start_time = datetime.datetime.now()
         for idx, ticket in enumerate(tickets):
+            LOGGER.info(f"Ticket (id:{idx}): {datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(tzinfo=pytz.UTC)}")
+
             zendesk_metrics.capture('ticket')
 
             ticket_dict = ticket.to_dict()
