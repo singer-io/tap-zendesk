@@ -59,6 +59,30 @@ class Stream():
     def __init__(self, client=None):
         self.client = client
 
+    last_record_emit = {}
+    buf = {}
+    buf_time = 60
+    def _buffer_record(self, record):
+        stream_name = record[0].tap_stream_id
+        if self.last_record_emit.get(stream_name) is None:
+            self.last_record_emit[stream_name] = utils.now()
+
+        if self.buf.get(stream_name) is None:
+            self.buf[stream_name] = []
+        self.buf[stream_name].append(record)
+
+        if (utils.now() - self.last_record_emit[stream_name]).total_seconds() > self.buf_time:
+            self.last_record_emit[stream_name] = utils.now()
+            return True
+
+        return False
+
+    def _empty_buffer(self):
+        for stream_name, stream_buf in self.buf.items():
+            for rec in stream_buf:
+                yield rec
+            self.buf[stream_name] = []
+
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
 
@@ -168,30 +192,6 @@ class Tickets(Stream):
     replication_method = "INCREMENTAL"
     replication_key = "generated_timestamp"
 
-    last_record_emit = {}
-    buf = {}
-    buf_time = 60
-    def _buffer_record(self, record):
-        stream_name = record[0].tap_stream_id
-        if self.last_record_emit.get(stream_name) is None:
-            self.last_record_emit[stream_name] = utils.now()
-
-        if self.buf.get(stream_name) is None:
-            self.buf[stream_name] = []
-        self.buf[stream_name].append(record)
-
-        if (utils.now() - self.last_record_emit[stream_name]).total_seconds() > self.buf_time:
-            self.last_record_emit[stream_name] = utils.now()
-            return True
-
-        return False
-
-    def _empty_buffer(self):
-        for stream_name, stream_buf in self.buf.items():
-            for rec in stream_buf:
-                yield rec
-            self.buf[stream_name] = []
-
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
@@ -292,18 +292,64 @@ class TicketMetrics(Stream):
         self.count += 1
         yield (self.stream, ticket_metric)
 
+class TicketEvents(Stream):
+    name = "ticket_events"
+    replication_method = "INCREMENTAL"
+    replication_key = 'timestamp'
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+
+        comments_stream = TicketComments(self.client)
+        include = []
+        if comments_stream.is_selected():
+            include.append('comment_events')
+
+        def emit_sub_stream_metrics(sub_stream):
+            if sub_stream.is_selected():
+                singer.metrics.log(LOGGER, Point(metric_type='counter',
+                                                 metric=singer.metrics.Metric.record_count,
+                                                 value=sub_stream.count,
+                                                 tags={'endpoint':sub_stream.stream.tap_stream_id}))
+                sub_stream.count = 0
+
+        ticket_events = self.client.tickets.events(bookmark, include=include)
+        for event in ticket_events:
+            # Don't use event.timestamp here. It tries to parse _timestamp
+            # as a date, but _timestamp is an integer so it fails.
+            event_timestamp = datetime.datetime.fromtimestamp(event._timestamp, pytz.utc)
+            # See the following URL for why we check the timestamp against the bookmark:
+            # https://developer.zendesk.com/rest_api/docs/support/incremental_export#excluding-system-updates
+            if event_timestamp >= bookmark:
+                self.update_bookmark(state, event_timestamp.isoformat())
+                should_yield = self._buffer_record((self.stream, event.to_dict()))
+
+                if comments_stream.is_selected():
+                    for comment in comments_stream.sync(event):
+                        self._buffer_record(comment)
+
+                if should_yield:
+                    for rec in self._empty_buffer():
+                        yield rec
+                    emit_sub_stream_metrics(comments_stream)
+                    singer.write_state(state)
+
+        for rec in self._empty_buffer():
+            yield rec
+        emit_sub_stream_metrics(comments_stream)
+        singer.write_state(state)
+
 class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
     count = 0
 
-    def sync(self, ticket_id):
-        LOGGER.warning('Refusing to request ticket comments since it generates one request per ticket')
-        yield from ()
-        # ticket_comments = self.client.tickets.comments(ticket=ticket_id)
-        # for ticket_comment in ticket_comments:
-        #     self.count += 1
-        #     yield (self.stream, ticket_comment)
+    def sync(self, event):
+        for child_event in event.child_events:
+            if child_event.get('event_type') == 'Comment':
+                self.count += 1
+                child_event['ticket_id'] = event.ticket_id
+                yield (self.stream, child_event)
 
 class SatisfactionRatings(Stream):
     name = "satisfaction_ratings"
@@ -442,6 +488,7 @@ STREAMS = {
     "users": Users,
     "organizations": Organizations,
     "ticket_audits": TicketAudits,
+    "ticket_events": TicketEvents,
     "ticket_comments": TicketComments,
     "ticket_fields": TicketFields,
     "ticket_forms": TicketForms,
