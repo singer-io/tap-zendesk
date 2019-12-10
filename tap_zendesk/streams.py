@@ -197,7 +197,6 @@ class Tickets(Stream):
 
         audits_stream = TicketAudits(self.client)
         metrics_stream = TicketMetrics(self.client)
-        comments_stream = TicketComments(self.client)
 
         include = []
         if metrics_stream.is_selected():
@@ -242,31 +241,17 @@ class Tickets(Stream):
                     LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), " \
                     "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
-            if comments_stream.is_selected():
-                try:
-                    # add ticket_id to ticket_comment so the comment can
-                    # be linked back to it's corresponding ticket
-                    for comment in comments_stream.sync(ticket_dict["id"]):
-                        zendesk_metrics.capture('ticket_comment')
-                        comment[1].ticket_id = ticket_dict["id"]
-                        self._buffer_record(comment)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
-
             if should_yield:
                 for rec in self._empty_buffer():
                     yield rec
                 emit_sub_stream_metrics(audits_stream)
                 emit_sub_stream_metrics(metrics_stream)
-                emit_sub_stream_metrics(comments_stream)
                 singer.write_state(state)
 
         for rec in self._empty_buffer():
             yield rec
         emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
-        emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
 
 class TicketAudits(Stream):
