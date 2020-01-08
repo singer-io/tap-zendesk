@@ -77,8 +77,10 @@ celerybeat-schedule
 
 # dotenv
 .env
+.envrc
 
 # virtualenv
+.venv/
 venv/
 ENV/
 
@@ -95,6 +97,8 @@ ENV/
 # Custom stuff
 env.sh
 config.json
+catalog.json
+target_config.json
 .autoenv.zsh
 
 *~
