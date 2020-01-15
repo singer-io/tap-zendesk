@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import sys
+import os
 
 from zenpy import Zenpy
 import requests
@@ -12,6 +13,7 @@ from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk.discover import discover_streams
 from tap_zendesk.streams import STREAMS
 from tap_zendesk.sync import sync_stream
+from crontab import CronTab
 
 LOGGER = singer.get_logger()
 
@@ -182,8 +184,47 @@ def get_session(config):
     session.headers["X-Zendesk-Marketplace-App-Id"] = str(config.get("marketplace_app_id", ""))
     return session
 
+def do_create_configs_start_cron():
+    def get_env_vars(keys):
+        data = {}
+        for key in keys:
+            data[key] = os.environ.get(key.upper())
+        return data
+
+    def create_file(name, data):
+        file = open('%s.json' % name, 'w')
+        file.write(json.dumps(data))
+        file.close()
+        print('Created %s.json' % name)
+
+    CONFIG_KEYS = [
+        'email',
+        'api_token',
+        'subdomain',
+        'start_date',
+        'user_agent',
+    ]
+    create_file('config', get_env_vars(CONFIG_KEYS))
+
+    TARGET_CONFIG_KEYS = [
+        'client_id',
+        'token',
+        'small_batch_url',
+        'big_batch_url',
+    ]
+    create_file('target_config', get_env_vars(TARGET_CONFIG_KEYS))
+
+    cron = CronTab(user='root')
+    job = cron.new(command='tap-zendesk -c config.json --catalog help-desk-catalog.json | target-stitch --config target_config.json >> /var/log/cron.log 2>&1')
+    # job = cron.new(command='echo "hello world" >> /var/log/cron.log 2>&1')
+    job.minute.every(1)
+    cron.write()
+
 @singer.utils.handle_top_exception(LOGGER)
 def main():
+    if sys.argv and '--start' in sys.argv:
+        return do_create_configs_start_cron()
+
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
     # OAuth has precedence

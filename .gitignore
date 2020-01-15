@@ -95,7 +95,9 @@ ENV/
 .DS_Store
 
 # Custom stuff
+config.env
 env.sh
+env.py
 config.json
 catalog.json
 target_config.json
