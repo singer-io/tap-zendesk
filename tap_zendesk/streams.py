@@ -394,6 +394,23 @@ class TicketForms(Stream):
                 self.update_bookmark(state, form.updated_at)
                 yield (self.stream, form)
 
+class TicketMetricEvents(Stream):
+    name = "ticket_metric_events"
+    replication_method = "INCREMENTAL"
+    replication_key = "time"
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+
+        ticket_metric_events = self.client.ticket_metric_events()
+        for ticket_metric_event in ticket_metric_events:
+            if utils.strptime_with_tz(ticket_metric_event.time) >= bookmark:
+                # NB: We don't trust that the records come back ordered by
+                # updated_at (we've observed out-of-order records),
+                # so we can't save state until we've seen all records
+                self.update_bookmark(state, ticket_metric_event.time)
+                yield (self.stream, ticket_metric_event)
+
 class GroupMemberships(Stream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"
@@ -443,4 +460,5 @@ STREAMS = {
     "tags": Tags,
     "ticket_metrics": TicketMetrics,
     "sla_policies": SLAPolicies,
+    "ticket_metric_events": TicketMetricEvents,
 }
