@@ -402,7 +402,7 @@ class TicketMetricEvents(Stream):
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
-        ticket_metric_events = self.client.tickets.metrics_incremental(start_time=bookmark)
+        ticket_metric_events = self.client.ticket_metric_events(start_time=bookmark)
         for ticket_metric_event in ticket_metric_events:
             if utils.strptime_with_tz(ticket_metric_event.time) >= bookmark:
                 # NB: We don't trust that the records come back ordered by
