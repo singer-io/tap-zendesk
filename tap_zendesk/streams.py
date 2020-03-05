@@ -304,15 +304,22 @@ class SatisfactionRatings(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-
-        satisfaction_ratings = self.client.satisfaction_ratings()
+        bookmark_epoch = int(bookmark.strftime('%s'))
+        # We substract a second here because the API seems to compare
+        # start_time with a >, but we typically prefer a >= behavior.
+        # Also, the start_time query parameter filters based off of
+        # created_at, but we found during testing that
+        # satisfaction_ratings are immutable, and any updates actually
+        # create a new satisfaction rating, so that updated_at always
+        # equals created_at
+        satisfaction_ratings = self.client.satisfaction_ratings(start_time=(bookmark_epoch-1))
         for satisfaction_rating in satisfaction_ratings:
             if utils.strptime_with_tz(satisfaction_rating.updated_at) >= bookmark:
                 # NB: We don't trust that the records come back ordered by
                 # updated_at (we've observed out-of-order records),
                 # so we can't save state until we've seen all records
                 self.update_bookmark(state, satisfaction_rating.updated_at)
-                yield (self.stream, satisfaction_rating)
+            yield (self.stream, satisfaction_rating)
 
 class Groups(Stream):
     name = "groups"
