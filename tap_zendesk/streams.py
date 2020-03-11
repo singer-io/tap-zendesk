@@ -308,10 +308,9 @@ class SatisfactionRatings(Stream):
         # We substract a second here because the API seems to compare
         # start_time with a >, but we typically prefer a >= behavior.
         # Also, the start_time query parameter filters based off of
-        # created_at, but we found during testing that
-        # satisfaction_ratings are immutable, and any updates actually
-        # create a new satisfaction rating, so that updated_at always
-        # equals created_at
+        # created_at, but zendesk support confirmed with us that
+        # satisfaction_ratings are immutable so that created_at =
+        # updated_at
         satisfaction_ratings = self.client.satisfaction_ratings(start_time=(bookmark_epoch-1))
         for satisfaction_rating in satisfaction_ratings:
             if utils.strptime_with_tz(satisfaction_rating.updated_at) >= bookmark:
