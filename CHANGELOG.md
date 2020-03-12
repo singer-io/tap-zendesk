@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.7
+  * Use `start_time` query parameter for satisfaction_ratings stream [#37](https://github.com/singer-io/tap-zendesk/pull/37)
+
 ## 1.4.6
   * Reduce the number of `Transformer` log messages from 1 per record to 1
     per stream [#28](https://github.com/singer-io/tap-zendesk/pull/28)
