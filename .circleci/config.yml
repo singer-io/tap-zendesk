@@ -30,3 +30,20 @@ jobs:
                        --password=$SANDBOX_PASSWORD \
                        --client-id=50 \
                        tap_tester.suites.zendesk
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - build:
+          context: circleci-user
+  build_daily:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build:
+          context: circleci-user
