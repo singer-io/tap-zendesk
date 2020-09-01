@@ -56,8 +56,12 @@ class Stream():
     key_properties = KEY_PROPERTIES
     stream = None
 
-    def __init__(self, client=None):
+    def __init__(self, client=None, start_date=None):
         self.client = client
+        if start_date:
+            self.start_date = utils.strptime_with_tz(start_date)
+        else:
+            self.start_date = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
 
     last_record_emit = {}
     buf = {}
@@ -195,7 +199,6 @@ class Tickets(Stream):
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
-        audits_stream = TicketAudits(self.client)
         metrics_stream = TicketMetrics(self.client)
 
         include = []
@@ -211,9 +214,6 @@ class Tickets(Stream):
                                                  tags={'endpoint':sub_stream.stream.tap_stream_id}))
                 sub_stream.count = 0
 
-        if audits_stream.is_selected():
-            LOGGER.info("Syncing ticket_audits per ticket...")
-
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
             generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(tzinfo=pytz.UTC)
@@ -222,15 +222,6 @@ class Tickets(Stream):
             ticket_dict = ticket.to_dict()
             ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
             should_yield = self._buffer_record((self.stream, ticket_dict))
-
-            if audits_stream.is_selected():
-                try:
-                    for audit in audits_stream.sync(ticket_dict["id"]):
-                        zendesk_metrics.capture('ticket_audit')
-                        self._buffer_record(audit)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
             if metrics_stream.is_selected():
                 try:
@@ -244,28 +235,105 @@ class Tickets(Stream):
             if should_yield:
                 for rec in self._empty_buffer():
                     yield rec
-                emit_sub_stream_metrics(audits_stream)
                 emit_sub_stream_metrics(metrics_stream)
                 singer.write_state(state)
 
         for rec in self._empty_buffer():
             yield rec
-        emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
         singer.write_state(state)
 
 class TicketAudits(Stream):
     name = "ticket_audits"
-    replication_method = "INCREMENTAL"
-    count = 0
+    replication_method = "FULL_TABLE"
 
-    def sync(self, ticket_id):
-        LOGGER.warning('Refusing to request ticket audits since it generates one request per ticket')
-        yield from ()
-        # ticket_audits = self.client.tickets.audits(ticket=ticket_id)
-        # for ticket_audit in ticket_audits:
-        #     self.count += 1
-        #     yield (self.stream, ticket_audit)
+    # The default (and max) limit is 1000. I've observed more than 1000 results
+    # come back sometimes, so it's conceivable that less thatn 1000 could come
+    # back on a normal request. If we have fewer than 500 results in a request,
+    # we assume we are running out of results to get and we'll try again later.
+    MINIMUM_REQUIRED_RESULT_SET_SIZE = 500
+
+    # If we run out of records going forward in time, but we have more
+    # records backward in time, then sync backward until we're done.
+    reverse_sync = False
+
+    def get_bookmark(self, state):
+        if self.reverse_sync:
+            return self.get_earliest_bookmark(state)
+        else:
+            return self.get_latest_bookmark(state)
+
+    def update_bookmark(self, state, value):
+        if self.reverse_sync:
+            self.update_earliest_bookmark(state, value)
+        else:
+            self.update_latest_bookmark(state, value)
+
+    def get_latest_bookmark(self, state):
+        return singer.get_bookmark(state, self.name, 'latest_cursor')
+
+    def update_latest_bookmark(self, state, value):
+        singer.write_bookmark(state, self.name, 'latest_cursor', value)
+
+    def get_earliest_bookmark(self, state):
+        return singer.get_bookmark(state, self.name, 'earliest_cursor')
+
+    def update_earliest_bookmark(self, state, value):
+        singer.write_bookmark(state, self.name, 'earliest_cursor', value)
+
+    def sync(self, state):
+        latest_cursor = self.get_latest_bookmark(state)
+        earliest_cursor = self.get_earliest_bookmark(state)
+
+        LOGGER.info('start_date: %s', self.start_date.isoformat())
+
+        while True:
+            kwargs = {}
+            if self.reverse_sync:
+                if earliest_cursor:
+                    kwargs['cursor'] = earliest_cursor
+            else:
+                if latest_cursor:
+                    kwargs['cursor'] = latest_cursor
+            audits_generator = self.client.tickets.audits(**kwargs)
+
+            ticket_audits = list(audits_generator)
+
+            for audit in ticket_audits:
+                zendesk_metrics.capture('ticket_audit')
+                yield (self.stream, audit)
+
+            LOGGER.info('synced %r ticket audits', len(ticket_audits))
+
+            earliest_created_at = utils.strptime_with_tz(min(a.created_at for a in ticket_audits))
+
+            if audits_generator.after_cursor:
+                latest_cursor = audits_generator.after_cursor
+                self.update_latest_bookmark(state, latest_cursor)
+
+            if audits_generator.before_cursor:
+                earliest_cursor = audits_generator.before_cursor
+                self.update_earliest_bookmark(state, earliest_cursor)
+
+            under_limit = len(ticket_audits) < self.MINIMUM_REQUIRED_RESULT_SET_SIZE
+            if self.reverse_sync:
+                # Before updating `self.reverse_sync`, check to see if we
+                # are done.
+                if not audits_generator.before_cursor or under_limit:
+                    break
+            else:
+                if not audits_generator.after_cursor or under_limit:
+                    # Now that we're done moving forward (for now), try to
+                    # work backward
+                    self.reverse_sync = True
+
+            if self.reverse_sync:
+                # Now that we've potentially updated `self.reverse_sync`,
+                # ensure we don't continue unless we are still after
+                # `self.start_date`.
+                if earliest_created_at < self.start_date:
+                    break
+
 
 class TicketMetrics(Stream):
     name = "ticket_metrics"

@@ -49,7 +49,7 @@ def get_selected_streams(catalog):
 
 
 SUB_STREAMS = {
-    'tickets': ['ticket_audits', 'ticket_metrics'],
+    'tickets': ['ticket_metrics'],
     'ticket_events': ['ticket_comments'],
 }
 
@@ -123,7 +123,7 @@ def do_sync(client, catalog, state, start_date):
             continue
 
         LOGGER.info("%s: Starting sync", stream_name)
-        instance = STREAMS[stream_name](client)
+        instance = STREAMS[stream_name](client, start_date)
         counter_value = sync_stream(state, start_date, instance)
         singer.write_state(state)
         LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
