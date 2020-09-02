@@ -98,3 +98,13 @@ config.json
 .autoenv.zsh
 
 *~
+
+config.json
+config.*.json
+catalog.json
+catalog.*.json
+state.json
+state.*.json
+target-config.json
+target-config.*.json
+tags
