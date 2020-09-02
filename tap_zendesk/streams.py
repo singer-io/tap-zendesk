@@ -56,8 +56,12 @@ class Stream():
     key_properties = KEY_PROPERTIES
     stream = None
 
-    def __init__(self, client=None):
+    def __init__(self, client=None, start_date=None):
         self.client = client
+        if start_date:
+            self.start_date = utils.strptime_with_tz(start_date)
+        else:
+            self.start_date = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
 
     last_record_emit = {}
     buf = {}
@@ -90,7 +94,6 @@ class Stream():
         current_bookmark = self.get_bookmark(state)
         if value and utils.strptime_with_tz(value) > current_bookmark:
             singer.write_bookmark(state, self.name, self.replication_key, value)
-
 
     def load_schema(self):
         schema_file = "schemas/{}.json".format(self.name)
@@ -195,7 +198,6 @@ class Tickets(Stream):
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
-        audits_stream = TicketAudits(self.client)
         metrics_stream = TicketMetrics(self.client)
 
         include = []
@@ -211,9 +213,6 @@ class Tickets(Stream):
                                                  tags={'endpoint':sub_stream.stream.tap_stream_id}))
                 sub_stream.count = 0
 
-        if audits_stream.is_selected():
-            LOGGER.info("Syncing ticket_audits per ticket...")
-
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
             generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(tzinfo=pytz.UTC)
@@ -222,15 +221,6 @@ class Tickets(Stream):
             ticket_dict = ticket.to_dict()
             ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
             should_yield = self._buffer_record((self.stream, ticket_dict))
-
-            if audits_stream.is_selected():
-                try:
-                    for audit in audits_stream.sync(ticket_dict["id"]):
-                        zendesk_metrics.capture('ticket_audit')
-                        self._buffer_record(audit)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
             if metrics_stream.is_selected():
                 try:
@@ -244,28 +234,91 @@ class Tickets(Stream):
             if should_yield:
                 for rec in self._empty_buffer():
                     yield rec
-                emit_sub_stream_metrics(audits_stream)
                 emit_sub_stream_metrics(metrics_stream)
                 singer.write_state(state)
 
         for rec in self._empty_buffer():
             yield rec
-        emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
         singer.write_state(state)
 
 class TicketAudits(Stream):
     name = "ticket_audits"
+    replication_method = "FULL_TABLE"
+
+    # The default (and max) limit is 1000. I've observed more than 1000 results
+    # come back sometimes, so it's conceivable that less than 1000 could come
+    # back on a normal request. If we have fewer than 500 results in a request,
+    # we assume we are running out of results to get and we'll try again later.
+    MINIMUM_REQUIRED_RESULT_SET_SIZE = 500
+
+    def sync(self, state):
+        try:
+            sync_thru = self.get_bookmark(state)
+        except TypeError:  # Happens when there is no bookmark yet
+            sync_thru = self.start_date
+        sync_thru = max(sync_thru, self.start_date)
+
+        curr_synced_thru = datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
+        next_synced_thru = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
+        cursor = None
+
+        # At first, we'll ensure we sync up until 3 minutes before the previous
+        # `sync_thru`. If we see a delta between the max and min dates in
+        # a single result set that is larger, we'll replace this value with
+        # that one.
+        max_delta = datetime.timedelta(minutes=3)
+
+        events_stream = TicketAuditEvents(self.client)
+
+        def lt(dt1, dt2):
+            # Since audits are only roughly ordered, we want to be sure
+            # that dt1 is less than dt2 by several minutes so there is a
+            # low chance we miss any.
+            return dt1 - max_delta < dt2
+
+        while not lt(curr_synced_thru, sync_thru):
+            kwargs = {}
+            if cursor:
+                kwargs['cursor'] = cursor
+            audits_generator = self.client.tickets.audits(**kwargs)
+
+            ticket_audits = list(audits_generator)
+
+            for audit in ticket_audits:
+                zendesk_metrics.capture('ticket_audit')
+                yield (self.stream, audit)
+
+                if events_stream.is_selected():
+                    yield from events_stream.sync(audit)
+
+            max_synced_thru = utils.strptime_with_tz(max(a.created_at for a in ticket_audits))
+            min_synced_thru = utils.strptime_with_tz(min(a.created_at for a in ticket_audits))
+            max_delta = max(max_synced_thru - min_synced_thru, max_delta)
+
+            # next_synced_thru needs to be the largest *minimum* `created_at` from all result sets.
+            next_synced_thru = max(next_synced_thru, min_synced_thru)
+            # curr_synced_thru is always the largest `created_at` from the current result set.
+            curr_synced_thru = max_synced_thru
+            cursor = audits_generator.before_cursor
+
+            if not cursor or len(ticket_audits) < self.MINIMUM_REQUIRED_RESULT_SET_SIZE:
+                break
+
+        if next_synced_thru > sync_thru:
+            self.update_bookmark(next_synced_thru)
+
+
+class TicketAuditEvents(Stream):
+    name = "ticket_audit_events"
     replication_method = "INCREMENTAL"
     count = 0
 
-    def sync(self, ticket_id):
-        LOGGER.warning('Refusing to request ticket audits since it generates one request per ticket')
-        yield from ()
-        # ticket_audits = self.client.tickets.audits(ticket=ticket_id)
-        # for ticket_audit in ticket_audits:
-        #     self.count += 1
-        #     yield (self.stream, ticket_audit)
+    def sync(self, audit):
+        for event in audit.events:
+            self.count += 1
+            yield (self.stream, event)
+
 
 class TicketMetrics(Stream):
     name = "ticket_metrics"
@@ -473,6 +526,7 @@ STREAMS = {
     "users": Users,
     "organizations": Organizations,
     "ticket_audits": TicketAudits,
+    "ticket_audit_events": TicketAuditEvents,
     "ticket_events": TicketEvents,
     "ticket_comments": TicketComments,
     "ticket_fields": TicketFields,
