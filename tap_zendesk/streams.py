@@ -247,7 +247,7 @@ class TicketAudits(Stream):
     replication_method = "FULL_TABLE"
 
     # The default (and max) limit is 1000. I've observed more than 1000 results
-    # come back sometimes, so it's conceivable that less thatn 1000 could come
+    # come back sometimes, so it's conceivable that less than 1000 could come
     # back on a normal request. If we have fewer than 500 results in a request,
     # we assume we are running out of results to get and we'll try again later.
     MINIMUM_REQUIRED_RESULT_SET_SIZE = 500
