@@ -18,6 +18,7 @@ setup(name='tap-zendesk',
       ],
       extras_require={
           'dev': [
+              'ipython',
               'ipdb',
               'pylint',
               'nose',

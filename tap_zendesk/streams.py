@@ -95,7 +95,6 @@ class Stream():
         if value and utils.strptime_with_tz(value) > current_bookmark:
             singer.write_bookmark(state, self.name, self.replication_key, value)
 
-
     def load_schema(self):
         schema_file = "schemas/{}.json".format(self.name)
         with open(get_abs_path(schema_file)) as f:
@@ -253,48 +252,35 @@ class TicketAudits(Stream):
     # we assume we are running out of results to get and we'll try again later.
     MINIMUM_REQUIRED_RESULT_SET_SIZE = 500
 
-    # If we run out of records going forward in time, but we have more
-    # records backward in time, then sync backward until we're done.
-    reverse_sync = False
-
-    def get_bookmark(self, state):
-        if self.reverse_sync:
-            return self.get_earliest_bookmark(state)
-        else:
-            return self.get_latest_bookmark(state)
-
-    def update_bookmark(self, state, value):
-        if self.reverse_sync:
-            self.update_earliest_bookmark(state, value)
-        else:
-            self.update_latest_bookmark(state, value)
-
-    def get_latest_bookmark(self, state):
-        return singer.get_bookmark(state, self.name, 'latest_cursor')
-
-    def update_latest_bookmark(self, state, value):
-        singer.write_bookmark(state, self.name, 'latest_cursor', value)
-
-    def get_earliest_bookmark(self, state):
-        return singer.get_bookmark(state, self.name, 'earliest_cursor')
-
-    def update_earliest_bookmark(self, state, value):
-        singer.write_bookmark(state, self.name, 'earliest_cursor', value)
-
     def sync(self, state):
-        latest_cursor = self.get_latest_bookmark(state)
-        earliest_cursor = self.get_earliest_bookmark(state)
+        try:
+            sync_thru = self.get_bookmark(state)
+        except TypeError:  # Happens when there is no bookmark yet
+            sync_thru = self.start_date
+        sync_thru = max(sync_thru, self.start_date)
 
-        LOGGER.info('start_date: %s', self.start_date.isoformat())
+        curr_synced_thru = datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
+        next_synced_thru = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
+        cursor = None
 
-        while True:
+        # At first, we'll ensure we sync up until 3 minutes before the previous
+        # `sync_thru`. If we see a delta between the max and min dates in
+        # a single result set that is larger, we'll replace this value with
+        # that one.
+        max_delta = datetime.timedelta(minutes=3)
+
+        events_stream = TicketAuditEvents(self.client)
+
+        def lt(dt1, dt2):
+            # Since audits are only roughly ordered, we want to be sure
+            # that dt1 is less than dt2 by several minutes so there is a
+            # low chance we miss any.
+            return dt1 - max_delta < dt2
+
+        while not lt(curr_synced_thru, sync_thru):
             kwargs = {}
-            if self.reverse_sync:
-                if earliest_cursor:
-                    kwargs['cursor'] = earliest_cursor
-            else:
-                if latest_cursor:
-                    kwargs['cursor'] = latest_cursor
+            if cursor:
+                kwargs['cursor'] = cursor
             audits_generator = self.client.tickets.audits(**kwargs)
 
             ticket_audits = list(audits_generator)
@@ -303,36 +289,35 @@ class TicketAudits(Stream):
                 zendesk_metrics.capture('ticket_audit')
                 yield (self.stream, audit)
 
-            LOGGER.info('synced %r ticket audits', len(ticket_audits))
+                if events_stream.is_selected():
+                    yield from events_stream.sync(audit)
 
-            earliest_created_at = utils.strptime_with_tz(min(a.created_at for a in ticket_audits))
+            max_synced_thru = utils.strptime_with_tz(max(a.created_at for a in ticket_audits))
+            min_synced_thru = utils.strptime_with_tz(min(a.created_at for a in ticket_audits))
+            max_delta = max(max_synced_thru - min_synced_thru, max_delta)
 
-            if audits_generator.after_cursor:
-                latest_cursor = audits_generator.after_cursor
-                self.update_latest_bookmark(state, latest_cursor)
+            # next_synced_thru needs to be the largest *minimum* `created_at` from all result sets.
+            next_synced_thru = max(next_synced_thru, min_synced_thru)
+            # curr_synced_thru is always the largest `created_at` from the current result set.
+            curr_synced_thru = max_synced_thru
+            cursor = audits_generator.before_cursor
 
-            if audits_generator.before_cursor:
-                earliest_cursor = audits_generator.before_cursor
-                self.update_earliest_bookmark(state, earliest_cursor)
+            if not cursor or len(ticket_audits) < self.MINIMUM_REQUIRED_RESULT_SET_SIZE:
+                break
 
-            under_limit = len(ticket_audits) < self.MINIMUM_REQUIRED_RESULT_SET_SIZE
-            if self.reverse_sync:
-                # Before updating `self.reverse_sync`, check to see if we
-                # are done.
-                if not audits_generator.before_cursor or under_limit:
-                    break
-            else:
-                if not audits_generator.after_cursor or under_limit:
-                    # Now that we're done moving forward (for now), try to
-                    # work backward
-                    self.reverse_sync = True
+        if next_synced_thru > sync_thru:
+            self.update_bookmark(next_synced_thru)
 
-            if self.reverse_sync:
-                # Now that we've potentially updated `self.reverse_sync`,
-                # ensure we don't continue unless we are still after
-                # `self.start_date`.
-                if earliest_created_at < self.start_date:
-                    break
+
+class TicketAuditEvents(Stream):
+    name = "ticket_audit_events"
+    replication_method = "INCREMENTAL"
+    count = 0
+
+    def sync(self, audit):
+        for event in audit.events:
+            self.count += 1
+            yield (self.stream, event)
 
 
 class TicketMetrics(Stream):
@@ -541,6 +526,7 @@ STREAMS = {
     "users": Users,
     "organizations": Organizations,
     "ticket_audits": TicketAudits,
+    "ticket_audit_events": TicketAuditEvents,
     "ticket_events": TicketEvents,
     "ticket_comments": TicketComments,
     "ticket_fields": TicketFields,
