@@ -291,6 +291,8 @@ class TicketAudits(Stream):
 
                 if events_stream.is_selected():
                     yield from events_stream.sync(audit)
+                else:
+                    LOGGER.info('not syncing ticket_audit_events (stream not selected)')
 
             max_synced_thru = utils.strptime_with_tz(max(a.created_at for a in ticket_audits))
             min_synced_thru = utils.strptime_with_tz(min(a.created_at for a in ticket_audits))
