@@ -317,6 +317,11 @@ class TicketAuditEvents(Stream):
     def sync(self, audit):
         for event in audit.events:
             self.count += 1
+            event = {
+                **event,
+                'ticket_audit_id': audit.id,
+                'ticket_id': audit.ticket_id,
+            }
             yield (self.stream, event)
 
 
