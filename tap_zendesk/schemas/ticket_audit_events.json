@@ -12,17 +12,6 @@
                             "integer"
                         ]
                     },
-                    "ticket_id": {
-                        "type": [
-                            "null",
-                            "integer"
-                        ]
-                    },
-                    "ticket_audit_id": {
-                        "type": [
-                            "integer"
-                        ]
-                    },
                     "size": {
                         "type": [
                             "null",
@@ -160,6 +149,17 @@
             "type": [
                 "null",
                 "array"
+            ]
+        },
+        "ticket_id": {
+            "type": [
+                "null",
+                "integer"
+            ]
+        },
+        "ticket_audit_id": {
+            "type": [
+                "integer"
             ]
         },
         "created_at": {
