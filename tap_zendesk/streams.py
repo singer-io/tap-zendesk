@@ -283,7 +283,7 @@ class TicketAudits(Stream):
                 kwargs['cursor'] = cursor
             audits_generator = self.client.tickets.audits(**kwargs)
 
-            ticket_audits = list(audits_generator)
+            ticket_audits = reversed(audits_generator)
 
             for audit in ticket_audits:
                 zendesk_metrics.capture('ticket_audit')
@@ -298,17 +298,14 @@ class TicketAudits(Stream):
             min_synced_thru = utils.strptime_with_tz(min(a.created_at for a in ticket_audits))
             max_delta = max(max_synced_thru - min_synced_thru, max_delta)
 
-            # next_synced_thru needs to be the largest *minimum* `created_at` from all result sets.
-            next_synced_thru = max(next_synced_thru, min_synced_thru)
-            # curr_synced_thru is always the largest `created_at` from the current result set.
-            curr_synced_thru = max_synced_thru
+            # next_synced_thru needs to be the largest `created_at` from all result sets.
+            next_synced_thru = max(next_synced_thru, max_synced_thru)
+            # curr_synced_thru is always the smallest `created_at` from all result sets.
+            curr_synced_thru = min(curr_synced_thru, min_synced_thru)
             cursor = audits_generator.before_cursor
 
             if not cursor or len(ticket_audits) < self.MINIMUM_REQUIRED_RESULT_SET_SIZE:
                 break
-
-        if next_synced_thru > sync_thru:
-            self.update_bookmark(next_synced_thru)
 
 
 class TicketAuditEvents(Stream):
