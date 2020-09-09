@@ -307,9 +307,6 @@ class TicketAudits(Stream):
             if not cursor or len(ticket_audits) < self.MINIMUM_REQUIRED_RESULT_SET_SIZE:
                 break
 
-        if next_synced_thru > sync_thru:
-            self.update_bookmark(next_synced_thru)
-
 
 class TicketAuditEvents(Stream):
     name = "ticket_audit_events"
