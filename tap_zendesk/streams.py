@@ -283,7 +283,7 @@ class TicketAudits(Stream):
                 kwargs['cursor'] = cursor
             audits_generator = self.client.tickets.audits(**kwargs)
 
-            ticket_audits = list(audits_generator)
+            ticket_audits = reversed(audits_generator)
 
             for audit in ticket_audits:
                 zendesk_metrics.capture('ticket_audit')
