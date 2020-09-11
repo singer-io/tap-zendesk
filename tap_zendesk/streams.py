@@ -158,7 +158,7 @@ class Users(Stream):
         return schema
 
     def sync(self, state):
-        search_window_size = self.config.get('search_window_size', 3600) # defined in seconds
+        search_window_size = int(self.config.get('search_window_size', 3600)) # defined in seconds
         bookmark = self.get_bookmark(state)
         start = bookmark - datetime.timedelta(seconds=1)
         end = start + datetime.timedelta(seconds=search_window_size)
@@ -327,7 +327,7 @@ class SatisfactionRatings(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        search_window_size = self.config.get('search_window_size', 3600) # defined in seconds
+        search_window_size = int(self.config.get('search_window_size', 3600)) # defined in seconds
         # We substract a second here because the API seems to compare
         # start_time with a >, but we typically prefer a >= behavior.
         # Also, the start_time query parameter filters based off of
