@@ -56,8 +56,9 @@ class Stream():
     key_properties = KEY_PROPERTIES
     stream = None
 
-    def __init__(self, client=None):
+    def __init__(self, client=None, config=None):
         self.client = client
+        self.config = config
 
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
@@ -157,11 +158,33 @@ class Users(Stream):
         return schema
 
     def sync(self, state):
+        search_window_size = self.config.get('search_window_size', 3600) # defined in seconds
         bookmark = self.get_bookmark(state)
-        users = self.client.users.incremental(start_time=bookmark)
-        for user in users:
-            self.update_bookmark(state, user.updated_at)
-            yield (self.stream, user)
+        start = bookmark - datetime.timedelta(seconds=1)
+        end = start + datetime.timedelta(seconds=search_window_size)
+        sync_end = singer.utils.now() - datetime.timedelta(minutes=1)
+
+        # ASSUMPTION: updated_at value always comes back in utc
+        while end <= sync_end:
+            parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
+            parsed_end = singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ")
+            users = self.client.search("", updated_after=parsed_start, updated_before=parsed_end, type="user")
+
+            for user in users:
+                assert parsed_start <= user.updated_at, "{} is not less than or equal to {}".format(parsed_start, user.updated_at)
+                if bookmark < utils.strptime_with_tz(user.updated_at) <= end:
+                    # NB: We don't trust that the records come back ordered by
+                    # updated_at (we've observed out-of-order records),
+                    # so we can't save state until we've seen all records
+                    self.update_bookmark(state, user.updated_at)
+                if parsed_start <= user.updated_at <= parsed_end:
+                    yield (self.stream, user)
+            singer.write_state(state)
+
+            start = end - datetime.timedelta(seconds=1)
+            end = start + datetime.timedelta(seconds=search_window_size)
+
+
 
 class Tickets(Stream):
     name = "tickets"
@@ -304,21 +327,39 @@ class SatisfactionRatings(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        bookmark_epoch = int(bookmark.strftime('%s'))
+        search_window_size = self.config.get('search_window_size', 3600) # defined in seconds
         # We substract a second here because the API seems to compare
         # start_time with a >, but we typically prefer a >= behavior.
         # Also, the start_time query parameter filters based off of
         # created_at, but zendesk support confirmed with us that
         # satisfaction_ratings are immutable so that created_at =
         # updated_at
-        satisfaction_ratings = self.client.satisfaction_ratings(start_time=(bookmark_epoch-1))
-        for satisfaction_rating in satisfaction_ratings:
-            if utils.strptime_with_tz(satisfaction_rating.updated_at) >= bookmark:
-                # NB: We don't trust that the records come back ordered by
-                # updated_at (we've observed out-of-order records),
-                # so we can't save state until we've seen all records
-                self.update_bookmark(state, satisfaction_rating.updated_at)
-            yield (self.stream, satisfaction_rating)
+        #start = bookmark_epoch-1
+        start = bookmark - datetime.timedelta(seconds=1)
+        end = start + datetime.timedelta(seconds=search_window_size)
+        sync_end = singer.utils.now() - datetime.timedelta(minutes=1)
+
+        while end < sync_end:
+            epoch_start = int(start.strftime('%s'))
+            parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
+            epoch_end = int(end.strftime('%s'))
+            parsed_end = singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ")
+
+            satisfaction_ratings = self.client.satisfaction_ratings(start_time=epoch_start, end_time=epoch_end)
+            for satisfaction_rating in satisfaction_ratings:
+                assert parsed_start <= satisfaction_rating.updated_at
+                if bookmark < utils.strptime_with_tz(satisfaction_rating.updated_at) <= end:
+                    # NB: We don't trust that the records come back ordered by
+                    # updated_at (we've observed out-of-order records),
+                    # so we can't save state until we've seen all records
+                    self.update_bookmark(state, satisfaction_rating.updated_at)
+                if parsed_start <= satisfaction_rating.updated_at <= parsed_end:
+                    yield (self.stream, satisfaction_rating)
+            singer.write_state(state)
+
+            start = end - datetime.timedelta(seconds=1)
+            end = start + datetime.timedelta(seconds=search_window_size)
+
 
 class Groups(Stream):
     name = "groups"
