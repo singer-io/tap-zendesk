@@ -25,6 +25,8 @@ CUSTOM_TYPES = {
     'checkbox': 'boolean',
 }
 
+DEFAULT_SEARCH_WINDOW_SIZE = (60 * 60 * 24) * 30 # defined in seconds, default to a month (30 days)
+
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 
@@ -141,6 +143,7 @@ class Organizations(Stream):
             self.update_bookmark(state, organization.updated_at)
             yield (self.stream, organization)
 
+
 class Users(Stream):
     name = "users"
     replication_method = "INCREMENTAL"
@@ -158,18 +161,29 @@ class Users(Stream):
         return schema
 
     def sync(self, state):
-        search_window_size = int(self.config.get('search_window_size', 3600)) # defined in seconds
+        original_search_window_size = int(self.config.get('search_window_size', DEFAULT_SEARCH_WINDOW_SIZE))
+        search_window_size = original_search_window_size
         bookmark = self.get_bookmark(state)
         start = bookmark - datetime.timedelta(seconds=1)
         end = start + datetime.timedelta(seconds=search_window_size)
         sync_end = singer.utils.now() - datetime.timedelta(minutes=1)
+        parsed_sync_end = singer.strftime(sync_end, "%Y-%m-%dT%H:%M:%SZ")
 
         # ASSUMPTION: updated_at value always comes back in utc
-        while end <= sync_end:
+        while start < sync_end:
             parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
-            parsed_end = singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ")
+            parsed_end = min(singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ"), parsed_sync_end)
+            LOGGER.info("Querying for users between %s and %s", parsed_start, parsed_end)
             users = self.client.search("", updated_after=parsed_start, updated_before=parsed_end, type="user")
 
+            # NB: Zendesk will return an error on the 1001st record, so we
+            # need to check total response size before iterating
+            # See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits
+            if users.count > 1000:
+                search_window_size = search_window_size // 2
+                end = start + datetime.timedelta(seconds=search_window_size)
+                LOGGER.info("Detected Search API response size too large. Cutting search window in half to %s seconds.", search_window_size)
+                continue
             for user in users:
                 assert parsed_start <= user.updated_at, "{} is not less than or equal to {}".format(parsed_start, user.updated_at)
                 if bookmark < utils.strptime_with_tz(user.updated_at) <= end:
@@ -180,10 +194,11 @@ class Users(Stream):
                 if parsed_start <= user.updated_at <= parsed_end:
                     yield (self.stream, user)
             singer.write_state(state)
-
+            if search_window_size <= original_search_window_size // 2:
+                search_window_size = search_window_size * 2
+                LOGGER.info("Successfully requested records. Doubling search window to %s seconds", search_window_size)
             start = end - datetime.timedelta(seconds=1)
             end = start + datetime.timedelta(seconds=search_window_size)
-
 
 
 class Tickets(Stream):
@@ -327,7 +342,8 @@ class SatisfactionRatings(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        search_window_size = int(self.config.get('search_window_size', 3600)) # defined in seconds
+        original_search_window_size = int(self.config.get('search_window_size', DEFAULT_SEARCH_WINDOW_SIZE))
+        search_window_size = original_search_window_size
         # We substract a second here because the API seems to compare
         # start_time with a >, but we typically prefer a >= behavior.
         # Also, the start_time query parameter filters based off of
@@ -338,14 +354,27 @@ class SatisfactionRatings(Stream):
         start = bookmark - datetime.timedelta(seconds=1)
         end = start + datetime.timedelta(seconds=search_window_size)
         sync_end = singer.utils.now() - datetime.timedelta(minutes=1)
+        epoch_sync_end = int(sync_end.strftime('%s'))
+        parsed_sync_end = singer.strftime(sync_end, "%Y-%m-%dT%H:%M:%SZ")
 
-        while end < sync_end:
+        while start < sync_end:
             epoch_start = int(start.strftime('%s'))
             parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
             epoch_end = int(end.strftime('%s'))
             parsed_end = singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ")
 
-            satisfaction_ratings = self.client.satisfaction_ratings(start_time=epoch_start, end_time=epoch_end)
+            LOGGER.info("Querying for satisfaction ratings between %s and %s", parsed_start, min(parsed_end, parsed_sync_end))
+            satisfaction_ratings = self.client.satisfaction_ratings(start_time=epoch_start,
+                                                                    end_time=min(epoch_end, epoch_sync_end))
+            # NB: We've observed that the tap can sync 50k records in ~15
+            # minutes, due to this, the tap will adjust the time range
+            # dynamically to ensure bookmarks are able to be written in
+            # cases of high volume.
+            if satisfaction_ratings.count > 50000:
+                search_window_size = search_window_size // 2
+                end = start + datetime.timedelta(seconds=search_window_size)
+                LOGGER.info("Detected Search API response size for this window is too large (> 50k). Cutting search window in half to %s seconds.", search_window_size)
+                continue
             for satisfaction_rating in satisfaction_ratings:
                 assert parsed_start <= satisfaction_rating.updated_at
                 if bookmark < utils.strptime_with_tz(satisfaction_rating.updated_at) <= end:
@@ -355,6 +384,9 @@ class SatisfactionRatings(Stream):
                     self.update_bookmark(state, satisfaction_rating.updated_at)
                 if parsed_start <= satisfaction_rating.updated_at <= parsed_end:
                     yield (self.stream, satisfaction_rating)
+            if search_window_size <= original_search_window_size // 2:
+                search_window_size = search_window_size * 2
+                LOGGER.info("Successfully requested records. Doubling search window to %s seconds", search_window_size)
             singer.write_state(state)
 
             start = end - datetime.timedelta(seconds=1)
