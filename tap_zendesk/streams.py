@@ -262,13 +262,6 @@ class TicketAudits(Stream):
         sync_thru = max(sync_thru, self.start_date)
         next_synced_thru = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
         curr_synced_thru = datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
-        cursor = None
-
-        # At first, we'll ensure we sync up until 3 minutes before the previous
-        # `sync_thru`. If we see a delta between the max and min dates in
-        # a single result set that is larger, we'll replace this value with
-        # that one.
-        max_delta = datetime.timedelta(minutes=3)
 
         events_stream = TicketAuditEvents(self.client)
 
@@ -276,7 +269,7 @@ class TicketAudits(Stream):
             # Since audits are only roughly ordered, we want to be sure
             # that dt1 is less than dt2 by several minutes so there is a
             # low chance we miss any.
-            return dt1 - max_delta < dt2
+            return dt1 - datetime.timedelta(minutes=3) < dt2
 
         audits_generator = self.client.tickets.audits()
         audits_generator.next_page_attr = 'before_url'
