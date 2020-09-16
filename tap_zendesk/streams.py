@@ -272,8 +272,7 @@ class TicketAudits(Stream):
             return dt1 - datetime.timedelta(minutes=3) < dt2
 
         audits_generator = self.client.tickets.audits()
-        audits_generator.next_page_attr = 'before_url'
-        ticket_audits = audits_generator
+        ticket_audits = reversed(audits_generator)
 
         for audit in ticket_audits:
             next_synced_thru = max(next_synced_thru, utils.strptime_with_tz(audit.created_at))
