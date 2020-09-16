@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.0
+  * Add date windowing to users stream and satisfaction ratings stream [#42](https://github.com/singer-io/tap-zendesk/pull/42)
+
 ## 1.4.7
   * Use `start_time` query parameter for satisfaction_ratings stream [#37](https://github.com/singer-io/tap-zendesk/pull/37)
 
