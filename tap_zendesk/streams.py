@@ -293,7 +293,6 @@ class TicketAudits(Stream):
 class TicketAuditEvents(Stream):
     name = "ticket_audit_events"
     replication_method = "INCREMENTAL"
-    replication_key = "id"
     count = 0
 
     def sync(self, audit):
