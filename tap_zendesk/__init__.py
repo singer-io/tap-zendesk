@@ -90,7 +90,7 @@ def populate_class_schemas(catalog, selected_stream_names):
         if stream.tap_stream_id in selected_stream_names:
             STREAMS[stream.tap_stream_id].stream = stream
 
-def do_sync(client, catalog, state, start_date):
+def do_sync(client, catalog, state, config):
 
     selected_stream_names = get_selected_streams(catalog)
     validate_dependencies(selected_stream_names)
@@ -133,8 +133,8 @@ def do_sync(client, catalog, state, start_date):
             continue
 
         LOGGER.info("%s: Starting sync", stream_name)
-        instance = STREAMS[stream_name](client)
-        counter_value = sync_stream(state, start_date, instance)
+        instance = STREAMS[stream_name](client, config)
+        counter_value = sync_stream(state, config.get('start_date'), instance)
         singer.write_state(state)
         LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
         zendesk_metrics.log_aggregate_rates()
@@ -197,4 +197,4 @@ def main():
         do_discover(client)
     elif parsed_args.catalog:
         state = parsed_args.state
-        do_sync(client, parsed_args.catalog, state, parsed_args.config['start_date'])
+        do_sync(client, parsed_args.catalog, state, parsed_args.config)
