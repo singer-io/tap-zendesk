@@ -278,10 +278,7 @@ class TicketAudits(Stream):
             # low chance we miss any.
             return dt1 - max_delta < dt2
 
-        kwargs = {}
-        if cursor:
-            kwargs['cursor'] = cursor
-        audits_generator = self.client.tickets.audits(**kwargs)
+        audits_generator = self.client.tickets.audits()
         audits_generator.next_page_attr = 'before_url'
         ticket_audits = audits_generator
 
