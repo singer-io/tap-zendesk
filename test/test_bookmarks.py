@@ -144,7 +144,7 @@ class ZendeskBookmarks(ZendeskTest):
         new_record = [r for r in messages
                       if r['data']['id'] in [364471784994, 364465631433, 364465212373]]
         self.assertTrue(any(new_record))
-        self.assertEqual(len(messages), 3, msg="Sync'd incorrect count of messages: {}".format(len(messages)))
+        self.assertGreterEqual(len(messages), 3, msg="Sync'd incorrect count of messages: {}".format(len(messages)))
         for message in messages:
             self.assertGreaterEqual(utils.strptime_to_utc(message.get('data', {}).get('updated_at', '')),
                                     utils.strptime_to_utc(satisfaction_ratings_bookmark))
