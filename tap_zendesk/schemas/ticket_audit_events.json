@@ -162,6 +162,13 @@
                 "integer"
             ]
         },
+        "ticket_audit_created_at": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "formated": "date-time"
+        },
         "created_at": {
             "type": [
                 "null",
