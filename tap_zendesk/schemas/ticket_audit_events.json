@@ -167,7 +167,7 @@
                 "null",
                 "string"
             ],
-            "formated": "date-time"
+            "format": "date-time"
         },
         "created_at": {
             "type": [
