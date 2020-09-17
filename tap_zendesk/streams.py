@@ -376,7 +376,7 @@ class SatisfactionRatings(Stream):
                 LOGGER.info("Detected Search API response size for this window is too large (> 50k). Cutting search window in half to %s seconds.", search_window_size)
                 continue
             for satisfaction_rating in satisfaction_ratings:
-                assert parsed_start <= satisfaction_rating.updated_at
+                assert parsed_start <= satisfaction_rating.updated_at, "{} is not less than or equal to {}".format(parsed_start, satisfaction_rating.updated_at)
                 if bookmark < utils.strptime_with_tz(satisfaction_rating.updated_at) <= end:
                     # NB: We don't trust that the records come back ordered by
                     # updated_at (we've observed out-of-order records),
