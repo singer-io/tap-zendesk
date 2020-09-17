@@ -187,9 +187,9 @@ class Users(Stream):
                 continue
 
             # Consume the records to account for dates lower than window start
-            users = [user for user in users]
+            users = [user for user in users] # pylint: disable=unnecessary-comprehension
             if not all(parsed_start <= user.updated_at for user in users):
-                LOGGER.info("users - Record found before date window start. Waiting 30 seconds, then retrying window for consistency.".format(parsed_start, user.updated_at))
+                LOGGER.info("users - Record found before date window start. Waiting 30 seconds, then retrying window for consistency.")
                 time.sleep(30)
                 continue
             for user in users:
