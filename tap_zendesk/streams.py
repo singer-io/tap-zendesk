@@ -185,7 +185,7 @@ class Users(Stream):
                 LOGGER.info("Detected Search API response size too large. Cutting search window in half to %s seconds.", search_window_size)
                 continue
             for user in users:
-                assert parsed_start <= user.updated_at, "{} is not less than or equal to {}".format(parsed_start, user.updated_at)
+                assert parsed_start <= user.updated_at, "users - Record found before date window start. Details: window start ({}) is not less than or equal to updated_at ({})".format(parsed_start, user.updated_at)
                 if bookmark < utils.strptime_with_tz(user.updated_at) <= end:
                     # NB: We don't trust that the records come back ordered by
                     # updated_at (we've observed out-of-order records),
@@ -376,7 +376,7 @@ class SatisfactionRatings(Stream):
                 LOGGER.info("Detected Search API response size for this window is too large (> 50k). Cutting search window in half to %s seconds.", search_window_size)
                 continue
             for satisfaction_rating in satisfaction_ratings:
-                assert parsed_start <= satisfaction_rating.updated_at, "{} is not less than or equal to {}".format(parsed_start, satisfaction_rating.updated_at)
+                assert parsed_start <= satisfaction_rating.updated_at, "satisfaction_ratings - Record found before date window start. Details: window start ({}) is not less than or equal to updated_at ({})".format(parsed_start, satisfaction_rating.updated_at)
                 if bookmark < utils.strptime_with_tz(satisfaction_rating.updated_at) <= end:
                     # NB: We don't trust that the records come back ordered by
                     # updated_at (we've observed out-of-order records),
