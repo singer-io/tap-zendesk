@@ -1,6 +1,7 @@
 import os
 import json
 import datetime
+import time
 import pytz
 import zenpy
 from zenpy.lib.exception import RecordNotFoundException
@@ -182,10 +183,16 @@ class Users(Stream):
             if users.count > 1000:
                 search_window_size = search_window_size // 2
                 end = start + datetime.timedelta(seconds=search_window_size)
-                LOGGER.info("Detected Search API response size too large. Cutting search window in half to %s seconds.", search_window_size)
+                LOGGER.info("users - Detected Search API response size too large. Cutting search window in half to %s seconds.", search_window_size)
+                continue
+
+            # Consume the records to account for dates lower than window start
+            users = [user for user in users]
+            if not all(parsed_start <= user.updated_at for user in users):
+                LOGGER.info("users - Record found before date window start. Waiting 30 seconds, then retrying window for consistency.".format(parsed_start, user.updated_at))
+                time.sleep(30)
                 continue
             for user in users:
-                assert parsed_start <= user.updated_at, "users - Record found before date window start. Details: window start ({}) is not less than or equal to updated_at ({})".format(parsed_start, user.updated_at)
                 if bookmark < utils.strptime_with_tz(user.updated_at) <= end:
                     # NB: We don't trust that the records come back ordered by
                     # updated_at (we've observed out-of-order records),
@@ -193,6 +200,8 @@ class Users(Stream):
                     self.update_bookmark(state, user.updated_at)
                 if parsed_start <= user.updated_at <= parsed_end:
                     yield (self.stream, user)
+
+            # Assumes that the for loop got everything
             singer.write_state(state)
             if search_window_size <= original_search_window_size // 2:
                 search_window_size = search_window_size * 2
@@ -373,7 +382,7 @@ class SatisfactionRatings(Stream):
             if satisfaction_ratings.count > 50000:
                 search_window_size = search_window_size // 2
                 end = start + datetime.timedelta(seconds=search_window_size)
-                LOGGER.info("Detected Search API response size for this window is too large (> 50k). Cutting search window in half to %s seconds.", search_window_size)
+                LOGGER.info("satisfaction_ratings - Detected Search API response size for this window is too large (> 50k). Cutting search window in half to %s seconds.", search_window_size)
                 continue
             for satisfaction_rating in satisfaction_ratings:
                 assert parsed_start <= satisfaction_rating.updated_at, "satisfaction_ratings - Record found before date window start. Details: window start ({}) is not less than or equal to updated_at ({})".format(parsed_start, satisfaction_rating.updated_at)
