@@ -244,7 +244,8 @@ class Tickets(Stream):
 
 class TicketAudits(Stream):
     name = "ticket_audits"
-    replication_method = "FULL_TABLE"
+    replication_method = "INCREMENTAL"
+    replication_key = "created_at"
 
     # The default (and max) limit is 1000. I've observed more than 1000 results
     # come back sometimes, so it's conceivable that less than 1000 could come
@@ -257,17 +258,10 @@ class TicketAudits(Stream):
             sync_thru = self.get_bookmark(state)
         except TypeError:  # Happens when there is no bookmark yet
             sync_thru = self.start_date
+
         sync_thru = max(sync_thru, self.start_date)
-
-        curr_synced_thru = datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
         next_synced_thru = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
-        cursor = None
-
-        # At first, we'll ensure we sync up until 3 minutes before the previous
-        # `sync_thru`. If we see a delta between the max and min dates in
-        # a single result set that is larger, we'll replace this value with
-        # that one.
-        max_delta = datetime.timedelta(minutes=3)
+        curr_synced_thru = datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
 
         events_stream = TicketAuditEvents(self.client)
 
@@ -275,37 +269,25 @@ class TicketAudits(Stream):
             # Since audits are only roughly ordered, we want to be sure
             # that dt1 is less than dt2 by several minutes so there is a
             # low chance we miss any.
-            return dt1 - max_delta < dt2
+            return dt1 - datetime.timedelta(minutes=3) < dt2
 
-        while not lt(curr_synced_thru, sync_thru):
-            kwargs = {}
-            if cursor:
-                kwargs['cursor'] = cursor
-            audits_generator = self.client.tickets.audits(**kwargs)
+        audits_generator = self.client.tickets.audits()
+        ticket_audits = reversed(audits_generator)
 
-            ticket_audits = reversed(audits_generator)
+        for audit in ticket_audits:
+            next_synced_thru = max(next_synced_thru, utils.strptime_with_tz(audit.created_at))
+            curr_synced_thru = min(curr_synced_thru, utils.strptime_with_tz(audit.created_at))
+            if lt(curr_synced_thru, sync_thru):
+                self.update_bookmark(state, utils.strftime(next_synced_thru))
+                return
 
-            for audit in ticket_audits:
-                zendesk_metrics.capture('ticket_audit')
-                yield (self.stream, audit)
+            zendesk_metrics.capture('ticket_audit')
+            yield (self.stream, audit)
 
-                if events_stream.is_selected():
-                    yield from events_stream.sync(audit)
-                else:
-                    LOGGER.info('not syncing ticket_audit_events (stream not selected)')
-
-            max_synced_thru = utils.strptime_with_tz(max(a.created_at for a in ticket_audits))
-            min_synced_thru = utils.strptime_with_tz(min(a.created_at for a in ticket_audits))
-            max_delta = max(max_synced_thru - min_synced_thru, max_delta)
-
-            # next_synced_thru needs to be the largest `created_at` from all result sets.
-            next_synced_thru = max(next_synced_thru, max_synced_thru)
-            # curr_synced_thru is always the smallest `created_at` from all result sets.
-            curr_synced_thru = min(curr_synced_thru, min_synced_thru)
-            cursor = audits_generator.before_cursor
-
-            if not cursor or len(ticket_audits) < self.MINIMUM_REQUIRED_RESULT_SET_SIZE:
-                break
+            if events_stream.is_selected():
+                yield from events_stream.sync(audit)
+            else:
+                LOGGER.info('not syncing ticket_audit_events (stream not selected)')
 
 
 class TicketAuditEvents(Stream):
@@ -319,6 +301,7 @@ class TicketAuditEvents(Stream):
             event = {
                 **event,
                 'ticket_audit_id': audit.id,
+                'ticket_audit_created_at': audit.created_at,
                 'ticket_id': audit.ticket_id,
             }
             yield (self.stream, event)
