@@ -192,8 +192,8 @@ class Users(Stream):
 
             if not all(parsed_start <= user.updated_at for user in users):
                 # Only retry up to 30 minutes (60 attempts)
-                if num_retries < 60
-                    LOGGER.info("users - Record found before date window start. Waiting 30 seconds, then retrying window for consistency.")
+                if num_retries < 60:
+                    LOGGER.info("users - Record found before date window start. Waiting 30 seconds, then retrying window for consistency. (Retry #%s)", num_retries + 1)
                     time.sleep(30)
                     num_retries += 1
                     continue
