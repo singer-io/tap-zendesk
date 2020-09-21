@@ -171,6 +171,7 @@ class Users(Stream):
         parsed_sync_end = singer.strftime(sync_end, "%Y-%m-%dT%H:%M:%SZ")
 
         # ASSUMPTION: updated_at value always comes back in utc
+        num_retries = 0
         while start < sync_end:
             parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
             parsed_end = min(singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ"), parsed_sync_end)
@@ -188,10 +189,19 @@ class Users(Stream):
 
             # Consume the records to account for dates lower than window start
             users = [user for user in users] # pylint: disable=unnecessary-comprehension
+
             if not all(parsed_start <= user.updated_at for user in users):
-                LOGGER.info("users - Record found before date window start. Waiting 30 seconds, then retrying window for consistency.")
-                time.sleep(30)
-                continue
+                # Only retry up to 30 minutes (60 attempts)
+                if num_retries < 60
+                    LOGGER.info("users - Record found before date window start. Waiting 30 seconds, then retrying window for consistency.")
+                    time.sleep(30)
+                    num_retries += 1
+                    continue
+                else:
+                    raise AssertionError("users - Record found before date window start and did not resolve after 30 minutes of retrying. Details: window start ({}) is not less than or equal to updated_at value(s) {}".format(
+                        parsed_start, [str(user.updated_at) for user in users if user.updated_at < parsed_start]))
+            else:
+                num_retries = 0
             for user in users:
                 if bookmark < utils.strptime_with_tz(user.updated_at) <= end:
                     # NB: We don't trust that the records come back ordered by
