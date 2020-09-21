@@ -191,17 +191,17 @@ class Users(Stream):
             users = [user for user in users] # pylint: disable=unnecessary-comprehension
 
             if not all(parsed_start <= user.updated_at for user in users):
-                # Only retry up to 30 minutes (60 attempts)
+                # Only retry up to 30 minutes (60 attempts at 30 seconds each)
                 if num_retries < 60:
                     LOGGER.info("users - Record found before date window start. Waiting 30 seconds, then retrying window for consistency. (Retry #%s)", num_retries + 1)
                     time.sleep(30)
                     num_retries += 1
                     continue
-                else:
-                    raise AssertionError("users - Record found before date window start and did not resolve after 30 minutes of retrying. Details: window start ({}) is not less than or equal to updated_at value(s) {}".format(
+                raise AssertionError("users - Record found before date window start and did not resolve after 30 minutes of retrying. Details: window start ({}) is not less than or equal to updated_at value(s) {}".format(
                         parsed_start, [str(user.updated_at) for user in users if user.updated_at < parsed_start]))
-            else:
-                num_retries = 0
+
+            # If we make it here, all quality checks have passed. Reset retry count.
+            num_retries = 0
             for user in users:
                 if bookmark < utils.strptime_with_tz(user.updated_at) <= end:
                     # NB: We don't trust that the records come back ordered by
