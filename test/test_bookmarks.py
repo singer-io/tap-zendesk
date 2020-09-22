@@ -137,7 +137,9 @@ class ZendeskBookmarks(ZendeskTest):
                       if r['data']['id'] == self.created_user.id]
         self.assertTrue(any(new_record))
         # NB: GreaterEqual because we suspect Zendesk updates users in the backend
-        self.assertGreaterEqual(len(messages), 2, msg="Sync'd incorrect count of messages: {}".format(len(messages)))
+        # >= 1 because we're no longer inclusive of the last replicated user record. The lookback will control this going forward.
+        # If we get the user we wanted and then some, this assertion should succeed
+        self.assertGreaterEqual(len(messages), 1, msg="Sync'd incorrect count of messages: {}".format(len(messages)))
 
 
         messages = records.get('satisfaction_ratings', {}).get('messages', [])
