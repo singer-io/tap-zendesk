@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.2
+  * Add retry logic for users stream
+
 ## 1.5.1
   * Add error message to go along with assert
 
