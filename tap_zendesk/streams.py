@@ -167,7 +167,7 @@ class Users(Stream):
         bookmark = self.get_bookmark(state)
         start = bookmark - datetime.timedelta(seconds=1)
         end = start + datetime.timedelta(seconds=search_window_size)
-        sync_end = singer.utils.now() - datetime.timedelta(minutes=1)
+        sync_end = singer.utils.now() - datetime.timedelta(minutes=5)
         parsed_sync_end = singer.strftime(sync_end, "%Y-%m-%dT%H:%M:%SZ")
 
         # ASSUMPTION: updated_at value always comes back in utc
