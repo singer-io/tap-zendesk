@@ -1,10 +1,13 @@
 # Changelog
 
+## 1.5.3
+  * Break out of infinite loop with users stream and bookmark on date window end [#46](https://github.com/singer-io/tap-zendesk/pull/46)
+
 ## 1.5.2
-  * Add retry logic for users stream
+  * Add retry logic for users stream [#45](https://github.com/singer-io/tap-zendesk/pull/45)
 
 ## 1.5.1
-  * Add error message to go along with assert
+  * Add error message to go along with assert [#44](https://github.com/singer-io/tap-zendesk/pull/44)
 
 ## 1.5.0
   * Add date windowing to users stream and satisfaction ratings stream [#42](https://github.com/singer-io/tap-zendesk/pull/42)
