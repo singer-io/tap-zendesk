@@ -182,10 +182,13 @@ class Users(Stream):
             # need to check total response size before iterating
             # See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits
             if users.count > 1000:
-                search_window_size = search_window_size // 2
-                end = start + datetime.timedelta(seconds=search_window_size)
-                LOGGER.info("users - Detected Search API response size too large. Cutting search window in half to %s seconds.", search_window_size)
-                continue
+                if search_window_size > 1:
+                    search_window_size = search_window_size // 2
+                    end = start + datetime.timedelta(seconds=search_window_size)
+                    LOGGER.info("users - Detected Search API response size too large. Cutting search window in half to %s seconds.", search_window_size)
+                    continue
+
+                raise Exception("users - Unable to get all users within minimum window of a single second ({}), found {} users within this timestamp. Zendesk can only provide a maximum of 1000 users per request. See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits".format(parsed_start, users.count))
 
             # Consume the records to account for dates lower than window start
             users = [user for user in users] # pylint: disable=unnecessary-comprehension
@@ -203,13 +206,9 @@ class Users(Stream):
             # If we make it here, all quality checks have passed. Reset retry count.
             num_retries = 0
             for user in users:
-                if bookmark < utils.strptime_with_tz(user.updated_at) <= end:
-                    # NB: We don't trust that the records come back ordered by
-                    # updated_at (we've observed out-of-order records),
-                    # so we can't save state until we've seen all records
-                    self.update_bookmark(state, user.updated_at)
                 if parsed_start <= user.updated_at <= parsed_end:
                     yield (self.stream, user)
+            self.update_bookmark(state, parsed_end)
 
             # Assumes that the for loop got everything
             singer.write_state(state)
