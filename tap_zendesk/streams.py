@@ -253,11 +253,18 @@ class TicketAudits(Stream):
     # we assume we are running out of results to get and we'll try again later.
     MINIMUM_REQUIRED_RESULT_SET_SIZE = 500
 
-    def sync(self, state):
+    def sync(self, state, lookback_minutes):
         try:
             sync_thru = self.get_bookmark(state)
         except TypeError:  # Happens when there is no bookmark yet
             sync_thru = self.start_date
+
+        if not lookback_minutes:
+            # Happens when there are no "lookback_minutes" set in the config.
+            # Rather than fail here we can use 10 minutes as a default, and if
+            # a customer has few ticket audits per minute, this number can be
+            # increased in the config json within the TapConfig object
+            lookback_minutes = 10
 
         sync_thru = max(sync_thru, self.start_date)
         next_synced_thru = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
@@ -265,11 +272,11 @@ class TicketAudits(Stream):
 
         events_stream = TicketAuditEvents(self.client)
 
-        def lt(dt1, dt2):
+        def lt(lookback_minutes, dt1, dt2):
             # Since audits are only roughly ordered, we want to be sure
             # that dt1 is less than dt2 by several minutes so there is a
             # low chance we miss any.
-            return dt1 - datetime.timedelta(minutes=3) < dt2
+            return dt1 - datetime.timedelta(minutes=lookback_minutes) < dt2
 
         audits_generator = self.client.tickets.audits()
         ticket_audits = reversed(audits_generator)
@@ -277,7 +284,7 @@ class TicketAudits(Stream):
         for audit in ticket_audits:
             next_synced_thru = max(next_synced_thru, utils.strptime_with_tz(audit.created_at))
             curr_synced_thru = min(curr_synced_thru, utils.strptime_with_tz(audit.created_at))
-            if lt(curr_synced_thru, sync_thru):
+            if lt(lookback_minutes, curr_synced_thru, sync_thru):
                 self.update_bookmark(state, utils.strftime(next_synced_thru))
                 return
 
