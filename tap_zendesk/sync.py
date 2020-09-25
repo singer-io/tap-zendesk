@@ -15,7 +15,7 @@ def process_record(record):
     rec_dict = json.loads(rec_str)
     return rec_dict
 
-def sync_stream(state, start_date, instance):
+def sync_stream(state, start_date, instance, lookback_minutes):
     stream = instance.stream
 
     # If we have a bookmark, use it; otherwise use start_date
@@ -28,7 +28,9 @@ def sync_stream(state, start_date, instance):
 
     parent_stream = stream
     with metrics.record_counter(stream.tap_stream_id) as counter:
-        for (stream, record) in instance.sync(state):
+        to_process = instance.sync(state) if instance.name != 'ticket_audits' \
+            else instance.sync(state, lookback_minutes)
+        for (stream, record) in to_process:
             # NB: Only count parent records in the case of sub-streams
             if stream.tap_stream_id == parent_stream.tap_stream_id:
                 counter.increment()
