@@ -28,8 +28,9 @@ def sync_stream(state, start_date, instance, lookback_minutes):
 
     parent_stream = stream
     with metrics.record_counter(stream.tap_stream_id) as counter:
-        for (stream, record) in instance.sync(state) if instance.name != 'ticket_audits' \
-                else instance.sync(state, lookback_minutes):
+        to_process = instance.sync(state) if instance.name != 'ticket_audits' \
+            else instance.sync(state, lookback_minutes)
+        for (stream, record) in to_process:
             # NB: Only count parent records in the case of sub-streams
             if stream.tap_stream_id == parent_stream.tap_stream_id:
                 counter.increment()
