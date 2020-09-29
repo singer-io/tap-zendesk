@@ -276,7 +276,7 @@ class TicketAudits(Stream):
             # Since audits are only roughly ordered, we want to be sure
             # that dt1 is less than dt2 by several minutes so there is a
             # low chance we miss any.
-            return dt1 - datetime.timedelta(minutes=lookback_minutes) < dt2
+            return dt1 < dt2 - datetime.timedelta(minutes=lookback_minutes)
 
         audits_generator = self.client.tickets.audits()
         ticket_audits = reversed(audits_generator)
