@@ -184,7 +184,6 @@ class Users(Stream):
         return schema
 
     def sync(self, state):
-        LOGGER.info('STARTING TO SYNC USERSSSS')
         users = self.client.users(role=['agent', 'admin'])
         for user in users:
             yield (self.stream, user)
