@@ -169,8 +169,8 @@ class Organizations(Stream):
 
 class Users(Stream):
     name = "users"
-    replication_method = "INCREMENTAL"
-    replication_key = "updated_at"
+    replication_method = "FULL_TABLE"
+    key_properties = ["id"]
 
     def _add_custom_fields(self, schema):
         try:
@@ -184,10 +184,8 @@ class Users(Stream):
         return schema
 
     def sync(self, state):
-        bookmark = self.get_bookmark(state)
-        users = self.client.users.incremental(start_time=bookmark)
+        users = self.client.users(role=['agent', 'admin'])
         for user in users:
-            self.update_bookmark(state, user.updated_at)
             yield (self.stream, user)
 
 class Tickets(Stream):
