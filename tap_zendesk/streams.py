@@ -25,6 +25,8 @@ CUSTOM_TYPES = {
     'checkbox': 'boolean',
 }
 
+DEFAULT_SEARCH_WINDOW_SIZE = (60 * 60 * 24) * 30 # defined in seconds, default to a month (30 days)
+
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 
@@ -390,15 +392,55 @@ class SatisfactionRatings(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
+        original_search_window_size = DEFAULT_SEARCH_WINDOW_SIZE
+        search_window_size = original_search_window_size
+        # We substract a second here because the API seems to compare
+        # start_time with a >, but we typically prefer a >= behavior.
+        # Also, the start_time query parameter filters based off of
+        # created_at, but zendesk support confirmed with us that
+        # satisfaction_ratings are immutable so that created_at =
+        # updated_at
+        start = bookmark - datetime.timedelta(seconds=1)
+        end = start + datetime.timedelta(seconds=search_window_size)
+        sync_end = singer.utils.now() - datetime.timedelta(minutes=1)
+        epoch_sync_end = int(sync_end.strftime('%s'))
+        parsed_sync_end = singer.strftime(sync_end, "%Y-%m-%dT%H:%M:%SZ")
 
-        satisfaction_ratings = self.client.satisfaction_ratings()
-        for satisfaction_rating in satisfaction_ratings:
-            if utils.strptime_with_tz(satisfaction_rating.updated_at) >= bookmark:
-                # NB: We don't trust that the records come back ordered by
-                # updated_at (we've observed out-of-order records),
-                # so we can't save state until we've seen all records
-                self.update_bookmark(state, satisfaction_rating.updated_at)
-                yield (self.stream, satisfaction_rating)
+        while start < sync_end:
+            epoch_start = int(start.strftime('%s'))
+            parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
+            epoch_end = int(end.strftime('%s'))
+            parsed_end = singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ")
+
+            LOGGER.info("Querying for satisfaction ratings between %s and %s", parsed_start, min(parsed_end, parsed_sync_end))
+            satisfaction_ratings = self.client.satisfaction_ratings(start_time=epoch_start,
+                                                                    end_time=min(epoch_end, epoch_sync_end))
+            # NB: We've observed that the tap can sync 50k records in ~15
+            # minutes, due to this, the tap will adjust the time range
+            # dynamically to ensure bookmarks are able to be written in
+            # cases of high volume.
+            if satisfaction_ratings.count > 50000:
+                search_window_size = search_window_size // 2
+                end = start + datetime.timedelta(seconds=search_window_size)
+                LOGGER.info("satisfaction_ratings - Detected Search API response size for this window is too large (> 50k). Cutting search window in half to %s seconds.", search_window_size)
+                continue
+            for satisfaction_rating in satisfaction_ratings:
+                assert parsed_start <= satisfaction_rating.updated_at, "satisfaction_ratings - Record found before date window start. Details: window start ({}) is not less than or equal to updated_at ({})".format(parsed_start, satisfaction_rating.updated_at)
+                if bookmark < utils.strptime_with_tz(satisfaction_rating.updated_at) <= end:
+                    # NB: We don't trust that the records come back ordered by
+                    # updated_at (we've observed out-of-order records),
+                    # so we can't save state until we've seen all records
+                    self.update_bookmark(state, satisfaction_rating.updated_at)
+                if parsed_start <= satisfaction_rating.updated_at <= parsed_end:
+                    yield (self.stream, satisfaction_rating)
+            if search_window_size <= original_search_window_size // 2:
+                search_window_size = search_window_size * 2
+                LOGGER.info("Successfully requested records. Doubling search window to %s seconds", search_window_size)
+            singer.write_state(state)
+
+            start = end - datetime.timedelta(seconds=1)
+            end = start + datetime.timedelta(seconds=search_window_size)
+
 
 class Groups(Stream):
     name = "groups"
