@@ -554,6 +554,15 @@ class SLAPolicies(Stream):
         for policy in self.client.sla_policies():
             yield (self.stream, policy)
 
+
+class Calls(Stream):
+    name = "calls"
+    replication_method = "INCREMENTAL"
+
+    def sync(self, state):
+        pass
+
+
 STREAMS = {
     "tickets": Tickets,
     "groups": Groups,
@@ -571,4 +580,5 @@ STREAMS = {
     "tags": Tags,
     "ticket_metrics": TicketMetrics,
     "sla_policies": SLAPolicies,
+    "calls": Calls,
 }
