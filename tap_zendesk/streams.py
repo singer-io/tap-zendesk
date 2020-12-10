@@ -2,6 +2,7 @@ import os
 import json
 import datetime
 import pytz
+import requests
 import zenpy
 from zenpy.lib.exception import RecordNotFoundException
 import singer
@@ -560,7 +561,22 @@ class Calls(Stream):
     replication_method = "INCREMENTAL"
 
     def sync(self, state):
-        pass
+
+        bookmark = self.get_bookmark(state)
+        bookmark = round(bookmark.timestamp())
+        next_page = f'https://{self.client.talk.subdomain}.zendesk.com/api/v2/channels/voice/stats/incremental/calls?start_time={bookmark}'
+        count = 50
+
+        while count >= 50:
+            resp = self.client.talk._call_api(self.client.talk.session.get, next_page)
+            result = resp.json()
+            calls = result['calls']
+            for call in calls:
+                self.update_bookmark(state, call['updated_at'])
+                yield (self.stream, call)
+
+            next_page = result['next_page']
+            count = result['count']
 
 
 STREAMS = {
