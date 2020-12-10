@@ -1,8 +1,8 @@
 import os
 import json
 import datetime
+import math
 import pytz
-import requests
 import zenpy
 from zenpy.lib.exception import RecordNotFoundException
 import singer
@@ -559,6 +559,7 @@ class SLAPolicies(Stream):
 class Calls(Stream):
     name = "calls"
     replication_method = "INCREMENTAL"
+    replication_key = "updated_at"
 
     def sync(self, state):
         # The incremental Talk endpoint isn't currently supported by the Zenpy
@@ -567,7 +568,7 @@ class Calls(Stream):
         # If/when that gets merged we can update, but for now we have this!
 
         bookmark = self.get_bookmark(state)
-        bookmark = round(bookmark.timestamp())
+        bookmark = math.floor(bookmark.timestamp())
         next_page = f'https://{self.client.talk.subdomain}.zendesk.com/api/v2/channels/voice/stats/incremental/calls?start_time={bookmark}'
         count = 50
 
