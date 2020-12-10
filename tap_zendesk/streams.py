@@ -1,6 +1,7 @@
 import os
 import json
 import datetime
+import math
 import pytz
 import zenpy
 from zenpy.lib.exception import RecordNotFoundException
@@ -554,6 +555,39 @@ class SLAPolicies(Stream):
         for policy in self.client.sla_policies():
             yield (self.stream, policy)
 
+
+class Calls(Stream):
+    name = "calls"
+    replication_method = "INCREMENTAL"
+    replication_key = "updated_at"
+
+    def sync(self, state):
+        # The incremental Talk endpoint isn't currently supported by the Zenpy
+        # library, though there is an open PR for getting that in there:
+        # https://github.com/facetoe/zenpy/pull/454
+        # If/when that gets merged we can update, but for now we have this!
+
+        bookmark = self.get_bookmark(state)
+        bookmark = math.floor(bookmark.timestamp())
+        next_page = f'https://{self.client.talk.subdomain}.zendesk.com/api/v2/channels/voice/stats/incremental/calls?start_time={bookmark}'
+        count = 50
+
+        # this endpoint will always return a value for next_page, so instead we
+        # use the count property to determine if more items are available
+        MINIMUM_REQUIRED_RESULT_SET_SIZE = 50
+
+        while count >= MINIMUM_REQUIRED_RESULT_SET_SIZE:
+            resp = self.client.talk._call_api(self.client.talk.session.get, next_page)
+            result = resp.json()
+            calls = result['calls']
+            for call in calls:
+                self.update_bookmark(state, call['updated_at'])
+                yield (self.stream, call)
+
+            next_page = result['next_page']
+            count = result['count']
+
+
 STREAMS = {
     "tickets": Tickets,
     "groups": Groups,
@@ -571,4 +605,5 @@ STREAMS = {
     "tags": Tags,
     "ticket_metrics": TicketMetrics,
     "sla_policies": SLAPolicies,
+    "calls": Calls,
 }
