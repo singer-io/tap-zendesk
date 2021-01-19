@@ -1,0 +1,39 @@
+{
+    "type": ["object"],
+    "properties": {
+        "agent_id": {
+            "type": ["integer"]
+        },
+        "agent_state": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "The availability state of the agent",
+            "enum": [
+                "online",
+                "offline",
+                "away"
+            ]
+        },
+        "call_status": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "The call status of the agent",
+            "enum": [
+                "on_call",
+                "wrap_up",
+                "null"
+            ]
+        },
+        "via": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "The channel (client/phone) the agent is registered to"
+        }
+    }
+}

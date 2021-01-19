@@ -647,6 +647,28 @@ class TalkPhoneNumbers(Stream):
         for phone_number in self.client.talk.phone_numbers():
             yield (self.stream, phone_number)
 
+
+class TalkCalls(Stream):
+    name = 'talk_calls'
+    replication_method = "INCREMENTAL"
+    replication_key = 'updated_at'
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+
+        if not bookmark:
+            start_date = self.config.get('start_date')
+            if start_date:
+                bookmark = utils.strptime_with_tz(start_date)
+
+        LOGGER.info(f'Start date: {bookmark}')
+
+        for call in self.client.talk.calls.incremental(start_time=bookmark):
+            if utils.strptime_with_tz(call.updated_at) >= bookmark:
+                self.update_bookmark(state, call.updated_at)
+                yield (self.stream, call)
+
+
 STREAMS = {
     "tickets": Tickets,
     "groups": Groups,
@@ -663,4 +685,5 @@ STREAMS = {
     "ticket_metrics": TicketMetrics,
     "sla_policies": SLAPolicies,
     "talk_phone_numbers": TalkPhoneNumbers,
+    "talk_calls": TalkCalls
 }
