@@ -14,7 +14,7 @@
             "description": "The id number of the group the call was last placed in before completion."
         },
         "call_recording_consent": {
-            "type": ["string"],
+            "type": ["string", "null"],
             "description": "Call recording consent value configured for the phone number",
             "enum": ["always", "opt_in", "opt_out", "never"]
         },
@@ -60,7 +60,8 @@
         },
         "direction": {
             "type": ["string"],
-            "description": "Inbound or outbound. The agent or customer who initialized the call"
+            "description": "Inbound or outbound. The agent or customer who initialized the call",
+            "enum": ["inbound", "outbound"]
         },
         "duration": {
             "type": ["integer"],
@@ -106,7 +107,7 @@
             "description": "Minutes billed"
         },
         "not_recording_time": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "How long in seconds spent not recording on the call"
         },
         "outside_business_hours": {
@@ -130,7 +131,7 @@
             "description": "Talk phone number id"
         },
         "quality_issues": {
-            "type": ["array"],
+            "type": ["array", "null"],
             "description": "A summary of the call's quality issues related to the call provided to Zendesk from Twilio. Until the information is made available by Twilio, the array contains \"information_not_available\". If there are no issues, the array contains \"none\". Other possible values: one or more of \"silence\", \"high_jitter\", \"high_packet_loss\", \"high_pdd\", \"high_latency\"",
             "items": {
                 "type": "string",
@@ -146,15 +147,15 @@
             }
         },
         "recording_control_interactions": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "The amount of times agents have paused or resumed a recording on the call."
         },
         "recording_time": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "How long in seconds spent recording on the call"
         },
         "talk_time": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "Sum of how long in seconds the customer was in conference with an agent(s). If a call is not accepted by an agent this will be 0"
         },
         "ticket_id": {
