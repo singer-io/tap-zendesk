@@ -10,12 +10,6 @@
         "string"
       ]
     },
-    "description": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
     "created_at": {
       "type": [
         "null",
@@ -46,6 +40,18 @@
       "type": [
         "null",
         "integer"
+      ]
+    },
+    "default": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "description": {
+      "type": [
+        "null",
+        "string"
       ]
     }
   }
