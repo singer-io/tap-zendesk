@@ -190,6 +190,8 @@ def main():
     session = get_session(parsed_args.config)
     client = Zenpy(session=session, **creds)
 
+    LOGGER.info(client.__dict__)
+
     if not client:
         LOGGER.error("""No suitable authentication keys provided.""")
 
