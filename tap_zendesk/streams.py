@@ -76,7 +76,7 @@ class Stream():
         schema_file = "schemas/{}.json".format(self.name)
         with open(get_abs_path(schema_file)) as f:
             schema = json.load(f)
-            LOGGER.info(schema)
+
         return self._add_custom_fields(schema)
 
     def _add_custom_fields(self, schema): # pylint: disable=no-self-use
