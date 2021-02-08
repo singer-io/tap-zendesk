@@ -189,7 +189,7 @@ def main():
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
     session = get_session(parsed_args.config)
     client = Zenpy(session=session, **creds)
-    print(client.__dict__)
+
     if not client:
         LOGGER.error("""No suitable authentication keys provided.""")
 
