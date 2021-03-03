@@ -33,6 +33,7 @@ def get_abs_path(path):
 
 def process_custom_field(field):
     """ Take a custom field description and return a schema for it. """
+
     zendesk_type = field.type
     json_type = CUSTOM_TYPES.get(zendesk_type)
     if json_type is None:
@@ -48,7 +49,7 @@ def process_custom_field(field):
     if zendesk_type == 'date':
         field_schema['format'] = 'datetime'
     if zendesk_type == 'dropdown':
-        field_schema['enum'] = [o['value'] for o in field.custom_field_options]
+        field_schema['enum'] = [o.value for o in field.custom_field_options]
 
     return field_schema
 
@@ -76,6 +77,7 @@ class Stream():
         schema_file = "schemas/{}.json".format(self.name)
         with open(get_abs_path(schema_file)) as f:
             schema = json.load(f)
+            LOGGER.info(schema)
 
         return self._add_custom_fields(schema)
 
@@ -154,10 +156,12 @@ class Users(Stream):
     def _add_custom_fields(self, schema):
         try:
             field_gen = self.client.user_fields()
+            LOGGER.info(field_gen)
         except zenpy.lib.exception.APIException as e:
             return raise_or_log_zenpy_apiexception(schema, self.name, e)
         schema['properties']['user_fields']['properties'] = {}
         for field in field_gen:
+            LOGGER.info(field.to_dict())
             schema['properties']['user_fields']['properties'][field.key] = process_custom_field(field)
 
         return schema
@@ -544,19 +548,19 @@ class TicketMetricEvents(Stream):
                 yield (self.stream, ticket_metric_event)
 
 STREAMS = {
-    # "tickets": Tickets,
-    # "groups": Groups,
-    # "users": Users,
-    # "organizations": Organizations,
-    # "ticket_audits": TicketAudits,
-    # "ticket_comments": TicketComments,
-    # "ticket_fields": TicketFields,
-    # "ticket_forms": TicketForms,
-    # "group_memberships": GroupMemberships,
-    # "macros": Macros,
-    # "satisfaction_ratings": SatisfactionRatings,
-    # "tags": Tags,
-    # "ticket_metrics": TicketMetrics,
-    # "sla_policies": SLAPolicies,
+    "tickets": Tickets,
+    "groups": Groups,
+    "users": Users,
+    "organizations": Organizations,
+    "ticket_audits": TicketAudits,
+    "ticket_comments": TicketComments,
+    "ticket_fields": TicketFields,
+    "ticket_forms": TicketForms,
+    "group_memberships": GroupMemberships,
+    "macros": Macros,
+    "satisfaction_ratings": SatisfactionRatings,
+    "tags": Tags,
+    "ticket_metrics": TicketMetrics,
+    "sla_policies": SLAPolicies,
     "ticket_metric_events": TicketMetricEvents,
 }
