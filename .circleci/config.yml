@@ -1,4 +1,7 @@
-version: 2
+version: 2.1
+orbs:
+  slack: circleci/slack@3.4.2
+
 jobs:
   build:
     docker:
@@ -31,6 +34,8 @@ jobs:
                      --client-id=50 \
                      --token=$STITCH_API_TOKEN \
                      test
+      - slack/notify-on-failure:
+          only_for_branches: master
 
 workflows:
   version: 2
