@@ -312,6 +312,8 @@ class TicketAuditEvents(Stream):
                 'ticket_audit_created_at': audit.created_at,
                 'ticket_id': audit.ticket_id,
             }
+            if event.get('value'):
+                event['value'] = json.dumps(event['value'])
             yield (self.stream, event)
 
 
