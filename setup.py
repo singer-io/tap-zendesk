@@ -16,7 +16,7 @@ setup(name='tap-zendesk',
       extras_require={
           'dev': [
               'ipdb',
-              'pylint',
+              'pylint==2.8.3',
               'nose',
               'nose-watch',
           ]
