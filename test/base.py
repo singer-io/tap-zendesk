@@ -2,7 +2,7 @@ import unittest
 import os
 import tap_tester.connections as connections
 import tap_tester.menagerie   as menagerie
-import tap_tester.runner      as runner
+
 
 class ZendeskTest(unittest.TestCase):
     def tap_name(self):
