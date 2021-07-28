@@ -5,8 +5,7 @@ from base import ZendeskTest
 import unittest
 from functools import reduce
 from singer import metadata
-from zenpy import Zenpy
-from zenpy.lib.api_objects import Group, Organization
+
 
 class ZendeskMinimalSelection(ZendeskTest):
     def name(self):

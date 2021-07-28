@@ -1,4 +1,4 @@
-import tap_tester.menagerie   as menagerie
+from tap_tester impor menagerie, connections
 
 from base import ZendeskTest
 
