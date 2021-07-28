@@ -22,7 +22,26 @@ class ZendeskMinimalSelection(ZendeskTest):
             'users': {'id'}
         }
 
-    def do_test(self, conn_id):
+    def test_run(self):
+        # Default test setup
+        # Create the connection for Zendesk
+        conn_id = connections.ensure_connection(self)
+
+        # Run a check job using orchestrator
+        check_job_name = runner.run_check_mode(self, conn_id)
+        exit_status = menagerie.get_exit_status(conn_id, check_job_name)
+        menagerie.verify_check_exit_status(self, exit_status, check_job_name)
+
+        # Verify schemas discovered were discovered
+        self.found_catalogs = menagerie.get_catalogs(conn_id)
+        self.assertEqual(len(self.found_catalogs), len(self.expected_check_streams()))
+
+        # Verify the schemas discovered were exactly what we expect
+        found_catalog_names = {catalog['tap_stream_id']
+                               for catalog in self.found_catalogs
+                               if catalog['tap_stream_id'] in self.expected_check_streams()}
+        self.assertSetEqual(self.expected_check_streams(), found_catalog_names)
+
         # Select our catalogs
         our_catalogs = [c for c in self.found_catalogs if c.get('tap_stream_id') in self.expected_sync_streams()]
         for c in our_catalogs:
