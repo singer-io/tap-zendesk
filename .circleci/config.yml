@@ -26,6 +26,7 @@ jobs:
             aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
+            pip install 'zenpy==2.0.0'
             run-test --tap=tap-zendesk test
       - slack/notify-on-failure:
           only_for_branches: master
