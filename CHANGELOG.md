@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.4
+  * Log Request URL (and URL params), Response ETag, and Response 'X-Request-Id' header to help with troubleshooting [#63](https://github.com/singer-io/tap-zendesk/pull/63)
+
 ## 1.5.3
   * Break out of infinite loop with users stream and bookmark on date window end [#46](https://github.com/singer-io/tap-zendesk/pull/46)
 
