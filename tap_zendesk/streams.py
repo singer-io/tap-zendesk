@@ -250,7 +250,7 @@ class Tickets(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        tickets = self.client.tickets.incremental(start_time=bookmark)
+        tickets = self.client.tickets.incremental(start_time=bookmark, paginate_by_time=False)
 
         audits_stream = TicketAudits(self.client)
         metrics_stream = TicketMetrics(self.client)
