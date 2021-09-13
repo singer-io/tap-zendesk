@@ -10,6 +10,7 @@ from singer import metadata
 from singer import utils
 from singer.metrics import Point
 from tap_zendesk import metrics as zendesk_metrics
+from tap_zendesk import http
 
 
 LOGGER = singer.get_logger()
@@ -58,10 +59,21 @@ class Stream():
     replication_key = None
     key_properties = KEY_PROPERTIES
     stream = None
+    item_key = None
+    endpoint = None
 
     def __init__(self, client=None, config=None):
         self.client = client
         self.config = config
+
+    def get_objects(self):
+        '''
+        Cursor based object retrieval
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+
+        for page in http.get_cursor_based(url, self.config['access_token']):
+            yield from page[self.item_key]
 
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
@@ -449,11 +461,12 @@ class Tags(Stream):
     name = "tags"
     replication_method = "FULL_TABLE"
     key_properties = ["name"]
+    endpoint = 'https://{}.zendesk.com/api/v2/tags'
+    item_key = 'tags'
 
     def sync(self, state): # pylint: disable=unused-argument
-        # NB: Setting page to force it to paginate all tags, instead of just the
-        #     top 100 popular tags
-        tags = self.client.tags(page=1)
+        tags = self.get_objects()
+
         for tag in tags:
             yield (self.stream, tag)
 
@@ -495,23 +508,26 @@ class GroupMemberships(Stream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/group_memberships'
+    item_key = 'group_memberships'
+
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
+        memberships = self.get_objects()
 
-        memberships = self.client.group_memberships()
         for membership in memberships:
             # some group memberships come back without an updated_at
-            if membership.updated_at:
-                if utils.strptime_with_tz(membership.updated_at) >= bookmark:
+            if membership['updated_at']:
+                if utils.strptime_with_tz(membership['updated_at']) >= bookmark:
                     # NB: We don't trust that the records come back ordered by
                     # updated_at (we've observed out-of-order records),
                     # so we can't save state until we've seen all records
-                    self.update_bookmark(state, membership.updated_at)
+                    self.update_bookmark(state, membership['updated_at'])
                     yield (self.stream, membership)
             else:
-                if membership.id:
-                    LOGGER.info('group_membership record with id: ' + str(membership.id) +
+                if membership['id']:
+                    LOGGER.info('group_membership record with id: ' + str(membership['id']) +
                                 ' does not have an updated_at field so it will be syncd...')
                     yield (self.stream, membership)
                 else:
