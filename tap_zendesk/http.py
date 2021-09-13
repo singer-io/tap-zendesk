@@ -21,9 +21,6 @@ def get_cursor_based(url, access_token, cursor=None):
     response.raise_for_status()
     response_json = response.json()
 
-    import ipdb; ipdb.set_trace()
-    1+1
-
     yield response_json
     has_more = response_json['meta']['has_more']
 
