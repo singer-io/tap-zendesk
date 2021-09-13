@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.5
+  * Log the id for the users found outside of the queried window [#65](https://github.com/singer-io/tap-zendesk/pull/65)
+
 ## 1.5.4
   * Log Request URL (and URL params), Response ETag, and Response 'X-Request-Id' header to help with troubleshooting [#63](https://github.com/singer-io/tap-zendesk/pull/63)
 
