@@ -179,13 +179,9 @@ class Users(Stream):
         return schema
 
     def sync(self, state):
-        bookmark = self.get_bookmark(state)
-
         users = self.get_objects()
         for user in users:
-            if utils.strptime_with_tz(user[self.replication_key]) >= bookmark:
-                self.update_bookmark(state,user[self.replication_key])
-                yield (self.stream, user)
+            yield (self.stream, user)
 
 
 class Tickets(Stream):
