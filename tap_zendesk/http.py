@@ -1,7 +1,7 @@
+from time import sleep
 import backoff
 import requests
 import singer
-from time import sleep
 
 
 LOGGER = singer.get_logger()
