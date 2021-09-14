@@ -175,7 +175,6 @@ class Users(Stream):
 
         return schema
 
-
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
