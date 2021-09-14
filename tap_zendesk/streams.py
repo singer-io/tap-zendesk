@@ -335,8 +335,8 @@ class SatisfactionRatings(Stream):
         ratings = self.get_objects()
         for rating in ratings:
             if utils.strptime_with_tz(rating['updated_at']) >= bookmark:
-                self.update_bookmark(state, group['updated_at'])
-                yield (self.stream, group)
+                self.update_bookmark(state, rating['updated_at'])
+                yield (self.stream, rating)
 
 
 class Groups(Stream):
@@ -400,7 +400,7 @@ class TicketFields(Stream):
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
-        fields = self.get_objects
+        fields = self.get_objects()
         for field in fields:
             if utils.strptime_with_tz(field['updated_at']) >= bookmark:
                 # NB: We don't trust that the records come back ordered by
