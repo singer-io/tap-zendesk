@@ -13,7 +13,7 @@ jobs:
           command: |
             virtualenv -p python3 /usr/local/share/virtualenvs/tap-zendesk
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
-            pip install .[dev]
+            pip install .[test]
       - run:
           name: 'pylint'
           command: |
