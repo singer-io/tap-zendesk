@@ -133,6 +133,8 @@ class Organizations(Stream):
     name = "organizations"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/organizations'
+    item_key = 'organizations'
 
     def _add_custom_fields(self, schema):
         endpoint = self.client.organizations.endpoint
@@ -151,10 +153,11 @@ class Organizations(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        organizations = self.client.organizations.incremental(start_time=bookmark)
+        organizations = self.get_objects()
         for organization in organizations:
-            self.update_bookmark(state, organization.updated_at)
-            yield (self.stream, organization)
+            if utils.strptime_with_tz(organization['updated_at']) >= bookmark:
+                self.update_bookmark(state, organization['updated_at'])
+                yield (self.stream, organization)
 
 
 class Users(Stream):
@@ -323,92 +326,55 @@ class SatisfactionRatings(Stream):
     name = "satisfaction_ratings"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/satisfaction_ratings'
+    item_key = 'satisfaction_ratings'
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        original_search_window_size = int(self.config.get('search_window_size', DEFAULT_SEARCH_WINDOW_SIZE))
-        search_window_size = original_search_window_size
-        # We substract a second here because the API seems to compare
-        # start_time with a >, but we typically prefer a >= behavior.
-        # Also, the start_time query parameter filters based off of
-        # created_at, but zendesk support confirmed with us that
-        # satisfaction_ratings are immutable so that created_at =
-        # updated_at
-        #start = bookmark_epoch-1
-        start = bookmark - datetime.timedelta(seconds=1)
-        end = start + datetime.timedelta(seconds=search_window_size)
-        sync_end = singer.utils.now() - datetime.timedelta(minutes=1)
-        epoch_sync_end = int(sync_end.strftime('%s'))
-        parsed_sync_end = singer.strftime(sync_end, "%Y-%m-%dT%H:%M:%SZ")
 
-        while start < sync_end:
-            epoch_start = int(start.strftime('%s'))
-            parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
-            epoch_end = int(end.strftime('%s'))
-            parsed_end = singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ")
-
-            LOGGER.info("Querying for satisfaction ratings between %s and %s", parsed_start, min(parsed_end, parsed_sync_end))
-            satisfaction_ratings = self.client.satisfaction_ratings(start_time=epoch_start,
-                                                                    end_time=min(epoch_end, epoch_sync_end))
-            # NB: We've observed that the tap can sync 50k records in ~15
-            # minutes, due to this, the tap will adjust the time range
-            # dynamically to ensure bookmarks are able to be written in
-            # cases of high volume.
-            if satisfaction_ratings.count > 50000:
-                search_window_size = search_window_size // 2
-                end = start + datetime.timedelta(seconds=search_window_size)
-                LOGGER.info("satisfaction_ratings - Detected Search API response size for this window is too large (> 50k). Cutting search window in half to %s seconds.", search_window_size)
-                continue
-            for satisfaction_rating in satisfaction_ratings:
-                assert parsed_start <= satisfaction_rating.updated_at, "satisfaction_ratings - Record found before date window start. Details: window start ({}) is not less than or equal to updated_at ({})".format(parsed_start, satisfaction_rating.updated_at)
-                if bookmark < utils.strptime_with_tz(satisfaction_rating.updated_at) <= end:
-                    # NB: We don't trust that the records come back ordered by
-                    # updated_at (we've observed out-of-order records),
-                    # so we can't save state until we've seen all records
-                    self.update_bookmark(state, satisfaction_rating.updated_at)
-                if parsed_start <= satisfaction_rating.updated_at <= parsed_end:
-                    yield (self.stream, satisfaction_rating)
-            if search_window_size <= original_search_window_size // 2:
-                search_window_size = search_window_size * 2
-                LOGGER.info("Successfully requested records. Doubling search window to %s seconds", search_window_size)
-            singer.write_state(state)
-
-            start = end - datetime.timedelta(seconds=1)
-            end = start + datetime.timedelta(seconds=search_window_size)
+        ratings = self.get_objects()
+        for rating in ratings:
+            if utils.strptime_with_tz(rating['updated_at']) >= bookmark:
+                self.update_bookmark(state, group['updated_at'])
+                yield (self.stream, group)
 
 
 class Groups(Stream):
     name = "groups"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/groups'
+    item_key = 'groups'
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
-        groups = self.client.groups()
+        groups = self.get_objects()
         for group in groups:
-            if utils.strptime_with_tz(group.updated_at) >= bookmark:
+            if utils.strptime_with_tz(group['updated_at']) >= bookmark:
                 # NB: We don't trust that the records come back ordered by
                 # updated_at (we've observed out-of-order records),
                 # so we can't save state until we've seen all records
-                self.update_bookmark(state, group.updated_at)
+                self.update_bookmark(state, group['updated_at'])
                 yield (self.stream, group)
 
 class Macros(Stream):
     name = "macros"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/macros'
+    item_key = 'macros'
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
-        macros = self.client.macros()
+        macros = self.get_objects()
         for macro in macros:
-            if utils.strptime_with_tz(macro.updated_at) >= bookmark:
+            if utils.strptime_with_tz(macro['updated_at']) >= bookmark:
                 # NB: We don't trust that the records come back ordered by
                 # updated_at (we've observed out-of-order records),
                 # so we can't save state until we've seen all records
-                self.update_bookmark(state, macro.updated_at)
+                self.update_bookmark(state, macro['updated_at'])
                 yield (self.stream, macro)
 
 class Tags(Stream):
@@ -428,17 +394,19 @@ class TicketFields(Stream):
     name = "ticket_fields"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/ticket_fields'
+    item_key = 'ticket_fields'
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
-        fields = self.client.ticket_fields()
+        fields = self.get_objects
         for field in fields:
-            if utils.strptime_with_tz(field.updated_at) >= bookmark:
+            if utils.strptime_with_tz(field['updated_at']) >= bookmark:
                 # NB: We don't trust that the records come back ordered by
                 # updated_at (we've observed out-of-order records),
                 # so we can't save state until we've seen all records
-                self.update_bookmark(state, field.updated_at)
+                self.update_bookmark(state, field['updated_at'])
                 yield (self.stream, field)
 
 class TicketForms(Stream):
