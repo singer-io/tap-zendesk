@@ -1,7 +1,20 @@
 # Changelog
 
-## 1.5.5
+## 1.5.6
   * Log the id for the users found outside of the queried window [#65](https://github.com/singer-io/tap-zendesk/pull/65)
+
+## 1.5.5
+  Changes introduced in [#64](https://github.com/singer-io/tap-zendesk/pull/64)
+  * Add to setup.py a "test" extra_requires so that CI doesn't have to install ipdb
+  * Add to setup.py dependencies on backoff and requests
+  * Add retry logic to the requests made for the Organizations, Satisfaction Ratings, Ticket Fields, Tags, and GroupMemberships streams
+  * Add unit tests around our new cursor based pagination logic
+  * Update singer-python from 5.2.1 to 5.12.2
+  * Update zenpy from 2.0.0 to 2.0.24
+  * Update the Organizations, Satisfaction Ratings, Ticket Fields, Tags, GroupMemberships, and Tickets to use cursor-based pagination
+    * Tickets leans on zenpy to do pagination
+    * The other streams do not
+  * Fix Circle Config to install "test" dependencies instead of "dev"
 
 ## 1.5.4
   * Log Request URL (and URL params), Response ETag, and Response 'X-Request-Id' header to help with troubleshooting [#63](https://github.com/singer-io/tap-zendesk/pull/63)
