@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.7
+  * Limit the Satisfaction Ratings Stream by the bookmarked updated at value [#67](https://github.com/singer-io/tap-zendesk/pull/67)
+
 ## 1.5.6
   * Log the id for the users found outside of the queried window [#65](https://github.com/singer-io/tap-zendesk/pull/65)
 
