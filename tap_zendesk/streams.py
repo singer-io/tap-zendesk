@@ -66,13 +66,13 @@ class Stream():
         self.client = client
         self.config = config
 
-    def get_objects(self):
+    def get_objects(self, **kwargs):
         '''
         Cursor based object retrieval
         '''
         url = self.endpoint.format(self.config['subdomain'])
 
-        for page in http.get_cursor_based(url, self.config['access_token']):
+        for page in http.get_cursor_based(url, self.config['access_token'], **kwargs):
             yield from page[self.item_key]
 
     def get_bookmark(self, state):
