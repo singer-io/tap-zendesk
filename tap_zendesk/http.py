@@ -29,16 +29,18 @@ def call_api(url, params, headers):
 
 
 
-def get_cursor_based(url, access_token, cursor=None):
+def get_cursor_based(url, access_token, cursor=None, **kwargs):
     # something like this
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Authorization': 'Bearer {}'.format(access_token),
+        **kwargs.get('headers', {})
     }
 
     params = {
         'page[size]': 100,
+        **kwargs.get('params', {})
     }
 
     if cursor:

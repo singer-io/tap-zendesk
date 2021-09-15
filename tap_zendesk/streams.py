@@ -66,13 +66,13 @@ class Stream():
         self.client = client
         self.config = config
 
-    def get_objects(self):
+    def get_objects(self, **kwargs):
         '''
         Cursor based object retrieval
         '''
         url = self.endpoint.format(self.config['subdomain'])
 
-        for page in http.get_cursor_based(url, self.config['access_token']):
+        for page in http.get_cursor_based(url, self.config['access_token'], **kwargs):
             yield from page[self.item_key]
 
     def get_bookmark(self, state):
@@ -380,8 +380,9 @@ class SatisfactionRatings(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-
-        ratings = self.get_objects()
+        epoch_bookmark = int(bookmark.timestamp())
+        params = {'start_time': epoch_bookmark}
+        ratings = self.get_objects(params=params)
         for rating in ratings:
             if utils.strptime_with_tz(rating['updated_at']) >= bookmark:
                 self.update_bookmark(state, rating['updated_at'])
