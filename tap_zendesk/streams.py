@@ -380,8 +380,9 @@ class SatisfactionRatings(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-
-        ratings = self.get_objects()
+        epoch_bookmark = int(bookmark.timestamp())
+        params = {'start_time': epoch_bookmark}
+        ratings = self.get_objects(params=params)
         for rating in ratings:
             if utils.strptime_with_tz(rating['updated_at']) >= bookmark:
                 self.update_bookmark(state, rating['updated_at'])
