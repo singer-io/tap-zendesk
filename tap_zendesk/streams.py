@@ -215,8 +215,11 @@ class Users(Stream):
                     time.sleep(30)
                     num_retries += 1
                     continue
-                raise AssertionError("users - Record found before date window start and did not resolve after 30 minutes of retrying. Details: window start ({}) is not less than or equal to updated_at value(s) {}".format(
-                        parsed_start, [str(user.updated_at) for user in users if user.updated_at < parsed_start]))
+                bad_users = [user for user in users if user.updated_at < parsed_start]
+                raise AssertionError("users - Record (user-id: {}) found before date window start and did not resolve after 30 minutes of retrying. Details: window start ({}) is not less than or equal to updated_at value(s) {}".format(
+                    [user.id for user in bad_users],
+                    parsed_start,
+                    [str(user.updated_at) for user in bad_users]))
 
             # If we make it here, all quality checks have passed. Reset retry count.
             num_retries = 0

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.6
+  * Log the id for the users found outside of the queried window [#65](https://github.com/singer-io/tap-zendesk/pull/65)
+
 ## 1.5.5
   Changes introduced in [#64](https://github.com/singer-io/tap-zendesk/pull/64)
   * Add to setup.py a "test" extra_requires so that CI doesn't have to install ipdb
