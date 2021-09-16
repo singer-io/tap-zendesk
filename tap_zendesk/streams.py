@@ -153,11 +153,10 @@ class Organizations(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        organizations = self.get_objects()
+        organizations = self.client.organizations.incremental(start_time=bookmark)
         for organization in organizations:
-            if utils.strptime_with_tz(organization['updated_at']) >= bookmark:
-                self.update_bookmark(state, organization['updated_at'])
-                yield (self.stream, organization)
+            self.update_bookmark(state, organization.updated_at)
+            yield (self.stream, organization)
 
 
 class Users(Stream):
