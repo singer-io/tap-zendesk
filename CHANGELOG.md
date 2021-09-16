@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.8
+  * Revert Organizations Stream back to the Incremental Search endpoint [#70](https://github.com/singer-io/tap-zendesk/pull/70)
+
 ## 1.5.7
   * Limit the Satisfaction Ratings Stream by the bookmarked updated at value [#67](https://github.com/singer-io/tap-zendesk/pull/67)
 
