@@ -27,10 +27,13 @@ CUSTOM_TYPES = {
     'checkbox': 'boolean',
 }
 
-DEFAULT_SEARCH_WINDOW_SIZE = (60 * 60 * 24) * 30 # defined in seconds, default to a month (30 days)
+# defined in seconds, default to a month (30 days)
+DEFAULT_SEARCH_WINDOW_SIZE = (60 * 60 * 24) * 30
+
 
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
+
 
 def process_custom_field(field):
     """ Take a custom field description and return a schema for it. """
@@ -52,6 +55,7 @@ def process_custom_field(field):
         field_schema['enum'] = [o.value for o in field.custom_field_options]
 
     return field_schema
+
 
 class Stream():
     name = None
@@ -81,8 +85,8 @@ class Stream():
     def update_bookmark(self, state, value):
         current_bookmark = self.get_bookmark(state)
         if value and utils.strptime_with_tz(value) > current_bookmark:
-            singer.write_bookmark(state, self.name, self.replication_key, value)
-
+            singer.write_bookmark(
+                state, self.name, self.replication_key, value)
 
     def load_schema(self):
         schema_file = "schemas/{}.json".format(self.name)
@@ -90,29 +94,35 @@ class Stream():
             schema = json.load(f)
         return self._add_custom_fields(schema)
 
-    def _add_custom_fields(self, schema): # pylint: disable=no-self-use
+    def _add_custom_fields(self, schema):  # pylint: disable=no-self-use
         return schema
 
     def load_metadata(self):
         schema = self.load_schema()
         mdata = metadata.new()
 
-        mdata = metadata.write(mdata, (), 'table-key-properties', self.key_properties)
-        mdata = metadata.write(mdata, (), 'forced-replication-method', self.replication_method)
+        mdata = metadata.write(
+            mdata, (), 'table-key-properties', self.key_properties)
+        mdata = metadata.write(
+            mdata, (), 'forced-replication-method', self.replication_method)
 
         if self.replication_key:
-            mdata = metadata.write(mdata, (), 'valid-replication-keys', [self.replication_key])
+            mdata = metadata.write(
+                mdata, (), 'valid-replication-keys', [self.replication_key])
 
         for field_name in schema['properties'].keys():
             if field_name in self.key_properties or field_name == self.replication_key:
-                mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
+                mdata = metadata.write(
+                    mdata, ('properties', field_name), 'inclusion', 'automatic')
             else:
-                mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
+                mdata = metadata.write(
+                    mdata, ('properties', field_name), 'inclusion', 'available')
 
         return metadata.to_list(mdata)
 
     def is_selected(self):
         return self.stream is not None
+
 
 def raise_or_log_zenpy_apiexception(schema, stream, e):
     # There are multiple tiers of Zendesk accounts. Some of them have
@@ -121,9 +131,13 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
     # it doesn't have access.
     if not isinstance(e, zenpy.lib.exception.APIException):
         raise ValueError("Called with a bad exception type") from e
-    if json.loads(e.args[0])['error']['message'] == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
-        LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
-                       stream)
+
+    if isinstance(json.loads(e.args[0]).get('error'), dict):
+
+        if json.loads(e.args[0]).get('error').get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
+            LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
+                           stream)
+
         return schema
     else:
         raise e
@@ -141,13 +155,14 @@ class Organizations(Stream):
         # NB: Zenpy doesn't have a public endpoint for this at time of writing
         #     Calling into underlying query method to grab all fields
         try:
-            field_gen = self.client.organizations._query_zendesk(endpoint.organization_fields, # pylint: disable=protected-access
+            field_gen = self.client.organizations._query_zendesk(endpoint.organization_fields,  # pylint: disable=protected-access
                                                                  'organization_field')
         except zenpy.lib.exception.APIException as e:
             return raise_or_log_zenpy_apiexception(schema, self.name, e)
         schema['properties']['organization_fields']['properties'] = {}
         for field in field_gen:
-            schema['properties']['organization_fields']['properties'][field.key] = process_custom_field(field)
+            schema['properties']['organization_fields']['properties'][field.key] = process_custom_field(
+                field)
 
         return schema
 
@@ -172,12 +187,14 @@ class Users(Stream):
             return raise_or_log_zenpy_apiexception(schema, self.name, e)
         schema['properties']['user_fields']['properties'] = {}
         for field in field_gen:
-            schema['properties']['user_fields']['properties'][field.key] = process_custom_field(field)
+            schema['properties']['user_fields']['properties'][field.key] = process_custom_field(
+                field)
 
         return schema
 
     def sync(self, state):
-        original_search_window_size = int(self.config.get('search_window_size', DEFAULT_SEARCH_WINDOW_SIZE))
+        original_search_window_size = int(self.config.get(
+            'search_window_size', DEFAULT_SEARCH_WINDOW_SIZE))
         search_window_size = original_search_window_size
         bookmark = self.get_bookmark(state)
         start = bookmark - datetime.timedelta(seconds=1)
@@ -189,9 +206,12 @@ class Users(Stream):
         num_retries = 0
         while start < sync_end:
             parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
-            parsed_end = min(singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ"), parsed_sync_end)
-            LOGGER.info("Querying for users between %s and %s", parsed_start, parsed_end)
-            users = self.client.search("", updated_after=parsed_start, updated_before=parsed_end, type="user")
+            parsed_end = min(singer.strftime(
+                end, "%Y-%m-%dT%H:%M:%SZ"), parsed_sync_end)
+            LOGGER.info("Querying for users between %s and %s",
+                        parsed_start, parsed_end)
+            users = self.client.search(
+                "", updated_after=parsed_start, updated_before=parsed_end, type="user")
 
             # NB: Zendesk will return an error on the 1001st record, so we
             # need to check total response size before iterating
@@ -199,23 +219,28 @@ class Users(Stream):
             if users.count > 1000:
                 if search_window_size > 1:
                     search_window_size = search_window_size // 2
-                    end = start + datetime.timedelta(seconds=search_window_size)
-                    LOGGER.info("users - Detected Search API response size too large. Cutting search window in half to %s seconds.", search_window_size)
+                    end = start + \
+                        datetime.timedelta(seconds=search_window_size)
+                    LOGGER.info(
+                        "users - Detected Search API response size too large. Cutting search window in half to %s seconds.", search_window_size)
                     continue
 
                 raise Exception("users - Unable to get all users within minimum window of a single second ({}), found {} users within this timestamp. Zendesk can only provide a maximum of 1000 users per request. See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits".format(parsed_start, users.count))
 
             # Consume the records to account for dates lower than window start
-            users = [user for user in users] # pylint: disable=unnecessary-comprehension
+            users = [
+                user for user in users]  # pylint: disable=unnecessary-comprehension
 
             if not all(parsed_start <= user.updated_at for user in users):
                 # Only retry up to 30 minutes (60 attempts at 30 seconds each)
                 if num_retries < 60:
-                    LOGGER.info("users - Record found before date window start. Waiting 30 seconds, then retrying window for consistency. (Retry #%s)", num_retries + 1)
+                    LOGGER.info(
+                        "users - Record found before date window start. Waiting 30 seconds, then retrying window for consistency. (Retry #%s)", num_retries + 1)
                     time.sleep(30)
                     num_retries += 1
                     continue
-                bad_users = [user for user in users if user.updated_at < parsed_start]
+                bad_users = [
+                    user for user in users if user.updated_at < parsed_start]
                 raise AssertionError("users - Record (user-id: {}) found before date window start and did not resolve after 30 minutes of retrying. Details: window start ({}) is not less than or equal to updated_at value(s) {}".format(
                     [user.id for user in bad_users],
                     parsed_start,
@@ -232,7 +257,8 @@ class Users(Stream):
             singer.write_state(state)
             if search_window_size <= original_search_window_size // 2:
                 search_window_size = search_window_size * 2
-                LOGGER.info("Successfully requested records. Doubling search window to %s seconds", search_window_size)
+                LOGGER.info(
+                    "Successfully requested records. Doubling search window to %s seconds", search_window_size)
             start = end - datetime.timedelta(seconds=1)
             end = start + datetime.timedelta(seconds=search_window_size)
 
@@ -245,6 +271,7 @@ class Tickets(Stream):
     last_record_emit = {}
     buf = {}
     buf_time = 60
+
     def _buffer_record(self, record):
         stream_name = record[0].tap_stream_id
         if self.last_record_emit.get(stream_name) is None:
@@ -268,7 +295,8 @@ class Tickets(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        tickets = self.client.tickets.incremental(start_time=bookmark, paginate_by_time=False)
+        tickets = self.client.tickets.incremental(
+            start_time=bookmark, paginate_by_time=False)
 
         audits_stream = TicketAudits(self.client)
         metrics_stream = TicketMetrics(self.client)
@@ -279,7 +307,7 @@ class Tickets(Stream):
                 singer.metrics.log(LOGGER, Point(metric_type='counter',
                                                  metric=singer.metrics.Metric.record_count,
                                                  value=sub_stream.count,
-                                                 tags={'endpoint':sub_stream.stream.tap_stream_id}))
+                                                 tags={'endpoint': sub_stream.stream.tap_stream_id}))
                 sub_stream.count = 0
 
         if audits_stream.is_selected():
@@ -287,11 +315,13 @@ class Tickets(Stream):
 
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
-            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(tzinfo=pytz.UTC)
+            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(
+                ticket.generated_timestamp).replace(tzinfo=pytz.UTC)
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
             ticket_dict = ticket.to_dict()
-            ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+            # NB: Fields is a duplicate of custom_fields, remove before emitting
+            ticket_dict.pop('fields')
             should_yield = self._buffer_record((self.stream, ticket_dict))
 
             if audits_stream.is_selected():
@@ -300,8 +330,8 @@ class Tickets(Stream):
                         zendesk_metrics.capture('ticket_audit')
                         self._buffer_record(audit)
                 except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), "
+                                   "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
             if metrics_stream.is_selected():
                 try:
@@ -309,8 +339,8 @@ class Tickets(Stream):
                         zendesk_metrics.capture('ticket_metric')
                         self._buffer_record(metric)
                 except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                    LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), "
+                                   "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
             if comments_stream.is_selected():
                 try:
@@ -321,8 +351,8 @@ class Tickets(Stream):
                         comment[1].ticket_id = ticket_dict["id"]
                         self._buffer_record(comment)
                 except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                    LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), "
+                                   "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
             if should_yield:
                 for rec in self._empty_buffer():
@@ -339,6 +369,7 @@ class Tickets(Stream):
         emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
 
+
 class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
@@ -350,6 +381,7 @@ class TicketAudits(Stream):
             self.count += 1
             yield (self.stream, ticket_audit)
 
+
 class TicketMetrics(Stream):
     name = "ticket_metrics"
     replication_method = "INCREMENTAL"
@@ -359,6 +391,7 @@ class TicketMetrics(Stream):
         ticket_metric = self.client.tickets.metrics(ticket=ticket_id)
         self.count += 1
         yield (self.stream, ticket_metric)
+
 
 class TicketComments(Stream):
     name = "ticket_comments"
@@ -370,6 +403,7 @@ class TicketComments(Stream):
         for ticket_comment in ticket_comments:
             self.count += 1
             yield (self.stream, ticket_comment)
+
 
 class SatisfactionRatings(Stream):
     name = "satisfaction_ratings"
@@ -408,6 +442,7 @@ class Groups(Stream):
                 self.update_bookmark(state, group['updated_at'])
                 yield (self.stream, group)
 
+
 class Macros(Stream):
     name = "macros"
     replication_method = "INCREMENTAL"
@@ -427,6 +462,7 @@ class Macros(Stream):
                 self.update_bookmark(state, macro['updated_at'])
                 yield (self.stream, macro)
 
+
 class Tags(Stream):
     name = "tags"
     replication_method = "FULL_TABLE"
@@ -434,11 +470,12 @@ class Tags(Stream):
     endpoint = 'https://{}.zendesk.com/api/v2/tags'
     item_key = 'tags'
 
-    def sync(self, state): # pylint: disable=unused-argument
+    def sync(self, state):  # pylint: disable=unused-argument
         tags = self.get_objects()
 
         for tag in tags:
             yield (self.stream, tag)
+
 
 class TicketFields(Stream):
     name = "ticket_fields"
@@ -459,6 +496,7 @@ class TicketFields(Stream):
                 self.update_bookmark(state, field['updated_at'])
                 yield (self.stream, field)
 
+
 class TicketForms(Stream):
     name = "ticket_forms"
     replication_method = "INCREMENTAL"
@@ -476,13 +514,13 @@ class TicketForms(Stream):
                 self.update_bookmark(state, form.updated_at)
                 yield (self.stream, form)
 
+
 class GroupMemberships(Stream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
     endpoint = 'https://{}.zendesk.com/api/v2/group_memberships'
     item_key = 'group_memberships'
-
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
@@ -503,15 +541,18 @@ class GroupMemberships(Stream):
                                 ' does not have an updated_at field so it will be syncd...')
                     yield (self.stream, membership)
                 else:
-                    LOGGER.info('Received group_membership record with no id or updated_at, skipping...')
+                    LOGGER.info(
+                        'Received group_membership record with no id or updated_at, skipping...')
+
 
 class SLAPolicies(Stream):
     name = "sla_policies"
     replication_method = "FULL_TABLE"
 
-    def sync(self, state): # pylint: disable=unused-argument
+    def sync(self, state):  # pylint: disable=unused-argument
         for policy in self.client.sla_policies():
             yield (self.stream, policy)
+
 
 STREAMS = {
     "tickets": Tickets,
