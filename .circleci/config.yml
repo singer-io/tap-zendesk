@@ -20,7 +20,7 @@ jobs:
           command: |
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
-            pylint tap_zendesk -d "$PYLINT_DISABLE_LIST"
+            pylint tap_zendesk -d "$PYLINT_DISABLE_LIST,logging-not-lazy"
             nosetests test/unittests
 
       - run:
