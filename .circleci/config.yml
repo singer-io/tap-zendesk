@@ -11,19 +11,21 @@ jobs:
       - run:
           name: 'Setup virtual env'
           command: |
+            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
             virtualenv -p python3 /usr/local/share/virtualenvs/tap-zendesk
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
             pip install .[test]
       - run:
           name: 'pylint'
           command: |
+            source dev_env.sh
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
-            make test
-      - add_ssh_keys
+            pylint tap_zendesk -d "$PYLINT_DISABLE_LIST"
+            nosetests test/unittests
+
       - run:
           name: 'Integration Tests'
           command: |
-            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
             pip install 'zenpy==2.0.24'
