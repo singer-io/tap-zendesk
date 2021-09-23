@@ -27,8 +27,7 @@ CUSTOM_TYPES = {
     'checkbox': 'boolean',
 }
 
-# defined in seconds, default to a month (30 days)
-DEFAULT_SEARCH_WINDOW_SIZE = (60 * 60 * 24) * 30
+DEFAULT_SEARCH_WINDOW_SIZE = (60 * 60 * 24) * 30 # defined in seconds, default to a month (30 days)
 
 
 def get_abs_path(path):
@@ -124,10 +123,8 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
         raise ValueError("Called with a bad exception type") from e
 
     error = json.loads(e.args[0]).get('error')
-    if isinstance(error, dict):
-
-        if error.get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
-            LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.", 
+    if isinstance(error, dict) and error.get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
+        LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.", 
                             stream)
         return schema
     else:
