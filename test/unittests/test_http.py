@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, Mock, patch
-from tap_zendesk import http
+from tap_zendesk import http, streams
 import requests
-
+import zenpy
 
 SINGLE_RESPONSE = {
     'meta': {'has_more': False}
@@ -86,3 +86,122 @@ class TestBackoff(unittest.TestCase):
         expected_call_count = 3
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
+
+    @patch('requests.get',side_effect=[mocked_get(status_code=400, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_400(self,mock_get):
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token')]
+
+        except http.ZendeskBadRequestError as e:
+            expected_error_message = "HTTP-error-code: 400, Error: A validation exception has occurred."
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
+    @patch('requests.get',side_effect=[mocked_get(status_code=401, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_401(self,mock_get):
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token')]
+        except http.ZendeskUnauthorizedError as e:
+            expected_error_message = "HTTP-error-code: 401, Error: The access token provided is expired, revoked,"\
+                " malformed or invalid for other reasons."
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
+    @patch('requests.get',side_effect=[mocked_get(status_code=404, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_404(self,mock_get):
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token')]
+        except http.ZendeskNotFoundError as e:
+            expected_error_message = "HTTP-error-code: 404, Error: There is no help desk configured at this address."\
+                " This means that the address is available and that you can claim it at http://www.zendesk.com/signup"
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
+            
+    @patch('requests.get',side_effect=[mocked_get(status_code=409, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_409(self,mock_get):
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token')]
+        except http.ZendeskConflictError as e:
+            expected_error_message = "HTTP-error-code: 409, Error: The request does not match our state in some way."
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
+    @patch('requests.get',side_effect=[mocked_get(status_code=422, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_422(self,mock_get):
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token')]
+        except http.ZendeskUnprocessableEntityError as e:
+            expected_error_message = "HTTP-error-code: 422, Error: The request content itself is not processable by the server."
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
+    @patch('requests.get',side_effect=[mocked_get(status_code=500, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_500(self,mock_get):
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token')]
+        except http.ZendeskInternalServerError as e:
+            expected_error_message = "HTTP-error-code: 500, Error: The server encountered an unexpected condition which prevented" \
+            " it from fulfilling the request."
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
+    @patch('requests.get',side_effect=[mocked_get(status_code=501, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_501(self,mock_get):
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token')]
+        except http.ZendeskNotImplementedError as e:
+            expected_error_message = "HTTP-error-code: 501, Error: The server does not support the functionality required to fulfill the request."
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
+    @patch('requests.get',side_effect=[mocked_get(status_code=502, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_502(self,mock_get):
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token')]
+        except http.ZendeskBadGatewayError as e:
+            expected_error_message = "HTTP-error-code: 502, Error: Server received an invalid response."
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
+    @patch('requests.get',
+           side_effect=[
+               mocked_get(status_code=503, headers={'Retry-After': '1'}, json={"key3": "val3", **SINGLE_RESPONSE}),
+               mocked_get(status_code=503, headers={'retry-after': 1}, json={"key2": "val2", **SINGLE_RESPONSE}),
+               mocked_get(status_code=200, json={"key1": "val1", **SINGLE_RESPONSE}),
+           ])
+    def test_get_cursor_based_handles_500(self,mock_get):
+        """Test that the tap:
+        - can handle 503s
+        - requests uses a case insensitive dict for the `headers`
+        - can handle either a string or an integer for the retry header
+        """
+        responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token')]
+        actual_response = responses[0]
+        self.assertDictEqual({"key1": "val1", **SINGLE_RESPONSE},
+                             actual_response)
+
+        expected_call_count = 3
+        actual_call_count = mock_get.call_count
+        self.assertEqual(expected_call_count, actual_call_count)
+        
+    @patch("tap_zendesk.streams.LOGGER.warning")    
+    def test_raise_or_log_zenpy_apiexception(self, mocked_logger):
+        schema = {}
+        stream = 'test_stream'
+        error_string = '{"error": "Forbidden", "description": "You are missing the following required scopes: read"}'
+        e = zenpy.lib.exception.APIException(error_string)
+        streams.raise_or_log_zenpy_apiexception(schema, stream, e)
+        mocked_logger.assert_called_with(
+            "The account credentials supplied do not have access to `%s` custom fields.",
+            stream)
+

@@ -2,11 +2,100 @@ from time import sleep
 import backoff
 import requests
 import singer
-
+import zenpy
+import json
 
 LOGGER = singer.get_logger()
 
+class ZendeskError(Exception):
+    def __init__(self, message=None, response=None):
+        super().__init__(message)
+        self.message = message
+        self.response = response
 
+class ZendeskBackoffError(ZendeskError):
+    pass
+
+class ZendeskBadRequestError(ZendeskError):
+    pass
+
+class ZendeskUnauthorizedError(ZendeskError):
+    pass
+
+class ZendeskForbiddenError(ZendeskError):
+    pass
+
+class ZendeskNotFoundError(ZendeskError):
+    pass
+
+class ZendeskConflictError(ZendeskError):
+    pass
+
+class ZendeskUnprocessableEntityError(ZendeskError):
+    pass
+
+class ZendeskRateLimitError(ZendeskBackoffError):
+    pass
+
+class ZendeskInternalServerError(ZendeskError):
+    pass
+
+class ZendeskNotImplementedError(ZendeskError):
+    pass
+
+class ZendeskBadGatewayError(ZendeskError):
+    pass
+
+class ZendeskServiceUnavailableError(ZendeskBackoffError):
+    pass
+
+ERROR_CODE_EXCEPTION_MAPPING = {
+    400: {
+        "raise_exception": ZendeskBadRequestError,
+        "message": "A validation exception has occurred."
+    },
+    401: {
+        "raise_exception": ZendeskUnauthorizedError,
+        "message": "The access token provided is expired, revoked, malformed or invalid for other reasons."
+    },
+    403: {
+        "raise_exception": ZendeskForbiddenError,
+        "message": "You are missing the following required scopes: read"
+    },
+    404: {
+        "raise_exception": ZendeskNotFoundError,
+        "message": "There is no help desk configured at this address. This means that the address is available and that you can claim it at http://www.zendesk.com/signup"
+    },
+    409: {
+        "raise_exception": ZendeskConflictError,
+        "message": "The request does not match our state in some way."
+    },
+    422: {
+        "raise_exception": ZendeskUnprocessableEntityError,
+        "message": "The request content itself is not processable by the server."
+    },
+    429: {
+        "raise_exception": ZendeskRateLimitError,
+        "message": "The API rate limit for your organisation/application pairing has been exceeded."
+    },
+    500: {
+        "raise_exception": ZendeskInternalServerError,
+        "message": "The server encountered an unexpected condition which prevented" \
+            " it from fulfilling the request."
+    },
+    501: {
+        "raise_exception": ZendeskNotImplementedError,
+        "message": "The server does not support the functionality required to fulfill the request."
+    },
+    502: {
+        "raise_exception": ZendeskBadGatewayError,
+        "message": "Server received an invalid response."
+    },
+    503: {
+        "raise_exception": ZendeskServiceUnavailableError,
+        "message": "API service is currently unavailable."
+    }
+}
 def is_fatal(exception):
     status_code = exception.response.status_code
 
@@ -15,16 +104,36 @@ def is_fatal(exception):
         LOGGER.info("Caught HTTP 429, retrying request in %s seconds", sleep_time)
         sleep(sleep_time)
         return False
-
+    elif status_code == 503:
+        sleep_time = int(exception.response.headers['Retry-After'])
+        LOGGER.info("Caught HTTP 503, retrying request in %s seconds", sleep_time)
+        sleep(sleep_time)
+        return False
     return 400 <=status_code < 500
 
+def check_status(response):
+    # Forming a response message for raising custom exception
+    try:
+        response_json = response.json()
+    except Exception: # pylint: disable=broad-except
+        response_json = {}
+    if response.status_code != 200:
+        message = "HTTP-error-code: {}, Error: {}".format(
+            response.status_code,
+            response_json.get("errorMessages", [ERROR_CODE_EXCEPTION_MAPPING.get(
+                response.status_code, {}).get("message", "Unknown Error")])[0]
+        )
+        exc = ERROR_CODE_EXCEPTION_MAPPING.get(
+            response.status_code, {}).get("raise_exception", ZendeskError)
+        raise exc(message, response) from None
+    
 @backoff.on_exception(backoff.expo,
-                      requests.exceptions.HTTPError,
+                      ZendeskBackoffError,
                       max_tries=10,
                       giveup=is_fatal)
 def call_api(url, params, headers):
     response = requests.get(url, params=params, headers=headers)
-    response.raise_for_status()
+    check_status(response)
     return response
 
 

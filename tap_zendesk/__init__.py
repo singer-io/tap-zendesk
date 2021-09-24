@@ -46,9 +46,9 @@ def request_metrics_patch(self, method, url, **kwargs):
 Session.request = request_metrics_patch
 # end patch
 
-def do_discover(client):
+def do_discover(client, config):
     LOGGER.info("Starting discover")
-    catalog = {"streams": discover_streams(client)}
+    catalog = {"streams": discover_streams(client, config)}
     json.dump(catalog, sys.stdout, indent=2)
     LOGGER.info("Finished discover")
 
@@ -192,14 +192,15 @@ def main():
 
     # OAuth has precedence
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
-    session = get_session(parsed_args.config)
+    config = parsed_args.config
+    session = get_session(config)
     client = Zenpy(session=session, **creds)
 
     if not client:
         LOGGER.error("""No suitable authentication keys provided.""")
 
     if parsed_args.discover:
-        do_discover(client)
+        do_discover(client, config)
     elif parsed_args.catalog:
         state = parsed_args.state
-        do_sync(client, parsed_args.catalog, state, parsed_args.config)
+        do_sync(client, parsed_args.catalog, state, config)

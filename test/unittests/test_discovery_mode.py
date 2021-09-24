@@ -1,0 +1,141 @@
+import unittest
+from unittest.mock import MagicMock, Mock, patch
+from tap_zendesk import discover, http
+import tap_zendesk
+import requests
+import zenpy
+
+ERRROR_1 = '{"error": "Forbidden", "description": "You are missing the following required scopes: read"}'
+def mocked_get(*args, **kwargs):
+    fake_response = requests.models.Response()
+    fake_response.headers.update(kwargs.get('headers', {}))
+    fake_response.status_code = kwargs['status_code']
+
+    # We can't set the content or text of the Response directly, so we mock a function
+    fake_response.json = Mock()
+    fake_response.json.side_effect = lambda:kwargs.get('json', {})
+
+    return fake_response
+
+class TestDiscovery(unittest.TestCase):
+    '''
+    Test that we can call api for each stream in discovey mode and handle forbidden error.
+    '''
+    @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.Tickets.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketAudits.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketComments.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketMetrics.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
+    @patch('tap_zendesk.streams.SLAPolicies.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
+    @patch('tap_zendesk.discover.load_shared_schema_refs', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_metadata', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_schema', return_value={})
+    @patch('singer.resolve_schema_references', return_value={})
+    @patch('requests.get',
+           side_effect=[
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+            ])
+    def test_discovery_handles_403_raise_tap_zendesk_forbidden_error(self, mock_get, mock_resolve_schema_references, 
+                                mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
+                                mocked_etrics, mocked_ticket_forms, mocked_ticket_comments, mocked_ticket_audits, 
+                                mock_tickets, mock_users, mock_organizations):
+        '''
+        Test that we handle forbidden error received from last failed request which we called from tap_zendesk's http module
+        and raised tap_zendesk.http.ZendeskForbiddenError
+        '''
+        try:
+            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
+        except tap_zendesk.http.ZendeskForbiddenError as e:
+            expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read"
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
+        expected_call_count = 6
+        actual_call_count = mock_get.call_count
+        self.assertEqual(expected_call_count, actual_call_count)
+        
+        
+    @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.Tickets.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketAudits.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketComments.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketMetrics.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.SLAPolicies.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
+    @patch('tap_zendesk.discover.load_shared_schema_refs', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_metadata', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_schema', return_value={})
+    @patch('singer.resolve_schema_references', return_value={})
+    @patch('requests.get',
+           side_effect=[
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+            ])
+    def test_discovery_handles_403_raise_zenpy_forbidden_error(self, mock_get, mock_resolve_schema_references, mock_load_metadata, 
+                                mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, mocked_etrics, mocked_ticket_forms, 
+                                mocked_ticket_comments, mocked_ticket_audits, mock_tickets, mock_users, mock_organizations):
+        '''
+        Test that we handle forbidden error received from last failed request which we called from zenpy module and
+        raised zenpy.lib.exception.APIException
+        '''
+        try:
+            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
+        except zenpy.lib.exception.APIException as e:
+            expected_error_message = ERRROR_1
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
+        expected_call_count = 6
+        actual_call_count = mock_get.call_count
+        self.assertEqual(expected_call_count, actual_call_count)
+        
+    
+    @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.Tickets.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketAudits.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketComments.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.TicketMetrics.check_access',side_effect=zenpy.lib.exception.APIException(ERRROR_1))
+    @patch('tap_zendesk.streams.SLAPolicies.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
+    @patch('tap_zendesk.discover.load_shared_schema_refs', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_metadata', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_schema', return_value={})
+    @patch('singer.resolve_schema_references', return_value={})
+    @patch('requests.get',
+           side_effect=[
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=400, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+            ])
+    def test_discovery_handles_except_403_error(self, mock_get, mock_resolve_schema_references, mock_load_metadata, 
+                                mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, mocked_etrics, mocked_ticket_forms, 
+                                mocked_ticket_comments, mocked_ticket_audits, mock_tickets, mock_users, mock_organizations):
+        '''
+        Test that it raise error direclty if it is rather than 403
+        '''
+        try:
+            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
+        except http.ZendeskBadRequestError as e:
+            expected_error_message = "HTTP-error-code: 400, Error: A validation exception has occurred."
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
+        expected_call_count = 3
+        actual_call_count = mock_get.call_count
+        self.assertEqual(expected_call_count, actual_call_count)
