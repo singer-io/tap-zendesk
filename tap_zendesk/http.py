@@ -2,8 +2,6 @@ from time import sleep
 import backoff
 import requests
 import singer
-import zenpy
-import json
 
 LOGGER = singer.get_logger()
 
@@ -126,7 +124,7 @@ def check_status(response):
         exc = ERROR_CODE_EXCEPTION_MAPPING.get(
             response.status_code, {}).get("raise_exception", ZendeskError)
         raise exc(message, response) from None
-    
+
 @backoff.on_exception(backoff.expo,
                       ZendeskBackoffError,
                       max_tries=10,

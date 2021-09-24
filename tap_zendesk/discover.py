@@ -1,8 +1,8 @@
 import os
 import json
 import singer
-import tap_zendesk
 import zenpy
+import tap_zendesk
 from tap_zendesk.streams import STREAMS
 
 LOGGER = singer.get_logger()
@@ -29,8 +29,8 @@ def discover_streams(client, config):
     streams = []
     error_list = []
     refs = load_shared_schema_refs()
-    erorr = None
-    
+
+
     for s in STREAMS.values():
         s = s(client, config)
         schema = singer.resolve_schema_references(s.load_schema(), refs)
@@ -41,23 +41,23 @@ def discover_streams(client, config):
             error_list.append(s.name)
         except zenpy.lib.exception.APIException as e:
             err = json.loads(e.args[0]).get('error')
-            
+
             if isinstance(err, dict):
                 if err.get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
                     error_list.append(s.name)
                     error = e
-            elif json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read": 
+            elif json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read":
                 error_list.append(s.name)
                 error = e
             else:
                 raise e
-            
+
         streams.append({'stream': s.name, 'tap_stream_id': s.name, 'schema': schema, 'metadata': s.load_metadata()})
-   
+
     if error_list:
         st = ", ".join(error_list)
         LOGGER.critical("The account credentials supplied do not have read access for the following stream(s):  %s", st)
         raise error
 
-    
+
     return streams

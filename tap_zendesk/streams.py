@@ -113,20 +113,20 @@ class Stream():
 
     def is_selected(self):
         return self.stream is not None
-    
+
     def check_access(self):
         '''
         Check whether permission given to access stream resource or not.
         '''
         url = self.endpoint.format(self.config['subdomain'])
-        
+
         headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Authorization': 'Bearer {}'.format(self.config['access_token'])
         }
-        
-        response = http.call_api(url, params={'page[size]': 1}, headers=headers)
+
+        http.call_api(url, params={'page[size]': 1}, headers=headers)
 
 
 def raise_or_log_zenpy_apiexception(schema, stream, e):
@@ -137,8 +137,8 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
     if not isinstance(e, zenpy.lib.exception.APIException):
         raise ValueError("Called with a bad exception type") from e
     #If read permission not available in oauth access_token, then it returns below error.
-    if json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read": 
-        LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.", 
+    if json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read":
+        LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
                             stream)
         return schema
     if json.loads(e.args[0])['error']['message'] == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
@@ -179,7 +179,7 @@ class Organizations(Stream):
             yield (self.stream, organization)
 
     def check_access(self):
-        organizations = self.client.organizations.incremental(start_time=START_DATE)
+        self.client.organizations.incremental(start_time=START_DATE)
 
 class Users(Stream):
     name = "users"
@@ -258,7 +258,7 @@ class Users(Stream):
             end = start + datetime.timedelta(seconds=search_window_size)
 
     def check_access(self):
-        users = self.client.search("", updated_after=START_DATE, updated_before='2000-01-02T00:00:00Z', type="user")
+        self.client.search("", updated_after=START_DATE, updated_before='2000-01-02T00:00:00Z', type="user")
 
 class Tickets(Stream):
     name = "tickets"
@@ -363,8 +363,8 @@ class Tickets(Stream):
         singer.write_state(state)
 
     def check_access(self):
-        tickets = self.client.tickets.incremental(start_time=START_DATE, paginate_by_time=False)
-            
+        self.client.tickets.incremental(start_time=START_DATE, paginate_by_time=False)
+
 class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
@@ -378,7 +378,7 @@ class TicketAudits(Stream):
 
     def check_access(self):
         self.client.tickets.audits(ticket=None)
-       
+
 class TicketMetrics(Stream):
     name = "ticket_metrics"
     replication_method = "INCREMENTAL"
@@ -390,8 +390,8 @@ class TicketMetrics(Stream):
         yield (self.stream, ticket_metric)
 
     def check_access(self):
-        ticket_metric = self.client.tickets.metrics(ticket=None)
-        
+        self.client.tickets.metrics(ticket=None)
+
 class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
@@ -402,9 +402,9 @@ class TicketComments(Stream):
         for ticket_comment in ticket_comments:
             self.count += 1
             yield (self.stream, ticket_comment)
-    
+
     def check_access(self):
-        ticket_comments = self.client.tickets.comments(ticket=None)
+        self.client.tickets.comments(ticket=None)
 
 class SatisfactionRatings(Stream):
     name = "satisfaction_ratings"
@@ -513,7 +513,7 @@ class TicketForms(Stream):
 
     def check_access(self):
         self.client.ticket_forms()
-        
+
 class GroupMemberships(Stream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"
@@ -553,7 +553,7 @@ class SLAPolicies(Stream):
 
     def check_access(self):
         self.client.sla_policies()
-        
+
 STREAMS = {
     "tickets": Tickets,
     "groups": Groups,
