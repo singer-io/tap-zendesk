@@ -2,8 +2,8 @@ import os
 import json
 import singer
 import zenpy
-import tap_zendesk
 from tap_zendesk.streams import STREAMS
+from tap_zendesk.http import ZendeskForbiddenError
 
 LOGGER = singer.get_logger()
 ERROR_MESSAGE = "The account credentials supplied do not have read access for the following stream(s): {}"
@@ -36,7 +36,7 @@ def discover_streams(client, config):
         schema = singer.resolve_schema_references(s.load_schema(), refs)
         try:
             s.check_access()
-        except tap_zendesk.http.ZendeskForbiddenError as e:
+        except ZendeskForbiddenError as e:
             error = e
             error_list.append(s.name)
         except zenpy.lib.exception.APIException as e:
