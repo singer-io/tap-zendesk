@@ -6,7 +6,6 @@ from tap_zendesk.streams import STREAMS
 from tap_zendesk.http import ZendeskForbiddenError
 
 LOGGER = singer.get_logger()
-ERROR_MESSAGE = "The account credentials supplied do not have read access for the following stream(s): {}"
 
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)

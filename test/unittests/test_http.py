@@ -193,7 +193,21 @@ class TestBackoff(unittest.TestCase):
         expected_call_count = 3
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
+    
+    @patch('requests.get')
+    def test_get_cursor_based_handles_204(self,mock_get):
+        fake_response = requests.models.Response()
+        fake_response.status_code = 204
         
+        mock_get.side_effect = [fake_response]
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token')]
+        except http.ZendeskError as e:
+            expected_error_message =  'HTTP-error-code: 204, Error: Unknown Error'
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+                
     @patch("tap_zendesk.streams.LOGGER.warning")    
     def test_raise_or_log_zenpy_apiexception(self, mocked_logger):
         schema = {}
