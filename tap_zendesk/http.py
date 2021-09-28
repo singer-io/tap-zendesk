@@ -3,7 +3,9 @@ import backoff
 import requests
 import singer
 
+
 LOGGER = singer.get_logger()
+
 
 class ZendeskError(Exception):
     def __init__(self, message=None, response=None):

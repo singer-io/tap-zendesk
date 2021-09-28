@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, Mock, patch
 from tap_zendesk import http, streams
 import requests
+
 import zenpy
 
 SINGLE_RESPONSE = {

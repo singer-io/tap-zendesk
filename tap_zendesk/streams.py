@@ -15,6 +15,7 @@ from tap_zendesk import http
 
 LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
+
 START_DATE = datetime.datetime.strftime(datetime.datetime.utcnow() - datetime.timedelta(days=1), "%Y-%m-%dT00:00:00Z")
 CUSTOM_TYPES = {
     'text': 'string',

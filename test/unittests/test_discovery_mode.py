@@ -57,7 +57,9 @@ class TestDiscovery(unittest.TestCase):
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
         except tap_zendesk.http.ZendeskForbiddenError as e:
-            expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read"
+            expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
+                "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, users, organizations, "\
+                "ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags"
             # Verifying the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
             
@@ -96,8 +98,10 @@ class TestDiscovery(unittest.TestCase):
         '''
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
-        except zenpy.lib.exception.APIException as e:
-            expected_error_message = ACCSESS_TOKEN_ERROR
+        except tap_zendesk.http.ZendeskForbiddenError as e:
+            expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
+                "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, "\
+                "users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags, ticket_metrics"
             self.assertEqual(str(e), expected_error_message)
             
         expected_call_count = 6
@@ -135,8 +139,10 @@ class TestDiscovery(unittest.TestCase):
         '''
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
-        except zenpy.lib.exception.APIException as e:
-            expected_error_message = API_TOKEN_ERROR
+        except tap_zendesk.http.ZendeskForbiddenError as e:
+            expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
+                "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, "\
+                "users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags, ticket_metrics"
             self.assertEqual(str(e), expected_error_message)
             
         expected_call_count = 6
