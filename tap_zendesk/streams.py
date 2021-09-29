@@ -29,7 +29,6 @@ CUSTOM_TYPES = {
 
 DEFAULT_SEARCH_WINDOW_SIZE = (60 * 60 * 24) * 30 # defined in seconds, default to a month (30 days)
 
-
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 
@@ -84,6 +83,7 @@ class Stream():
         if value and utils.strptime_with_tz(value) > current_bookmark:
             singer.write_bookmark(state, self.name, self.replication_key, value)
 
+
     def load_schema(self):
         schema_file = "schemas/{}.json".format(self.name)
         with open(get_abs_path(schema_file)) as f:
@@ -129,6 +129,7 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
         return schema
     else:
         raise e
+
 
 class Organizations(Stream):
     name = "organizations"
@@ -207,7 +208,7 @@ class Users(Stream):
                 raise Exception("users - Unable to get all users within minimum window of a single second ({}), found {} users within this timestamp. Zendesk can only provide a maximum of 1000 users per request. See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits".format(parsed_start, users.count))
 
             # Consume the records to account for dates lower than window start
-            users = [user for user in users]  # pylint: disable=unnecessary-comprehension
+            users = [user for user in users] # pylint: disable=unnecessary-comprehension
 
             if not all(parsed_start <= user.updated_at for user in users):
                 # Only retry up to 30 minutes (60 attempts at 30 seconds each)
@@ -322,7 +323,7 @@ class Tickets(Stream):
                         comment[1].ticket_id = ticket_dict["id"]
                         self._buffer_record(comment)
                 except RecordNotFoundException:
-                     LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
+                    LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
                     "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
 
             if should_yield:
@@ -389,6 +390,7 @@ class SatisfactionRatings(Stream):
                 self.update_bookmark(state, rating['updated_at'])
                 yield (self.stream, rating)
 
+
 class Groups(Stream):
     name = "groups"
     replication_method = "INCREMENTAL"
@@ -407,7 +409,6 @@ class Groups(Stream):
                 # so we can't save state until we've seen all records
                 self.update_bookmark(state, group['updated_at'])
                 yield (self.stream, group)
-
 
 class Macros(Stream):
     name = "macros"
@@ -435,7 +436,7 @@ class Tags(Stream):
     endpoint = 'https://{}.zendesk.com/api/v2/tags'
     item_key = 'tags'
 
-    def sync(self, state):  # pylint: disable=unused-argument
+    def sync(self, state): # pylint: disable=unused-argument
         tags = self.get_objects()
 
         for tag in tags:
@@ -483,6 +484,7 @@ class GroupMemberships(Stream):
     replication_key = "updated_at"
     endpoint = 'https://{}.zendesk.com/api/v2/group_memberships'
     item_key = 'group_memberships'
+
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
