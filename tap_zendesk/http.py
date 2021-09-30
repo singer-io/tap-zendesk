@@ -27,8 +27,6 @@ def call_api(url, params, headers):
     response.raise_for_status()
     return response
 
-
-
 def get_cursor_based(url, access_token, cursor=None, **kwargs):
     headers = {
         'Content-Type': 'application/json',
@@ -77,9 +75,7 @@ def get_incremental_export(url, access_token, start_time):
 
     yield response_json
 
-    end_of_stream = response_json['end_of_stream']
-
-
+    end_of_stream = response_json.get('end_of_stream')
 
     while not end_of_stream:
         cursor = response_json['after_cursor']
@@ -91,4 +87,4 @@ def get_incremental_export(url, access_token, start_time):
 
         yield response_json
 
-        end_of_stream = response_json['end_of_stream']
+        end_of_stream = response_json.get('end_of_stream')
