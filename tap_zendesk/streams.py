@@ -115,10 +115,9 @@ class Stream():
         return self.stream is not None
 
 class CursorBasedIncrementalStream(Stream):
-    # im pretty sure Tickets is the only stream that gets a cursor based incremental export though...
     endpoint = "https://{}.zendesk.com/api/v2/incremental/{}/cursor.json"
 
-o    def get_objects(self, start_time):
+    def get_objects(self, start_time):
         '''
         Cursor based object retrieval
         '''
@@ -126,13 +125,6 @@ o    def get_objects(self, start_time):
 
         for page in http.get_incremental_export(url, self.config['access_token'], start_time):
             yield from page[self.item_key]
-
-# incremental:
-#   tickets:
-#     /api/v2/incremental/tickets/cursor.json?
-#   users:
-#     /api/v2/incremental/users
-#
 
 
 def raise_or_log_zenpy_apiexception(schema, stream, e):

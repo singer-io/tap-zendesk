@@ -92,25 +92,3 @@ def get_incremental_export(url, access_token, start_time):
         yield response_json
 
         end_of_stream = response_json['end_of_stream']
-
-
-    # response has a cursor, it also has an end_time
-    #   end_time -> "The most recent time present in the result set expressed as a Unix epoch time. Use as the start_time to fetch the next page of results"
-    # could we use this end_time as a bookmark??
-    # i didn't see 'end_time' on the response, only the 'after_cursor'
-#INFO Request:...
-#INFO METRIC: {"type": "timer", "metric": "http_request_duration", "value": 8.35524868965149, "tags": {"status": "succeeded"}}
-# ipdb> after_first_sync = set([x['id'] for x in response.json()['tickets']])
-# ipdb> len(after_first_sync)
-# 1000
-# ipdb> c
-#INFO Request:...
-#INFO METRIC: {"type": "timer", "metric": "http_request_duration", "value": 8.608530044555664, "tags": {"status": "succeeded"}}
-# ipdb> after_second_sync = set([x['id'] for x in response.json()['tickets']])
-# ipdb> len(after_second_sync)
-# 1000
-# ipdb> len(after_second_sync.union(after_first_sync))
-# 2000
-#
-# ^so we're getting 1000 different ids on the second sync
-# so it seems like we're paginating correctly
