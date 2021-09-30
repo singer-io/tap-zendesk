@@ -257,7 +257,7 @@ class Tickets(CursorBasedIncrementalStream):
 
     last_record_emit = {}
     buf = {}
-    buf_time = 10
+    buf_time = 60
     def _buffer_record(self, record):
         stream_name = record[0].tap_stream_id
         if self.last_record_emit.get(stream_name) is None:
@@ -281,7 +281,6 @@ class Tickets(CursorBasedIncrementalStream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-
         tickets = self.get_objects(bookmark)
 
         audits_stream = TicketAudits(self.client)
@@ -299,43 +298,43 @@ class Tickets(CursorBasedIncrementalStream):
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
 
-        for ticket_dict in tickets:
+        for ticket in tickets:
             zendesk_metrics.capture('ticket')
-            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket_dict.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
+            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
-            ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
-            should_yield = self._buffer_record((self.stream, ticket_dict))
+            ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+            should_yield = self._buffer_record((self.stream, ticket))
 
             if audits_stream.is_selected():
                 try:
-                    for audit in audits_stream.sync(ticket_dict["id"]):
+                    for audit in audits_stream.sync(ticket["id"]):
                         zendesk_metrics.capture('ticket_audit')
                         self._buffer_record(audit)
                 except RecordNotFoundException:
                     LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                    "the Zendesk API returned a RecordNotFound error", ticket["id"])
 
             if metrics_stream.is_selected():
                 try:
-                    for metric in metrics_stream.sync(ticket_dict["id"]):
+                    for metric in metrics_stream.sync(ticket["id"]):
                         zendesk_metrics.capture('ticket_metric')
                         self._buffer_record(metric)
                 except RecordNotFoundException:
                     LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                    "the Zendesk API returned a RecordNotFound error", ticket["id"])
 
             if comments_stream.is_selected():
                 try:
                     # add ticket_id to ticket_comment so the comment can
                     # be linked back to it's corresponding ticket
-                    for comment in comments_stream.sync(ticket_dict["id"]):
+                    for comment in comments_stream.sync(ticket["id"]):
                         zendesk_metrics.capture('ticket_comment')
-                        comment[1].ticket_id = ticket_dict["id"]
+                        comment[1].ticket_id = ticket["id"]
                         self._buffer_record(comment)
                 except RecordNotFoundException:
                     LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                    "the Zendesk API returned a RecordNotFound error", ticket["id"])
 
             if should_yield:
                 for rec in self._empty_buffer():
