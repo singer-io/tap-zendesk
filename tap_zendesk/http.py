@@ -113,11 +113,11 @@ def is_fatal(exception):
 
 def raise_for_error(response):
     LOGGER.error('ERROR %s: %s, REASON: %s', response.status_code,
-                                             response.text, 
+                                             response.text,
                                              response.reason)
     try:
         response_json = response.json()
-    except Exception:
+    except Exception: # pylint: disable=broad-except
         response_json = {}
     if response.status_code != 200:
         if response_json.get('error'):
