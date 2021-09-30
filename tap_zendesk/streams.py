@@ -117,7 +117,7 @@ class Stream():
 class CursorBasedIncrementalStream(Stream):
     endpoint = "https://{}.zendesk.com/api/v2/incremental/{}/cursor.json"
 
-    def get_objects(self, start_time):
+    def get_objects_incremental(self, start_time):
         '''
         Cursor based object retrieval
         '''
@@ -281,7 +281,7 @@ class Tickets(CursorBasedIncrementalStream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        tickets = self.get_objects(bookmark)
+        tickets = self.get_objects_incremental(bookmark)
 
         audits_stream = TicketAudits(self.client)
         metrics_stream = TicketMetrics(self.client)
