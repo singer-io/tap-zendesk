@@ -99,6 +99,17 @@ class TestBackoff(unittest.TestCase):
             # Verifying the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
             
+    @patch('requests.get',side_effect=[mocked_get(status_code=400, json={"error": "Couldn't authenticate you"})])
+    def test_get_cursor_based_handles_400_api_error_message(self,mock_get):
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token')]
+
+        except http.ZendeskBadRequestError as e:
+            expected_error_message = "HTTP-error-code: 400, Error: Couldn't authenticate you"
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+            
     @patch('requests.get',side_effect=[mocked_get(status_code=401, json={"key1": "val1"})])
     def test_get_cursor_based_handles_401(self,mock_get):
         try:

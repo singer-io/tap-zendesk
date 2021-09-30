@@ -46,7 +46,7 @@ def discover_streams(client, config):
             elif json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read":
                 error_list.append(s.name)
             else:
-                raise e
+                raise e from None
 
         streams.append({'stream': s.name, 'tap_stream_id': s.name, 'schema': schema, 'metadata': s.load_metadata()})
 

@@ -122,9 +122,9 @@ class Stream():
         url = self.endpoint.format(self.config['subdomain'])
 
         headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(self.config['access_token'])
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': f'Bearer {self.config["access_token"]}'
         }
 
         http.call_api(url, params={'page[size]': 1}, headers=headers)
@@ -140,7 +140,7 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
     #If read permission not available in oauth access_token, then it returns below error.
     if json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read":
         LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
-                            stream)
+                       stream)
         return schema
     if json.loads(e.args[0])['error']['message'] == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
         LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",

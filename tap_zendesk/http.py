@@ -111,18 +111,19 @@ def is_fatal(exception):
         return False
     return 400 <=status_code < 500
 
-def check_status(response):
-    # Forming a response message for raising custom exception
+def raise_for_error(response):
+    LOGGER.error('ERROR %s: %s, REASON: %s', response.status_code,
+                                             response.text, 
+                                             response.reason)
     try:
         response_json = response.json()
-    except Exception: # pylint: disable=broad-except
+    except Exception:
         response_json = {}
     if response.status_code != 200:
-        message = "HTTP-error-code: {}, Error: {}".format(
-            response.status_code,
-            response_json.get("errorMessages", [ERROR_CODE_EXCEPTION_MAPPING.get(
-                response.status_code, {}).get("message", "Unknown Error")])[0]
-        )
+        if response_json.get('error'):
+            message = f"HTTP-error-code: {response.status_code}, Error: {response_json.get('error')}"
+        else:
+            message = f"HTTP-error-code: {response.status_code}, Error: {response_json.get('message', ERROR_CODE_EXCEPTION_MAPPING.get(response.status_code, {}).get('message', 'Unknown Error'))}"
         exc = ERROR_CODE_EXCEPTION_MAPPING.get(
             response.status_code, {}).get("raise_exception", ZendeskError)
         raise exc(message, response) from None
@@ -133,7 +134,7 @@ def check_status(response):
                       giveup=is_fatal)
 def call_api(url, params, headers):
     response = requests.get(url, params=params, headers=headers)
-    check_status(response)
+    raise_for_error(response)
     return response
 
 
