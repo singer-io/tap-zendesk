@@ -59,21 +59,10 @@ class Stream():
     replication_key = None
     key_properties = KEY_PROPERTIES
     stream = None
-    item_key = None
-    endpoint = None
 
     def __init__(self, client=None, config=None):
         self.client = client
         self.config = config
-
-    def get_objects(self, **kwargs):
-        '''
-        Cursor based object retrieval
-        '''
-        url = self.endpoint.format(self.config['subdomain'])
-
-        for page in http.get_cursor_based(url, self.config['access_token'], **kwargs):
-            yield from page[self.item_key]
 
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
@@ -114,7 +103,20 @@ class Stream():
     def is_selected(self):
         return self.stream is not None
 
-class CursorBasedIncrementalStream(Stream):
+class CursorBasedStream(Stream):
+    item_key = None
+    endpoint = None
+
+    def get_objects(self, **kwargs):
+        '''
+        Cursor based object retrieval
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+
+        for page in http.get_cursor_based(url, self.config['access_token'], **kwargs):
+            yield from page[self.item_key]
+
+class CursorBasedExportStream(Stream):
     endpoint = "https://{}.zendesk.com/api/v2/incremental/{}/cursor.json"
 
     def get_objects_incremental(self, start_time):
@@ -249,7 +251,7 @@ class Users(Stream):
             end = start + datetime.timedelta(seconds=search_window_size)
 
 
-class Tickets(CursorBasedIncrementalStream):
+class Tickets(CursorBasedExportStream):
     name = "tickets"
     replication_method = "INCREMENTAL"
     replication_key = "generated_timestamp"
@@ -383,7 +385,7 @@ class TicketComments(Stream):
             self.count += 1
             yield (self.stream, ticket_comment)
 
-class SatisfactionRatings(Stream):
+class SatisfactionRatings(CursorBasedStream):
     name = "satisfaction_ratings"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
@@ -401,7 +403,7 @@ class SatisfactionRatings(Stream):
                 yield (self.stream, rating)
 
 
-class Groups(Stream):
+class Groups(CursorBasedStream):
     name = "groups"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
@@ -420,7 +422,7 @@ class Groups(Stream):
                 self.update_bookmark(state, group['updated_at'])
                 yield (self.stream, group)
 
-class Macros(Stream):
+class Macros(CursorBasedStream):
     name = "macros"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
@@ -439,7 +441,7 @@ class Macros(Stream):
                 self.update_bookmark(state, macro['updated_at'])
                 yield (self.stream, macro)
 
-class Tags(Stream):
+class Tags(CursorBasedStream):
     name = "tags"
     replication_method = "FULL_TABLE"
     key_properties = ["name"]
@@ -452,7 +454,7 @@ class Tags(Stream):
         for tag in tags:
             yield (self.stream, tag)
 
-class TicketFields(Stream):
+class TicketFields(CursorBasedStream):
     name = "ticket_fields"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
@@ -488,7 +490,7 @@ class TicketForms(Stream):
                 self.update_bookmark(state, form.updated_at)
                 yield (self.stream, form)
 
-class GroupMemberships(Stream):
+class GroupMemberships(CursorBasedStream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
