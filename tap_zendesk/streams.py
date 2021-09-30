@@ -117,13 +117,14 @@ class CursorBasedStream(Stream):
             yield from page[self.item_key]
 
 class CursorBasedExportStream(Stream):
-    endpoint = "https://{}.zendesk.com/api/v2/incremental/{}/cursor.json"
+    endpoint = None
+    item_key = None
 
-    def get_objects_incremental(self, start_time):
+    def get_objects(self, start_time):
         '''
-        Cursor based object retrieval
+        Retrieve objects from the incremental exports endpoint using cursor based pagination
         '''
-        url = self.endpoint.format(self.config['subdomain'],self.item_key)
+        url = self.endpoint.format(self.config['subdomain'])
 
         for page in http.get_incremental_export(url, self.config['access_token'], start_time):
             yield from page[self.item_key]
@@ -256,6 +257,7 @@ class Tickets(CursorBasedExportStream):
     replication_method = "INCREMENTAL"
     replication_key = "generated_timestamp"
     item_key = "tickets"
+    endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
 
     last_record_emit = {}
     buf = {}
@@ -283,7 +285,7 @@ class Tickets(CursorBasedExportStream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        tickets = self.get_objects_incremental(bookmark)
+        tickets = self.get_objects(bookmark)
 
         audits_stream = TicketAudits(self.client)
         metrics_stream = TicketMetrics(self.client)
