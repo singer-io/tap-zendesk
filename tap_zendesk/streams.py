@@ -114,6 +114,27 @@ class Stream():
     def is_selected(self):
         return self.stream is not None
 
+class CursorBasedIncrementalStream(Stream):
+    # im pretty sure Tickets is the only stream that gets a cursor based incremental export though...
+    endpoint = "https://{}.zendesk.com/api/v2/incremental/{}/cursor.json"
+
+o    def get_objects(self, start_time):
+        '''
+        Cursor based object retrieval
+        '''
+        url = self.endpoint.format(self.config['subdomain'],self.item_key)
+
+        for page in http.get_incremental_export(url, self.config['access_token'], start_time):
+            yield from page[self.item_key]
+
+# incremental:
+#   tickets:
+#     /api/v2/incremental/tickets/cursor.json?
+#   users:
+#     /api/v2/incremental/users
+#
+
+
 def raise_or_log_zenpy_apiexception(schema, stream, e):
     # There are multiple tiers of Zendesk accounts. Some of them have
     # access to `custom_fields` and some do not. This is the specific
@@ -236,14 +257,15 @@ class Users(Stream):
             end = start + datetime.timedelta(seconds=search_window_size)
 
 
-class Tickets(Stream):
+class Tickets(CursorBasedIncrementalStream):
     name = "tickets"
     replication_method = "INCREMENTAL"
     replication_key = "generated_timestamp"
+    item_key = "tickets"
 
     last_record_emit = {}
     buf = {}
-    buf_time = 60
+    buf_time = 10
     def _buffer_record(self, record):
         stream_name = record[0].tap_stream_id
         if self.last_record_emit.get(stream_name) is None:
@@ -267,7 +289,8 @@ class Tickets(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        tickets = self.client.tickets.incremental(start_time=bookmark, paginate_by_time=False)
+
+        tickets = self.get_objects(bookmark)
 
         audits_stream = TicketAudits(self.client)
         metrics_stream = TicketMetrics(self.client)
@@ -284,12 +307,11 @@ class Tickets(Stream):
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
 
-        for ticket in tickets:
+        for ticket_dict in tickets:
             zendesk_metrics.capture('ticket')
-            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(tzinfo=pytz.UTC)
+            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket_dict.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
-            ticket_dict = ticket.to_dict()
             ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
             should_yield = self._buffer_record((self.stream, ticket_dict))
 
