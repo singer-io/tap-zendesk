@@ -289,7 +289,7 @@ class Tickets(CursorBasedExportStream):
 
         audits_stream = TicketAudits(self.client)
         metrics_stream = TicketMetrics(self.client)
-        comments_stream = TicketComments(self.client)
+        comments_stream = TicketComments(self.client, self.config)
 
         def emit_sub_stream_metrics(sub_stream):
             if sub_stream.is_selected():
@@ -380,7 +380,7 @@ class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
     count = 0
-    endpoint = "https://{}.zendesk.com/api/v2/tickets/{}.json"
+    endpoint = "https://{}.zendesk.com/api/v2/tickets/{}/comments.json"
     item_key='comments'
 
     def get_objects(self, ticket_id):
