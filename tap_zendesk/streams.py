@@ -385,7 +385,7 @@ class TicketComments(Stream):
 
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
-        pages = http.get_cursor_based(url, self.config['access_token'])
+        pages = http.get_offset_based(url, self.config['access_token'])
 
         for page in pages:
             yield from page[self.item_key]
