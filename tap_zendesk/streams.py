@@ -380,10 +380,17 @@ class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
     count = 0
+    endpoint = "https://{}.zendesk.com/api/v2/tickets/{}.json"
+
+    def get_objects(self, ticket_id):
+        url = endpoint.format(self.config['subdomain'], ticket_id)
+        pages = http.get_cursor_based(url, self.config['access_token'])
+
+        for page in pages:
+            yield from page[self.item_key]
 
     def sync(self, ticket_id):
-        ticket_comments = self.client.tickets.comments(ticket=ticket_id)
-        for ticket_comment in ticket_comments:
+        for ticket_comment in self.get_objects(ticket_id):
             self.count += 1
             yield (self.stream, ticket_comment)
 
