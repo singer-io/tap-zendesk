@@ -334,7 +334,7 @@ class Tickets(CursorBasedExportStream):
                     # be linked back to it's corresponding ticket
                     for comment in comments_stream.sync(ticket["id"]):
                         zendesk_metrics.capture('ticket_comment')
-                        comment[1].ticket_id = ticket["id"]
+                        comment[1]['ticket_id'] = ticket["id"]
                         self._buffer_record(comment)
                 except RecordNotFoundException:
                     LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
@@ -355,7 +355,7 @@ class Tickets(CursorBasedExportStream):
         emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
 
-class TicketAudits(Stream):
+class TicketAudits(Stream):# TODO: implement cursor-based for this stream
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
     count = 0

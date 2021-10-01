@@ -54,8 +54,7 @@ def get_cursor_based(url, access_token, cursor=None, **kwargs):
         cursor = response_json['meta']['after_cursor']
         params['page[after]'] = cursor
 
-        response = requests.get(url, params=params, headers=headers)
-        response.raise_for_status()
+        response = call_api(url, params=params, headers=headers)
         response_json = response.json()
 
         yield response_json
@@ -79,20 +78,14 @@ def get_offset_based(url, access_token, cursor=None, **kwargs):
 
     yield response_json
 
-    has_more = response_json['meta']['next_page']
+    next_url = response_json.get('next_page')
 
-    while has_more:
-        cursor = response_json['meta']['after_cursor']
-        params['page[after]'] = cursor
-
-        response = requests.get(url, params=params, headers=headers)
-        response.raise_for_status()
+    while next_url:
+        response = call_api(next_url, headers=headers)
         response_json = response.json()
 
         yield response_json
-        has_more = response_json['meta']['has_more']
-
-
+        next_url = response_json.get('next_page')
 
 def get_incremental_export(url, access_token, start_time):
     headers = {
