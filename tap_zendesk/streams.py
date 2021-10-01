@@ -381,9 +381,10 @@ class TicketComments(Stream):
     replication_method = "INCREMENTAL"
     count = 0
     endpoint = "https://{}.zendesk.com/api/v2/tickets/{}.json"
+    item_key='comments'
 
     def get_objects(self, ticket_id):
-        url = endpoint.format(self.config['subdomain'], ticket_id)
+        url = self.endpoint.format(self.config['subdomain'], ticket_id)
         pages = http.get_cursor_based(url, self.config['access_token'])
 
         for page in pages:
