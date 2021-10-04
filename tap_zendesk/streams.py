@@ -5,6 +5,7 @@ import time
 import pytz
 import zenpy
 from zenpy.lib.exception import RecordNotFoundException
+from requests.exceptions import HTTPError
 import singer
 from singer import metadata
 from singer import utils
@@ -318,6 +319,12 @@ class Tickets(CursorBasedExportStream):
                 except RecordNotFoundException:
                     LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
                     "the Zendesk API returned a RecordNotFound error", ticket["id"])
+                except HTTPError as e:
+                    if len(e.args)>0 and 'Not Found for url' in e.args[0]:
+                        LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
+                                       "the Zendesk API returned an HTTP error", ticket["id"])
+                    else:
+                        raise e
 
             if metrics_stream.is_selected():
                 try:
@@ -359,13 +366,12 @@ class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
     count = 0
-    endpoint='https://{}.zendesk.com/api/v2/tickets/{}/audits'
+    endpoint='https://{}.zendesk.com/api/v2/tickets/{}/audits.json'
     item_key='audits'
 
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
         pages = http.get_single_call(url, self.config['access_token'])
-
         for page in pages:
             yield from page[self.item_key]
 
