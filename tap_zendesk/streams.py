@@ -117,7 +117,7 @@ class Stream():
 
     def check_access(self):
         '''
-        Check whether permission given to access stream resource or not.
+        Check whether the permission was given to access stream resources or not.
         '''
         url = self.endpoint.format(self.config['subdomain'])
 
@@ -137,7 +137,7 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
     # it doesn't have access.
     if not isinstance(e, zenpy.lib.exception.APIException):
         raise ValueError("Called with a bad exception type") from e
-    #If read permission not available in oauth access_token, then it returns below error.
+    #If read permission is not available in OAuth access_token, then it returns the below error.
     if json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read":
         LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
                        stream)

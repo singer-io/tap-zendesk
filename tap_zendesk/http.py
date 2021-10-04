@@ -64,7 +64,7 @@ ERROR_CODE_EXCEPTION_MAPPING = {
     },
     404: {
         "raise_exception": ZendeskNotFoundError,
-        "message": "There is no help desk configured at this address. This means that the address is available and that you can claim it at http://www.zendesk.com/signup"
+        "message": "The resource you have specified cannot be found."
     },
     409: {
         "raise_exception": ZendeskConflictError,

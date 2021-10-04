@@ -127,8 +127,7 @@ class TestBackoff(unittest.TestCase):
             responses = [response for response in http.get_cursor_based(url='some_url',
                                                                     access_token='some_token')]
         except http.ZendeskNotFoundError as e:
-            expected_error_message = "HTTP-error-code: 404, Error: There is no help desk configured at this address."\
-                " This means that the address is available and that you can claim it at http://www.zendesk.com/signup"
+            expected_error_message = "HTTP-error-code: 404, Error: The resource you have specified cannot be found."
             # Verifying the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
             
