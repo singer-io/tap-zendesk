@@ -60,7 +60,7 @@ def get_cursor_based(url, access_token, cursor=None, **kwargs):
         yield response_json
         has_more = response_json['meta']['has_more']
 
-def get_offset_based(url, access_token, cursor=None, **kwargs):
+def get_offset_based(url, access_token, **kwargs):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -81,7 +81,7 @@ def get_offset_based(url, access_token, cursor=None, **kwargs):
     next_url = response_json.get('next_page')
 
     while next_url:
-        response = call_api(next_url, headers=headers)
+        response = call_api(next_url, params=None, headers=headers)
         response_json = response.json()
 
         yield response_json
