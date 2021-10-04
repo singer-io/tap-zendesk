@@ -23,6 +23,7 @@ setup(name='tap-zendesk',
               'pylint==2.8.3',
               'nose',
               'nose-watch',
+              'pytest'
           ]
       },
       entry_points='''
