@@ -287,7 +287,7 @@ class Tickets(CursorBasedExportStream):
         bookmark = self.get_bookmark(state)
         tickets = self.get_objects(bookmark)
 
-        audits_stream = TicketAudits(self.client)
+        audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client)
         comments_stream = TicketComments(self.client, self.config)
 
@@ -355,24 +355,22 @@ class Tickets(CursorBasedExportStream):
         emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
 
-class TicketAudits(Stream):# TODO: implement cursor-based for this stream
-    # if we want ticket audits to be a child stream of tickets, we don't want to use cursor-based pagination
-    # rn, zenpy is using the non-cursor tickets endpoint
+class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
     count = 0
-    endpoint='http://{}.zendesk.com/api/v2/tickets/{}/audits'
+    endpoint='https://{}.zendesk.com/api/v2/tickets/{}/audits'
     item_key='audits'
 
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
-        pages = http.get_simple(url, self.config['access_token'])
+        pages = http.get_single_call(url, self.config['access_token'])
 
         for page in pages:
             yield from page[self.item_key]
 
     def sync(self, ticket_id):
-        ticket_audits = self.get_objects(bookmark)
+        ticket_audits = self.get_objects(ticket_id)
         for ticket_audit in ticket_audits:
             self.count += 1
             yield (self.stream, ticket_audit)

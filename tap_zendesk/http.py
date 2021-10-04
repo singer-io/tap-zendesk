@@ -116,7 +116,7 @@ def get_incremental_export(url, access_token, start_time):
         end_of_stream = response_json.get('end_of_stream')
 
 
-def get_simple(url, access_token):
+def get_single_call(url, access_token, params=None):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
