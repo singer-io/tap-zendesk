@@ -314,7 +314,6 @@ class Tickets(CursorBasedExportStream):
             if audits_stream.is_selected():
                 try:
                     for audit in audits_stream.sync(ticket["id"]):
-                        zendesk_metrics.capture('ticket_audit')
                         self._buffer_record(audit)
                 except RecordNotFoundException:
                     LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
@@ -329,7 +328,6 @@ class Tickets(CursorBasedExportStream):
             if metrics_stream.is_selected():
                 try:
                     for metric in metrics_stream.sync(ticket["id"]):
-                        zendesk_metrics.capture('ticket_metric')
                         self._buffer_record(metric)
                 except RecordNotFoundException:
                     LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), " \
@@ -378,6 +376,7 @@ class TicketAudits(Stream):
     def sync(self, ticket_id):
         ticket_audits = self.get_objects(ticket_id)
         for ticket_audit in ticket_audits:
+            zendesk_metrics.capture('ticket_audit')
             self.count += 1
             yield (self.stream, ticket_audit)
 
@@ -388,6 +387,7 @@ class TicketMetrics(Stream):
 
     def sync(self, ticket_id):
         ticket_metric = self.client.tickets.metrics(ticket=ticket_id)
+        zendesk_metrics.capture('ticket_metric')
         self.count += 1
         yield (self.stream, ticket_metric)
 
