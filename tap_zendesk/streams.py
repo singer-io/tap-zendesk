@@ -283,7 +283,7 @@ class Tickets(CursorBasedExportStream):
                 yield rec
             self.buf[stream_name] = []
 
-    def sync(self, state):
+    def sync(self, state): #pylint: disable=too-many-statements
         bookmark = self.get_bookmark(state)
         tickets = self.get_objects(bookmark)
 
@@ -335,8 +335,6 @@ class Tickets(CursorBasedExportStream):
                     # add ticket_id to ticket_comment so the comment can
                     # be linked back to it's corresponding ticket
                     for comment in comments_stream.sync(ticket["id"]):
-                        zendesk_metrics.capture('ticket_comment')
-                        comment[1]['ticket_id'] = ticket["id"]
                         self._buffer_record(comment)
                 except HTTPError as e:
                     if e.response.status_code == 404:
@@ -412,6 +410,8 @@ class TicketComments(Stream):
     def sync(self, ticket_id):
         for ticket_comment in self.get_objects(ticket_id):
             self.count += 1
+            zendesk_metrics.capture('ticket_comment')
+            ticket_comment['ticket_id'] = ticket_id
             yield (self.stream, ticket_comment)
 
 class SatisfactionRatings(CursorBasedStream):
