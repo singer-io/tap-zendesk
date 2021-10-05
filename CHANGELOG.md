@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0
+  * Fixing the via.from field on the tickets, and ticket_comments stream [#75](https://github.com/singer-io/tap-zendesk/pull/75)
+    * Remove usage of `zenpy` library for tickets stream and all sub-streams
+
 ## 1.5.8
   * Revert Organizations Stream back to the Incremental Search endpoint [#70](https://github.com/singer-io/tap-zendesk/pull/70)
 
