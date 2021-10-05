@@ -289,7 +289,7 @@ class Tickets(CursorBasedExportStream):
         tickets = self.get_objects(bookmark)
 
         audits_stream = TicketAudits(self.client, self.config)
-        metrics_stream = TicketMetrics(self.client)
+        metrics_stream = TicketMetrics(self.client, self.config)
         comments_stream = TicketComments(self.client, self.config)
 
         def emit_sub_stream_metrics(sub_stream):
@@ -380,16 +380,21 @@ class TicketAudits(Stream):
             self.count += 1
             yield (self.stream, ticket_audit)
 
-class TicketMetrics(Stream):
+class TicketMetrics(CursorBasedStream):
     name = "ticket_metrics"
     replication_method = "INCREMENTAL"
     count = 0
+    endpoint = 'https://{}.zendesk.com/api/v2/tickets/{}/metrics'
+    item_key = 'ticket_metric'
 
     def sync(self, ticket_id):
-        ticket_metric = self.client.tickets.metrics(ticket=ticket_id)
-        zendesk_metrics.capture('ticket_metric')
-        self.count += 1
-        yield (self.stream, ticket_metric)
+        # Only 1 ticket metric per ticket
+        url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        pages = http.get_offset_based(url, self.config['access_token'])
+        for page in pages:
+            zendesk_metrics.capture('ticket_metric')
+            self.count += 1
+            yield (self.stream, page[self.item_key])
 
 class TicketComments(Stream):
     name = "ticket_comments"
