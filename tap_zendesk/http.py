@@ -69,7 +69,7 @@ def get_offset_based(url, access_token, **kwargs):
     }
 
     params = {
-        'per_page': 3,
+        'per_page': 100,
         **kwargs.get('params', {})
     }
 
@@ -114,16 +114,3 @@ def get_incremental_export(url, access_token, start_time):
         yield response_json
 
         end_of_stream = response_json.get('end_of_stream')
-
-
-def get_single_call(url, access_token, params=None):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-    }
-
-    response = call_api(url, params=params, headers=headers)
-    response_json = response.json()
-
-    yield response_json
