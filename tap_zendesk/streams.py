@@ -4,7 +4,6 @@ import datetime
 import time
 import pytz
 import zenpy
-from zenpy.lib.exception import RecordNotFoundException
 from requests.exceptions import HTTPError
 import singer
 from singer import metadata
@@ -315,13 +314,9 @@ class Tickets(CursorBasedExportStream):
                 try:
                     for audit in audits_stream.sync(ticket["id"]):
                         self._buffer_record(audit)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket["id"])
                 except HTTPError as e:
-                    if len(e.args)>0 and 'Not Found for url' in e.args[0]:
-                        LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
-                                       "the Zendesk API returned an HTTP error", ticket["id"])
+                    if e.response.status_code == 404:
+                        LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), record not found", ticket['id'])
                     else:
                         raise e
 
@@ -329,9 +324,11 @@ class Tickets(CursorBasedExportStream):
                 try:
                     for metric in metrics_stream.sync(ticket["id"]):
                         self._buffer_record(metric)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket["id"])
+                except HTTPError as e:
+                    if e.response.status_code == 404:
+                        LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), record not found", ticket['id'])
+                    else:
+                        raise e
 
             if comments_stream.is_selected():
                 try:
@@ -341,9 +338,11 @@ class Tickets(CursorBasedExportStream):
                         zendesk_metrics.capture('ticket_comment')
                         comment[1]['ticket_id'] = ticket["id"]
                         self._buffer_record(comment)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket["id"])
+                except HTTPError as e:
+                    if e.response.status_code == 404:
+                        LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), record not found", ticket['id'])
+                    else:
+                        raise e
 
             if should_yield:
                 for rec in self._empty_buffer():

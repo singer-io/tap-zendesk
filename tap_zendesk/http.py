@@ -16,7 +16,7 @@ def is_fatal(exception):
         sleep(sleep_time)
         return False
 
-    return 400 <=status_code < 500
+    return 400 <= status_code < 500
 
 @backoff.on_exception(backoff.expo,
                       requests.exceptions.HTTPError,
