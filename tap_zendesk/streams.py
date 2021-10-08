@@ -286,7 +286,7 @@ class Tickets(CursorBasedExportStream):
         #Create buffer list
         if self.buf.get(stream_name) is None:
             self.buf[stream_name] = []
-        #Append record to buffer    
+        #Append record to buffer
         self.buf[stream_name].append(record)
 
         #If buffer time elapsed by 60 seconds then return true
