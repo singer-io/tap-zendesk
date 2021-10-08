@@ -6,6 +6,7 @@ from tap_zendesk.streams import STREAMS
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 
+# Load and return dictionary of referenced schemas from 'schemas/shared'
 def load_shared_schema_refs():
     ref_sub_path = 'shared'
     shared_schemas_path = get_abs_path('schemas/' + ref_sub_path)
@@ -20,6 +21,7 @@ def load_shared_schema_refs():
 
     return shared_schema_refs
 
+ # Discover schemas, build metadata for all the steams and return catalog
 def discover_streams(client):
     streams = []
     refs = load_shared_schema_refs()
