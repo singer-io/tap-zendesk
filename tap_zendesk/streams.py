@@ -16,6 +16,10 @@ from tap_zendesk import http
 LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
 
+HEADERS = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+}
 START_DATE = datetime.datetime.strftime(datetime.datetime.utcnow() - datetime.timedelta(days=1), "%Y-%m-%dT00:00:00Z")
 CUSTOM_TYPES = {
     'text': 'string',
@@ -109,15 +113,10 @@ class Stream():
         Check whether the permission was given to access stream resources or not.
         '''
         url = self.endpoint.format(self.config['subdomain'])
+        HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
 
-        headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': f'Bearer {self.config["access_token"]}'
-        }
+        http.call_api(url, params={'per_page': 1}, headers=HEADERS)
 
-        http.call_api(url, params={'page[size]': 1}, headers=headers)
-        
 class CursorBasedStream(Stream):
     item_key = None
     endpoint = None
@@ -382,8 +381,24 @@ class Tickets(CursorBasedExportStream):
         singer.write_state(state)
 
     def check_access(self):
-        self.client.tickets.incremental(start_time=START_DATE, paginate_by_time=False)
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
 
+        tickets = http.call_api(url, params={'start_time': 1610368140, 'per_page': 1}, headers=HEADERS)
+        tickets_json = tickets.json()['tickets']
+        if tickets_json:
+            audits_stream = TicketAudits(self.client, self.config)
+            audits_stream.check_access(tickets_json[0]["id"])
+            
+            metrics_stream = TicketMetrics(self.client, self.config)
+            metrics_stream.check_access(tickets_json[0]["id"])
+            
+            comments_stream = TicketComments(self.client, self.config)
+            comments_stream.check_access(tickets_json[0]["id"])
+            
 class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
@@ -404,9 +419,16 @@ class TicketAudits(Stream):
             self.count += 1
             yield (self.stream, ticket_audit)
 
-    def check_access(self):
-        self.client.tickets.audits(ticket=None)
-
+    def check_access(self, ticket_id = None):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        if ticket_id:
+            url = self.endpoint.format(self.config['subdomain'], ticket_id)
+            HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+            
+            http.call_api(url, params={'per_page': 1}, headers=HEADERS)
+        
 class TicketMetrics(CursorBasedStream):
     name = "ticket_metrics"
     replication_method = "INCREMENTAL"
@@ -423,9 +445,16 @@ class TicketMetrics(CursorBasedStream):
             self.count += 1
             yield (self.stream, page[self.item_key])
 
-    def check_access(self):
-        self.client.tickets.metrics(ticket=None)
-
+    def check_access(self, ticket_id = None):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        if ticket_id:
+            url = self.endpoint.format(self.config['subdomain'], ticket_id)
+            HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+            
+            http.call_api(url, params={'per_page': 1}, headers=HEADERS)
+        
 class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
@@ -447,9 +476,16 @@ class TicketComments(Stream):
             ticket_comment['ticket_id'] = ticket_id
             yield (self.stream, ticket_comment)
 
-    def check_access(self):
-        self.client.tickets.comments(ticket=None)
-
+    def check_access(self, ticket_id = None):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        if ticket_id:
+            url = self.endpoint.format(self.config['subdomain'], ticket_id)
+            HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+            
+            http.call_api(url, params={'per_page': 1}, headers=HEADERS)
+        
 class SatisfactionRatings(CursorBasedStream):
     name = "satisfaction_ratings"
     replication_method = "INCREMENTAL"
