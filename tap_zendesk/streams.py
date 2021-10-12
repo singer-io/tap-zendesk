@@ -109,7 +109,7 @@ class Stream():
     def is_selected(self):
         return self.stream is not None
 
-    def check_access(self, ticket_id = None):
+    def check_access(self, **kwargs):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
@@ -194,7 +194,7 @@ class Organizations(Stream):
             self.update_bookmark(state, organization.updated_at)
             yield (self.stream, organization)
 
-    def check_access(self, ticket_id = None):
+    def check_access(self, **kwargs):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
@@ -276,7 +276,7 @@ class Users(Stream):
             start = end - datetime.timedelta(seconds=1)
             end = start + datetime.timedelta(seconds=search_window_size)
 
-    def check_access(self, ticket_id = None):
+    def check_access(self, **kwargs):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
@@ -387,7 +387,7 @@ class Tickets(CursorBasedExportStream):
         emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
 
-    def check_access(self, ticket_id = None):
+    def check_access(self, **kwargs):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
@@ -405,7 +405,7 @@ class Tickets(CursorBasedExportStream):
 
             comments_stream = TicketComments(self.client, self.config)
             comments_stream.check_access(tickets_json[0]["id"])
- 
+
 class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
@@ -598,7 +598,7 @@ class TicketForms(Stream):
                 self.update_bookmark(state, form.updated_at)
                 yield (self.stream, form)
 
-    def check_access(self, ticket_id = None):
+    def check_access(self, **kwargs):
         self.client.ticket_forms()
 
 class GroupMemberships(CursorBasedStream):
@@ -638,7 +638,7 @@ class SLAPolicies(Stream):
         for policy in self.client.sla_policies():
             yield (self.stream, policy)
 
-    def check_access(self, ticket_id = None):
+    def check_access(self, **kwargs):
         self.client.sla_policies()
 
 STREAMS = {
