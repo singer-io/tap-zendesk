@@ -8,7 +8,6 @@ from requests.exceptions import HTTPError
 import singer
 from singer import metadata
 from singer import utils
-from singer.metrics import Point
 from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk import http
 
