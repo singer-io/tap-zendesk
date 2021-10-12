@@ -426,12 +426,12 @@ class TicketAudits(Stream):
             self.count += 1
             yield (self.stream, ticket_audit)
 
-    def check_access(self, ticket_id = None):
+    def check_access(self, **kwargs):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
         if ticket_id:
-            url = self.endpoint.format(self.config['subdomain'], ticket_id)
+            url = self.endpoint.format(self.config['subdomain'], kwargs['ticket_id'])
             HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
 
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
@@ -452,12 +452,12 @@ class TicketMetrics(CursorBasedStream):
             self.count += 1
             yield (self.stream, page[self.item_key])
 
-    def check_access(self, ticket_id = None):
+    def check_access(self, **kwargs):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
         if ticket_id:
-            url = self.endpoint.format(self.config['subdomain'], ticket_id)
+            url = self.endpoint.format(self.config['subdomain'], kwargs['ticket_id'])
             HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
 
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
@@ -483,12 +483,12 @@ class TicketComments(Stream):
             ticket_comment['ticket_id'] = ticket_id
             yield (self.stream, ticket_comment)
 
-    def check_access(self, ticket_id = None):
+    def check_access(self, **kwargs):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
         if ticket_id:
-            url = self.endpoint.format(self.config['subdomain'], ticket_id)
+            url = self.endpoint.format(self.config['subdomain'], kwargs['ticket_id'])
             HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
 
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
