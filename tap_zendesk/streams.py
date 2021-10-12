@@ -64,6 +64,7 @@ class Stream():
     replication_key = None
     key_properties = KEY_PROPERTIES
     stream = None
+    endpoint = None
 
     def __init__(self, client=None, config=None):
         self.client = client
@@ -108,7 +109,7 @@ class Stream():
     def is_selected(self):
         return self.stream is not None
 
-    def check_access(self):
+    def check_access(self, ticket_id = None):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
@@ -193,7 +194,10 @@ class Organizations(Stream):
             self.update_bookmark(state, organization.updated_at)
             yield (self.stream, organization)
 
-    def check_access(self):
+    def check_access(self, ticket_id = None):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
         self.client.organizations.incremental(start_time=START_DATE)
 
 class Users(Stream):
@@ -272,7 +276,10 @@ class Users(Stream):
             start = end - datetime.timedelta(seconds=1)
             end = start + datetime.timedelta(seconds=search_window_size)
 
-    def check_access(self):
+    def check_access(self, ticket_id = None):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
         self.client.search("", updated_after=START_DATE, updated_before='2000-01-02T00:00:00Z', type="user")
 
 class Tickets(CursorBasedExportStream):
@@ -380,7 +387,7 @@ class Tickets(CursorBasedExportStream):
         emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
 
-    def check_access(self):
+    def check_access(self, ticket_id = None):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
@@ -392,13 +399,13 @@ class Tickets(CursorBasedExportStream):
         if tickets_json:
             audits_stream = TicketAudits(self.client, self.config)
             audits_stream.check_access(tickets_json[0]["id"])
-            
+
             metrics_stream = TicketMetrics(self.client, self.config)
             metrics_stream.check_access(tickets_json[0]["id"])
-            
+
             comments_stream = TicketComments(self.client, self.config)
             comments_stream.check_access(tickets_json[0]["id"])
-            
+ 
 class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
@@ -426,9 +433,9 @@ class TicketAudits(Stream):
         if ticket_id:
             url = self.endpoint.format(self.config['subdomain'], ticket_id)
             HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
-            
+
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
-        
+
 class TicketMetrics(CursorBasedStream):
     name = "ticket_metrics"
     replication_method = "INCREMENTAL"
@@ -452,9 +459,9 @@ class TicketMetrics(CursorBasedStream):
         if ticket_id:
             url = self.endpoint.format(self.config['subdomain'], ticket_id)
             HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
-            
+
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
-        
+
 class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
@@ -483,9 +490,9 @@ class TicketComments(Stream):
         if ticket_id:
             url = self.endpoint.format(self.config['subdomain'], ticket_id)
             HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
-            
+
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
-        
+
 class SatisfactionRatings(CursorBasedStream):
     name = "satisfaction_ratings"
     replication_method = "INCREMENTAL"
@@ -591,7 +598,7 @@ class TicketForms(Stream):
                 self.update_bookmark(state, form.updated_at)
                 yield (self.stream, form)
 
-    def check_access(self):
+    def check_access(self, ticket_id = None):
         self.client.ticket_forms()
 
 class GroupMemberships(CursorBasedStream):
@@ -631,7 +638,7 @@ class SLAPolicies(Stream):
         for policy in self.client.sla_policies():
             yield (self.stream, policy)
 
-    def check_access(self):
+    def check_access(self, ticket_id = None):
         self.client.sla_policies()
 
 STREAMS = {
