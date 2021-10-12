@@ -308,12 +308,12 @@ class Tickets(CursorBasedExportStream):
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
             ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
-            should_yield = self._buffer_record((self.stream, ticket))
+            yield (self.stream, ticket)
 
             if audits_stream.is_selected():
                 try:
                     for audit in audits_stream.sync(ticket["id"]):
-                        self._buffer_record(audit)
+                        yield audit
                 except HTTPError as e:
                     if e.response.status_code == 404:
                         LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), record not found", ticket['id'])
@@ -323,7 +323,7 @@ class Tickets(CursorBasedExportStream):
             if metrics_stream.is_selected():
                 try:
                     for metric in metrics_stream.sync(ticket["id"]):
-                        self._buffer_record(metric)
+                        yield metric
                 except HTTPError as e:
                     if e.response.status_code == 404:
                         LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), record not found", ticket['id'])
@@ -335,26 +335,14 @@ class Tickets(CursorBasedExportStream):
                     # add ticket_id to ticket_comment so the comment can
                     # be linked back to it's corresponding ticket
                     for comment in comments_stream.sync(ticket["id"]):
-                        self._buffer_record(comment)
+                        yield comment
                 except HTTPError as e:
                     if e.response.status_code == 404:
                         LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), record not found", ticket['id'])
                     else:
                         raise e
 
-            if should_yield:
-                for rec in self._empty_buffer():
-                    yield rec
-                emit_sub_stream_metrics(audits_stream)
-                emit_sub_stream_metrics(metrics_stream)
-                emit_sub_stream_metrics(comments_stream)
-                singer.write_state(state)
-
-        for rec in self._empty_buffer():
-            yield rec
-        emit_sub_stream_metrics(audits_stream)
-        emit_sub_stream_metrics(metrics_stream)
-        emit_sub_stream_metrics(comments_stream)
+            singer.write_state(state)
         singer.write_state(state)
 
 class TicketAudits(Stream):
