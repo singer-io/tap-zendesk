@@ -267,14 +267,6 @@ class Tickets(CursorBasedExportStream):
         metrics_stream = TicketMetrics(self.client, self.config)
         comments_stream = TicketComments(self.client, self.config)
 
-        def emit_sub_stream_metrics(sub_stream):
-            if sub_stream.is_selected():
-                singer.metrics.log(LOGGER, Point(metric_type='counter',
-                                                 metric=singer.metrics.Metric.record_count,
-                                                 value=sub_stream.count,
-                                                 tags={'endpoint':sub_stream.stream.tap_stream_id}))
-                sub_stream.count = 0
-
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
 
