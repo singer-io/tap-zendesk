@@ -54,15 +54,17 @@ class TestDiscovery(unittest.TestCase):
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
         except tap_zendesk.http.ZendeskForbiddenError as e:
             expected_error_message =  "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                "The account credentials supplied do not have read access for the following stream(s):tickets, groups, users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags"
+                "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, "\
+                    "users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags"
+
             # Verifying the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
-            
+
         expected_call_count = 7
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
-        
-        
+
+
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -92,15 +94,15 @@ class TestDiscovery(unittest.TestCase):
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
         except tap_zendesk.http.ZendeskForbiddenError as e:
             expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                "The account credentials supplied do not have read access for the following stream(s):tickets, groups, "\
-                "users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags, sla_policies"
+                "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, "\
+                    "users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags, sla_policies"
             self.assertEqual(str(e), expected_error_message)
-            
+
         expected_call_count = 7
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
-        
-    
+
+
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -130,9 +132,11 @@ class TestDiscovery(unittest.TestCase):
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
         except tap_zendesk.http.ZendeskForbiddenError as e:
             expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                "The account credentials supplied do not have read access for the following stream(s):tickets, groups, users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags"
+                "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, "\
+                "users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags"
+
             self.assertEqual(str(e), expected_error_message)
-            
+
         expected_call_count = 7
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
@@ -172,8 +176,8 @@ class TestDiscovery(unittest.TestCase):
         expected_call_count = 4
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
-        
-        
+
+
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(AUTH_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(AUTH_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(AUTH_ERROR))
@@ -204,7 +208,7 @@ class TestDiscovery(unittest.TestCase):
             expected_error_message = AUTH_ERROR
             # Verifying the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
-            
+
         expected_call_count = 2
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
