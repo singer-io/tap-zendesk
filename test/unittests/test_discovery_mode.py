@@ -35,6 +35,7 @@ class TestDiscovery(unittest.TestCase):
     @patch('singer.resolve_schema_references', return_value={})
     @patch('requests.get',
            side_effect=[
+                mocked_get(status_code=200, json={"tickets": [{"id": "t1"}]}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
@@ -42,29 +43,31 @@ class TestDiscovery(unittest.TestCase):
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"})
             ])
-    def test_discovery_handles_403_raise_tap_zendesk_forbidden_error(self, mock_get, mock_resolve_schema_references, 
+    def test_discovery_handles_403__raise_tap_zendesk_forbidden_error(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
                                 mocked_ticket_forms, mock_users, mock_organizations):
         '''
-        Test that we handle forbidden error received from last failed request which we called from tap_zendesk's http module
-        and raised tap_zendesk.http.ZendeskForbiddenError
+        Test that we handle forbidden error for child streams.
         '''
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
         except tap_zendesk.http.ZendeskForbiddenError as e:
             expected_error_message =  "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, "\
-                    "users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags"
+                "The account credentials supplied do not have read access for the following stream(s):  groups, users, "\
+                "organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, "\
+                    "satisfaction_ratings, tags, ticket_metrics"
 
             # Verifying the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
 
-        expected_call_count = 7
+        expected_call_count = 10
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
-
+        
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -75,6 +78,7 @@ class TestDiscovery(unittest.TestCase):
     @patch('singer.resolve_schema_references', return_value={})
     @patch('requests.get',
            side_effect=[
+                mocked_get(status_code=200, json={"tickets": [{"id": "t1"}]}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
@@ -82,6 +86,8 @@ class TestDiscovery(unittest.TestCase):
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"})
             ])
     def test_discovery_handles_403_raise_zenpy_forbidden_error_for_access_token(self, mock_get, mock_resolve_schema_references, mock_load_metadata, 
                                 mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, mocked_ticket_forms, 
@@ -94,11 +100,13 @@ class TestDiscovery(unittest.TestCase):
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
         except tap_zendesk.http.ZendeskForbiddenError as e:
             expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, "\
-                    "users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags, sla_policies"
+                "The account credentials supplied do not have read access for the following stream(s):  groups, users, "\
+                "organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, "\
+                "satisfaction_ratings, tags, ticket_metrics, sla_policies"
+
             self.assertEqual(str(e), expected_error_message)
 
-        expected_call_count = 7
+        expected_call_count = 10
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
@@ -113,6 +121,7 @@ class TestDiscovery(unittest.TestCase):
     @patch('singer.resolve_schema_references', return_value={})
     @patch('requests.get',
            side_effect=[
+                mocked_get(status_code=200, json={"tickets": [{"id": "t1"}]}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
@@ -120,6 +129,8 @@ class TestDiscovery(unittest.TestCase):
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"})
             ])
     def test_discovery_handles_403_raise_zenpy_forbidden_error_for_api_token(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
@@ -132,12 +143,13 @@ class TestDiscovery(unittest.TestCase):
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
         except tap_zendesk.http.ZendeskForbiddenError as e:
             expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, "\
-                "users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags"
+                "The account credentials supplied do not have read access for the following stream(s):  groups, users, "\
+                "organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, "\
+                "satisfaction_ratings, tags, ticket_metrics"
 
             self.assertEqual(str(e), expected_error_message)
 
-        expected_call_count = 7
+        expected_call_count = 10
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
         
@@ -210,5 +222,40 @@ class TestDiscovery(unittest.TestCase):
             self.assertEqual(str(e), expected_error_message)
 
         expected_call_count = 2
+        actual_call_count = mock_get.call_count
+        self.assertEqual(expected_call_count, actual_call_count)
+        
+        
+    @patch('tap_zendesk.streams.Organizations.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
+    @patch('tap_zendesk.streams.Users.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
+    @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
+    @patch('tap_zendesk.streams.SLAPolicies.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
+    @patch('tap_zendesk.discover.load_shared_schema_refs', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_metadata', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_schema', return_value={})
+    @patch('singer.resolve_schema_references', return_value={})
+    @patch('requests.get',
+           side_effect=[
+                mocked_get(status_code=200, json={"tickets": [{"id": "t1"}]}),
+                mocked_get(status_code=200, json={"key1": "val1"}),
+                mocked_get(status_code=200, json={"key1": "val1"}),
+                mocked_get(status_code=200, json={"key1": "val1"}),
+                mocked_get(status_code=200, json={"key1": "val1"}),
+                mocked_get(status_code=200, json={"key1": "val1"}),
+                mocked_get(status_code=200, json={"key1": "val1"}),
+                mocked_get(status_code=200, json={"key1": "val1"}),
+                mocked_get(status_code=200, json={"key1": "val1"}),
+                mocked_get(status_code=200, json={"key1": "val1"})
+            ])
+    def test_discovery_handles_200_response(self, mock_get, mock_resolve_schema_references, 
+                                mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
+                                mocked_ticket_forms, mock_users, mock_organizations):
+        '''
+        Test that we handle forbidden error received from last failed request which we called from zenpy module and
+        raised zenpy.lib.exception.APIException
+        '''
+        discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
+
+        expected_call_count = 10
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)

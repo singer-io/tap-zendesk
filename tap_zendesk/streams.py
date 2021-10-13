@@ -20,6 +20,7 @@ HEADERS = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
 }
+TICKETID = None
 START_DATE = datetime.datetime.strftime(datetime.datetime.utcnow() - datetime.timedelta(days=1), "%Y-%m-%dT00:00:00Z")
 CUSTOM_TYPES = {
     'text': 'string',
@@ -109,7 +110,7 @@ class Stream():
     def is_selected(self):
         return self.stream is not None
 
-    def check_access(self, ticket_id = None): #pylint: disable=unused-argument
+    def check_access(self):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
@@ -194,7 +195,7 @@ class Organizations(Stream):
             self.update_bookmark(state, organization.updated_at)
             yield (self.stream, organization)
 
-    def check_access(self, ticket_id = None): #pylint: disable=unused-argument
+    def check_access(self):
         self.client.organizations.incremental(start_time=START_DATE)
 
 class Users(Stream):
@@ -273,7 +274,7 @@ class Users(Stream):
             start = end - datetime.timedelta(seconds=1)
             end = start + datetime.timedelta(seconds=search_window_size)
 
-    def check_access(self, ticket_id = None): #pylint: disable=unused-argument
+    def check_access(self):
         self.client.search("", updated_after=START_DATE, updated_before='2000-01-02T00:00:00Z', type="user")
 
 class Tickets(CursorBasedExportStream):
@@ -381,7 +382,7 @@ class Tickets(CursorBasedExportStream):
         emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
 
-    def check_access(self, ticket_id = None): #pylint: disable=unused-argument
+    def check_access(self):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
@@ -390,16 +391,9 @@ class Tickets(CursorBasedExportStream):
 
         tickets = http.call_api(url, params={'start_time': 1610368140, 'per_page': 1}, headers=HEADERS)
         tickets_json = tickets.json()['tickets']
+        global TICKETID
         if tickets_json:
-            audits_stream = TicketAudits(self.client, self.config)
-            audits_stream.check_access(tickets_json[0]["id"])
-
-            metrics_stream = TicketMetrics(self.client, self.config)
-            metrics_stream.check_access(tickets_json[0]["id"])
-
-            comments_stream = TicketComments(self.client, self.config)
-            comments_stream.check_access(tickets_json[0]["id"])
-
+            TICKETID = tickets_json[0]["id"]
 class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
@@ -420,12 +414,13 @@ class TicketAudits(Stream):
             self.count += 1
             yield (self.stream, ticket_audit)
 
-    def check_access(self, ticket_id = None):
+    def check_access(self):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        if ticket_id:
-            url = self.endpoint.format(self.config['subdomain'], ticket_id)
+         
+        if TICKETID:
+            url = self.endpoint.format(self.config['subdomain'], TICKETID)
             HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
 
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
@@ -446,12 +441,12 @@ class TicketMetrics(CursorBasedStream):
             self.count += 1
             yield (self.stream, page[self.item_key])
 
-    def check_access(self, ticket_id = None):
+    def check_access(self):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        if ticket_id:
-            url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        if TICKETID:
+            url = self.endpoint.format(self.config['subdomain'], TICKETID)
             HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
 
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
@@ -477,12 +472,12 @@ class TicketComments(Stream):
             ticket_comment['ticket_id'] = ticket_id
             yield (self.stream, ticket_comment)
 
-    def check_access(self, ticket_id = None):
+    def check_access(self):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        if ticket_id:
-            url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        if TICKETID:
+            url = self.endpoint.format(self.config['subdomain'], TICKETID)
             HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
 
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
@@ -592,7 +587,7 @@ class TicketForms(Stream):
                 self.update_bookmark(state, form.updated_at)
                 yield (self.stream, form)
 
-    def check_access(self, ticket_id = None): #pylint: disable=unused-argument
+    def check_access(self):
         self.client.ticket_forms()
 
 class GroupMemberships(CursorBasedStream):
@@ -632,7 +627,7 @@ class SLAPolicies(Stream):
         for policy in self.client.sla_policies():
             yield (self.stream, policy)
 
-    def check_access(self, ticket_id = None): #pylint: disable=unused-argument
+    def check_access(self):
         self.client.sla_policies()
 
 STREAMS = {
