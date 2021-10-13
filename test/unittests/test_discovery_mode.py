@@ -121,7 +121,7 @@ class TestDiscovery(unittest.TestCase):
     @patch('singer.resolve_schema_references', return_value={})
     @patch('requests.get',
            side_effect=[
-                mocked_get(status_code=200, json={"tickets": [{"id": "t1"}]}),
+                mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
@@ -143,7 +143,7 @@ class TestDiscovery(unittest.TestCase):
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
         except tap_zendesk.http.ZendeskForbiddenError as e:
             expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                "The account credentials supplied do not have read access for the following stream(s):  groups, users, "\
+                "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, users, "\
                 "organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, "\
                 "satisfaction_ratings, tags, ticket_metrics"
 
@@ -212,7 +212,7 @@ class TestDiscovery(unittest.TestCase):
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
                                 mocked_ticket_forms, mock_users, mock_organizations):
         '''
-        Test that it raise error direclty if it is rather than 403
+        Test that discovery mode raise error direclty if it is rather than 403 for zenpy module
         '''
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
@@ -251,8 +251,7 @@ class TestDiscovery(unittest.TestCase):
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
                                 mocked_ticket_forms, mock_users, mock_organizations):
         '''
-        Test that we handle forbidden error received from last failed request which we called from zenpy module and
-        raised zenpy.lib.exception.APIException
+        Test that discovery mode does not raise any error in case of all streams have read permission
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
 

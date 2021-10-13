@@ -20,7 +20,6 @@ HEADERS = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
 }
-TICKETID = None
 START_DATE = datetime.datetime.strftime(datetime.datetime.utcnow() - datetime.timedelta(days=1), "%Y-%m-%dT00:00:00Z")
 CUSTOM_TYPES = {
     'text': 'string',
@@ -389,11 +388,9 @@ class Tickets(CursorBasedExportStream):
         url = self.endpoint.format(self.config['subdomain'])
         HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
 
-        tickets = http.call_api(url, params={'start_time': 1610368140, 'per_page': 1}, headers=HEADERS)
-        tickets_json = tickets.json()['tickets']
-        global TICKETID
-        if tickets_json:
-            TICKETID = tickets_json[0]["id"]
+        http.call_api(url, params={'start_time': 1610368140, 'per_page': 1}, headers=HEADERS)
+
+
 class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
@@ -418,12 +415,14 @@ class TicketAudits(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-         
-        if TICKETID:
-            url = self.endpoint.format(self.config['subdomain'], TICKETID)
-            HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
 
+        url = self.endpoint.format(self.config['subdomain'], '1')
+        HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+        try:
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
+            pass
 
 class TicketMetrics(CursorBasedStream):
     name = "ticket_metrics"
@@ -445,11 +444,13 @@ class TicketMetrics(CursorBasedStream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        if TICKETID:
-            url = self.endpoint.format(self.config['subdomain'], TICKETID)
-            HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
-
+        url = self.endpoint.format(self.config['subdomain'], '1')
+        HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+        try:
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
+            pass
 
 class TicketComments(Stream):
     name = "ticket_comments"
@@ -476,11 +477,13 @@ class TicketComments(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        if TICKETID:
-            url = self.endpoint.format(self.config['subdomain'], TICKETID)
-            HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
-
+        url = self.endpoint.format(self.config['subdomain'], '1')
+        HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+        try:
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
+            pass
 
 class SatisfactionRatings(CursorBasedStream):
     name = "satisfaction_ratings"
