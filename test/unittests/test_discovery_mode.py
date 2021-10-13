@@ -111,9 +111,9 @@ class TestDiscovery(unittest.TestCase):
         self.assertEqual(expected_call_count, actual_call_count)
 
 
-    @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
-    @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
-    @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
+    @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
+    @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
+    @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
     @patch('tap_zendesk.streams.SLAPolicies.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
     @patch('tap_zendesk.discover.load_shared_schema_refs', return_value={})
     @patch('tap_zendesk.streams.Stream.load_metadata', return_value={})
@@ -123,14 +123,14 @@ class TestDiscovery(unittest.TestCase):
            side_effect=[
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=404, json={"key1": "val1"}),
+                mocked_get(status_code=404, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
                 mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"})
+                mocked_get(status_code=404, json={"key1": "val1"})
             ])
     def test_discovery_handles_403_raise_zenpy_forbidden_error_for_api_token(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
@@ -144,8 +144,7 @@ class TestDiscovery(unittest.TestCase):
         except tap_zendesk.http.ZendeskForbiddenError as e:
             expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
                 "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, users, "\
-                "organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, "\
-                "satisfaction_ratings, tags, ticket_metrics"
+                "organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags"
 
             self.assertEqual(str(e), expected_error_message)
 
