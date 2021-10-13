@@ -4,7 +4,6 @@ import datetime
 import time
 import pytz
 import zenpy
-from requests.exceptions import HTTPError
 import singer
 from singer import metadata
 from singer import utils
@@ -338,14 +337,14 @@ class Tickets(CursorBasedExportStream):
                 try:
                     for audit in audits_stream.sync(ticket["id"]):
                         self._buffer_record(audit)
-                except http.ZendeskNotFoundError as e:
+                except http.ZendeskNotFoundError:
                     LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), record not found", ticket['id'])
 
             if metrics_stream.is_selected():
                 try:
                     for metric in metrics_stream.sync(ticket["id"]):
                         self._buffer_record(metric)
-                except http.ZendeskNotFoundError as e:
+                except http.ZendeskNotFoundError:
                     LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), record not found", ticket['id'])
 
             if comments_stream.is_selected():
@@ -354,7 +353,7 @@ class Tickets(CursorBasedExportStream):
                     # be linked back to it's corresponding ticket
                     for comment in comments_stream.sync(ticket["id"]):
                         self._buffer_record(comment)
-                except http.ZendeskNotFoundError as e:
+                except http.ZendeskNotFoundError:
                     LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), record not found", ticket['id'])
 
             if should_yield:
