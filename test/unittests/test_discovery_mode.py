@@ -175,7 +175,7 @@ class TestDiscovery(unittest.TestCase):
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
                                 mocked_ticket_forms, mock_users, mock_organizations):
         '''
-        Test that it raise error direclty if it is rather than 403
+        Test that function raises error directly if error code is other than 403
         '''
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
