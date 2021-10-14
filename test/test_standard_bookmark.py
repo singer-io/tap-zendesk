@@ -13,7 +13,7 @@ class ZendeskBookMark(ZendeskTest):
     """Test tap sets a bookmark and respects it for the next sync of a stream"""
     
     def name(self):
-        return "pendo_bookmark_test"
+        return "zendesk_bookmark_test"
 
     def test_run(self):
         """
