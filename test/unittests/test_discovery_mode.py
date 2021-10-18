@@ -35,16 +35,16 @@ class TestDiscovery(unittest.TestCase):
     @patch('singer.resolve_schema_references', return_value={})
     @patch('requests.get',
            side_effect=[
-                mocked_get(status_code=200, json={"tickets": [{"id": "t1"}]}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"})
+                mocked_get(status_code=200, json={"tickets": [{"id": "t1"}]}), # Response of the 1st get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 2nd get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 3rd get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 4th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 5th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 6th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 7th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 8th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 9th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}) # Response of the 10th get request call
             ])
     def test_discovery_handles_403__raise_tap_zendesk_forbidden_error(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 

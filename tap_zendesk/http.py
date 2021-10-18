@@ -2,8 +2,10 @@ from time import sleep
 import backoff
 import requests
 import singer
+from requests.exceptions import ConnectionError, Timeout, HTTPError
 
 
+REQUEST_TIMEOUT = 300
 LOGGER = singer.get_logger()
 
 
@@ -37,13 +39,13 @@ class ZendeskUnprocessableEntityError(ZendeskError):
 class ZendeskRateLimitError(ZendeskBackoffError):
     pass
 
-class ZendeskInternalServerError(ZendeskError):
+class ZendeskInternalServerError(ZendeskBackoffError):
     pass
 
-class ZendeskNotImplementedError(ZendeskError):
+class ZendeskNotImplementedError(ZendeskBackoffError):
     pass
 
-class ZendeskBadGatewayError(ZendeskError):
+class ZendeskBadGatewayError(ZendeskBackoffError):
     pass
 
 class ZendeskServiceUnavailableError(ZendeskBackoffError):
@@ -68,7 +70,7 @@ ERROR_CODE_EXCEPTION_MAPPING = {
     },
     409: {
         "raise_exception": ZendeskConflictError,
-        "message": "The request does not match our state in some way."
+        "message": "The API request cannot be completed because the requested operation would conflict with an existing item."
     },
     422: {
         "raise_exception": ZendeskUnprocessableEntityError,
@@ -99,16 +101,16 @@ ERROR_CODE_EXCEPTION_MAPPING = {
 def is_fatal(exception):
     status_code = exception.response.status_code
 
-    if status_code == 429:
-        sleep_time = int(exception.response.headers['Retry-After'])
-        LOGGER.info("Caught HTTP 429, retrying request in %s seconds", sleep_time)
-        sleep(sleep_time)
-        return False
-    elif status_code == 503:
-        sleep_time = int(exception.response.headers['Retry-After'])
-        LOGGER.info("Caught HTTP 503, retrying request in %s seconds", sleep_time)
-        sleep(sleep_time)
-        return False
+    if status_code == 429 or status_code == 503:
+        retry_after = exception.response.headers.get('Retry-After')
+        if retry_after:
+            sleep_time = int(retry_after)
+            LOGGER.info("Caught HTTP %s, retrying request in %s seconds", status_code, sleep_time)
+            sleep(sleep_time)
+            return False
+        else:
+            return True
+
     return 400 <=status_code < 500
 
 def raise_for_error(response):
@@ -129,11 +131,15 @@ def raise_for_error(response):
         raise exc(message, response) from None
 
 @backoff.on_exception(backoff.expo,
-                      ZendeskBackoffError,
+                      (HTTPError, ZendeskBackoffError),
                       max_tries=10,
                       giveup=is_fatal)
+@backoff.on_exception(backoff.expo,
+                      (ConnectionError, Timeout),
+                        max_tries=10,
+                        factor=2)
 def call_api(url, params, headers):
-    response = requests.get(url, params=params, headers=headers)
+    response = requests.get(url, params=params, headers=headers, timeout=REQUEST_TIMEOUT)
     raise_for_error(response)
     return response
 
