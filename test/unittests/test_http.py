@@ -298,11 +298,11 @@ class TestBackoff(unittest.TestCase):
         
     @patch('requests.get')
     def test_call_api_handles_connection_error(self,mock_get, mock_sleep):
-        mock_get.side_effect = requests.exceptions.ConnectionError
+        mock_get.side_effect = ConnectionError
         
         try:
             responses = http.call_api(url='some_url', params={}, headers={})
-        except requests.exceptions.ConnectionError as e:
+        except ConnectionError as e:
             pass
         
         # Verify the request retry 5 times on timeout 
