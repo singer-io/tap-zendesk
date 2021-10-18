@@ -60,7 +60,7 @@ class TestBackoff(unittest.TestCase):
         #Verify response of 1st call have expected pagination attribute
         self.assertDictEqual({"key1": "val1", **PAGINATE_RESPONSE},
                               responses[0])
-        #Verifi response of 2nd call has expected SINGLE_RESPONSE
+        #Verify response of 2nd call has expected SINGLE_RESPONSE
         self.assertDictEqual({"key2": "val2", **SINGLE_RESPONSE},
                               responses[1])
 
