@@ -74,7 +74,6 @@ class ZendeskBookMark(ZendeskTest):
             new_states['bookmarks'][stream] = new_state
         menagerie.set_state(conn_id, new_states)
 
-        # self.create_user_record()
         ##########################################################################
         # Second Sync
         ##########################################################################
@@ -195,21 +194,3 @@ class ZendeskBookMark(ZendeskTest):
                 self.assertGreater(
                     second_sync_count, 0, msg="We are not fully testing bookmarking for {}".format(stream))
                 
-
-    # def create_user_record(self):
-    #     # Create a new user record
-    #     creds = {
-    #         "subdomain": self.get_properties()['subdomain'],
-    #         "oauth_token": os.getenv('TAP_ZENDESK_ACCESS_TOKEN')
-    #     }
-
-    #     self.client = Zenpy(**creds)
-
-    #     user = User(name="John Doe", email="{}@mailinator.com".format(uuid.uuid4()))
-    #     self.created_user = self.client.users.create(user)
-        
-    #     # Sleeping 1 minute to validate lookback behavior needed in tap
-    #     # We've observed a delay between when users are created and when
-    #     # they're available through the API
-    #     print("sleeping for 60 seconds")
-    #     time.sleep(60)
