@@ -113,7 +113,7 @@ class Stream():
         Check whether the permission was given to access stream resources or not.
         '''
         url = self.endpoint.format(self.config['subdomain'])
-        HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
         http.call_api(url, params={'per_page': 1}, headers=HEADERS)
 
@@ -376,7 +376,7 @@ class Tickets(CursorBasedExportStream):
         Check whether the permission was given to access stream resources or not.
         '''
         url = self.endpoint.format(self.config['subdomain'])
-        HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
         http.call_api(url, params={'start_time': 1610368140, 'per_page': 1}, headers=HEADERS)
 
@@ -407,7 +407,7 @@ class TicketAudits(Stream):
         '''
 
         url = self.endpoint.format(self.config['subdomain'], '1')
-        HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
         try:
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
         except http.ZendeskNotFoundError:
@@ -435,7 +435,7 @@ class TicketMetrics(CursorBasedStream):
         Check whether the permission was given to access stream resources or not.
         '''
         url = self.endpoint.format(self.config['subdomain'], '1')
-        HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
         try:
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
         except http.ZendeskNotFoundError:
@@ -468,7 +468,7 @@ class TicketComments(Stream):
         Check whether the permission was given to access stream resources or not.
         '''
         url = self.endpoint.format(self.config['subdomain'], '1')
-        HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
         try:
             http.call_api(url, params={'per_page': 1}, headers=HEADERS)
         except http.ZendeskNotFoundError:

@@ -53,7 +53,7 @@ def discover_streams(client, config):
     if error_list:
         streams_name = ", ".join(error_list)
         message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                    f"The account credentials supplied do not have read access for the following stream(s):  {streams_name}"
+                    "The account credentials supplied do not have read access for the following stream(s):  {}".format(streams_name)
         raise ZendeskForbiddenError(message)
 
 
