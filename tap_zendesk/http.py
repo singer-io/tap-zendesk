@@ -2,7 +2,7 @@ from time import sleep
 import backoff
 import requests
 import singer
-from requests.exceptions import ConnectionError, Timeout, HTTPError
+from requests.exceptions import Timeout, HTTPError
 
 
 REQUEST_TIMEOUT = 300
@@ -101,7 +101,7 @@ ERROR_CODE_EXCEPTION_MAPPING = {
 def is_fatal(exception):
     status_code = exception.response.status_code
 
-    if status_code == 429 or status_code == 503:
+    if status_code in [429, 503]:
         retry_after = exception.response.headers.get('Retry-After')
         if retry_after:
             sleep_time = int(retry_after)
