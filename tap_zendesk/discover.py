@@ -34,7 +34,7 @@ def discover_streams(client, config):
         s = s(client, config)
         schema = singer.resolve_schema_references(s.load_schema(), refs)
         try:
-            # Here it call the check_access method to check whether stream have read permission or not. 
+            # Here it call the check_access method to check whether stream have read permission or not.
             # If stream does not have read permission then append that stream name to list and at the end of all streams
             # raise forbidden error with proper message containinn stream names.
             s.check_access()

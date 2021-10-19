@@ -228,7 +228,7 @@ def get_incremental_export(url, access_token, start_time):
         # Replaced below line of code with call_api method
         # response = requests.get(url, params=params, headers=headers)
         # response.raise_for_status()
-        # Because it doing the same as call_api. So, now error handling will work properly with backoff 
+        # Because it doing the same as call_api. So, now error handling will work properly with backoff
         # as earlier backoff was not possible
         response = call_api(url, params=params, headers=headers)
 
