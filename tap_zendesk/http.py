@@ -2,10 +2,10 @@ from time import sleep
 import backoff
 import requests
 import singer
-from requests.exceptions import Timeout, HTTPError
+from requests.exceptions import HTTPError
 
 
-REQUEST_TIMEOUT = 300
+
 LOGGER = singer.get_logger()
 
 
@@ -102,6 +102,8 @@ def is_fatal(exception):
     status_code = exception.response.status_code
 
     if status_code in [429, 503]:
+        # If status_code is 429 or 503 then checking whether response header has 'Retry-After' attribute or not.
+        # If response header has 'Retry-After' attribute then retry the error otherwise raise the error directly.
         retry_after = exception.response.headers.get('Retry-After')
         if retry_after:
             sleep_time = int(retry_after)
@@ -135,11 +137,11 @@ def raise_for_error(response):
                       max_tries=10,
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,
-                      (ConnectionError, Timeout),
+                      ConnectionError, #As ConnectionError error does not have attribute status_code, here we added another backoff expression.
                         max_tries=10,
                         factor=2)
 def call_api(url, params, headers):
-    response = requests.get(url, params=params, headers=headers, timeout=REQUEST_TIMEOUT)
+    response = requests.get(url, params=params, headers=headers)
     raise_for_error(response)
     return response
 
@@ -223,8 +225,13 @@ def get_incremental_export(url, access_token, start_time):
         cursor = response_json['after_cursor']
 
         params = {'cursor': cursor}
-        response = requests.get(url, params=params, headers=headers)
-        response.raise_for_status()
+        # Replaced below line of code with call_api method
+        # response = requests.get(url, params=params, headers=headers)
+        # response.raise_for_status()
+        # Because it doing the same as call_api. So, now error handling will work properly with backoff 
+        # as earlier backoff was not possible
+        response = call_api(url, params=params, headers=headers)
+
         response_json = response.json()
 
         yield response_json

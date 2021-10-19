@@ -50,7 +50,11 @@ class TestDiscovery(unittest.TestCase):
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
                                 mocked_ticket_forms, mock_users, mock_organizations):
         '''
-        Test that we handle forbidden error for child streams.
+        Test that we handle forbidden error for child streams. discover_streams calls check_access for each stream to 
+        check the read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata, 
+        load_schema, resolve_schema_references also which we mock to test forbidden error. We mock check_access method of 
+        some of stream method which call request of zenpy module and also mock get method of requests module with 200, 403 error.
+
         '''
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
@@ -78,23 +82,26 @@ class TestDiscovery(unittest.TestCase):
     @patch('singer.resolve_schema_references', return_value={})
     @patch('requests.get',
            side_effect=[
-                mocked_get(status_code=200, json={"tickets": [{"id": "t1"}]}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"})
+                mocked_get(status_code=200, json={"tickets": [{"id": "t1"}]}), # Response of the 1st get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 2nd get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 3rd get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 4th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 5th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 6th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 7th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 8th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 9th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}) # Response of the 10th get request call
             ])
     def test_discovery_handles_403_raise_zenpy_forbidden_error_for_access_token(self, mock_get, mock_resolve_schema_references, mock_load_metadata, 
                                 mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, mocked_ticket_forms, 
                                 mock_users, mock_organizations):
         '''
         Test that we handle forbidden error received from last failed request which we called from zenpy module and
-        raised zenpy.lib.exception.APIException
+        raised zenpy.lib.exception.APIException. discover_streams calls check_access for each stream to check the 
+        read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata, 
+        load_schema, resolve_schema_references also which we mock to test forbidden error. We mock check_access method of 
+        some of stream method which call request of zenpy module and also mock get method of requests module with 200, 403 error.
         '''
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
@@ -121,23 +128,26 @@ class TestDiscovery(unittest.TestCase):
     @patch('singer.resolve_schema_references', return_value={})
     @patch('requests.get',
            side_effect=[
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=404, json={"key1": "val1"}),
-                mocked_get(status_code=404, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=404, json={"key1": "val1"})
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 2nd get request call
+                mocked_get(status_code=404, json={"key1": "val1"}), # Response of the 3rd get request call
+                mocked_get(status_code=404, json={"key1": "val1"}), # Response of the 4th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 5th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 6th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 7th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 8th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 9th get request call
+                mocked_get(status_code=404, json={"key1": "val1"}) # Response of the 10th get request call
             ])
     def test_discovery_handles_403_raise_zenpy_forbidden_error_for_api_token(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
                                 mocked_ticket_forms, mock_users, mock_organizations):
         '''
         Test that we handle forbidden error received from last failed request which we called from zenpy module and
-        raised zenpy.lib.exception.APIException
+        raised zenpy.lib.exception.APIException. discover_streams calls check_access for each stream to check the 
+        read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata, 
+        load_schema, resolve_schema_references also which we mock to test forbidden error. We mock check_access method of 
+        some of stream method which call request of zenpy module and also mock get method of requests module with 200, 403 error.
         '''
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
@@ -163,19 +173,22 @@ class TestDiscovery(unittest.TestCase):
     @patch('singer.resolve_schema_references', return_value={})
     @patch('requests.get',
            side_effect=[
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=400, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 2nd get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 3rd get request call
+                mocked_get(status_code=400, json={"key1": "val1"}), # Response of the 4th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 5th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 6th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 7th get request call
             ])
     def test_discovery_handles_except_403_error_requests_module(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
                                 mocked_ticket_forms, mock_users, mock_organizations):
         '''
-        Test that function raises error directly if error code is other than 403
+        Test that function raises error directly if error code is other than 403. discover_streams calls check_access for each 
+        stream to check the read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata, 
+        load_schema, resolve_schema_references also which we mock to test forbidden error. We mock check_access method of 
+        some of stream method which call request of zenpy module and also mock get method of requests module with 200, 403 error.
         '''
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
@@ -199,19 +212,22 @@ class TestDiscovery(unittest.TestCase):
     @patch('singer.resolve_schema_references', return_value={})
     @patch('requests.get',
            side_effect=[
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=400, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
-                mocked_get(status_code=403, json={"key1": "val1"}),
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 2nd get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 3rd get request call
+                mocked_get(status_code=400, json={"key1": "val1"}), # Response of the 4th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 5th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 6th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 7th get request call
             ])
     def test_discovery_handles_except_403_error_zenpy_module(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
                                 mocked_ticket_forms, mock_users, mock_organizations):
         '''
-        Test that discovery mode raise error direclty if it is rather than 403 for zenpy module
+        Test that discovery mode raise error direclty if it is rather than 403 for request zenpy module. discover_streams call 
+        many other methods including load_shared_schema_refs, load_metadata, load_schema, resolve_schema_references
+        also which we mock to test forbidden error. We mock check_access method of some of stream method which
+        call request of zenpy module and also mock get method of requests module with 400, 403 error.
         '''
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
@@ -235,16 +251,16 @@ class TestDiscovery(unittest.TestCase):
     @patch('singer.resolve_schema_references', return_value={})
     @patch('requests.get',
            side_effect=[
-                mocked_get(status_code=200, json={"tickets": [{"id": "t1"}]}),
-                mocked_get(status_code=200, json={"key1": "val1"}),
-                mocked_get(status_code=200, json={"key1": "val1"}),
-                mocked_get(status_code=200, json={"key1": "val1"}),
-                mocked_get(status_code=200, json={"key1": "val1"}),
-                mocked_get(status_code=200, json={"key1": "val1"}),
-                mocked_get(status_code=200, json={"key1": "val1"}),
-                mocked_get(status_code=200, json={"key1": "val1"}),
-                mocked_get(status_code=200, json={"key1": "val1"}),
-                mocked_get(status_code=200, json={"key1": "val1"})
+                mocked_get(status_code=200, json={"tickets": [{"id": "t1"}]}), # Response of the 1st get request call
+                mocked_get(status_code=200, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=200, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=200, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=200, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=200, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=200, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=200, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=200, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=200, json={"key1": "val1"}) # Response of the 1st get request call
             ])
     def test_discovery_handles_200_response(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 

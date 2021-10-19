@@ -34,9 +34,12 @@ def discover_streams(client, config):
         s = s(client, config)
         schema = singer.resolve_schema_references(s.load_schema(), refs)
         try:
+            # Here it call the check_access method to check whether stream have read permission or not. 
+            # If stream does not have read permission then append that stream name to list and at the end of all streams
+            # raise forbidden error with proper message containinn stream names.
             s.check_access()
         except ZendeskForbiddenError as e:
-            error_list.append(s.name)
+            error_list.append(s.name) # Append stream name to the
         except zenpy.lib.exception.APIException as e:
             err = json.loads(e.args[0]).get('error')
 
@@ -46,7 +49,7 @@ def discover_streams(client, config):
             elif json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read":
                 error_list.append(s.name)
             else:
-                raise e from None
+                raise e from None # raise error if it is other than 403 forbidden error
 
         streams.append({'stream': s.name, 'tap_stream_id': s.name, 'schema': schema, 'metadata': s.load_metadata()})
 

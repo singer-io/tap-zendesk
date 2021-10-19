@@ -4,9 +4,16 @@ from tap_zendesk import http, streams
 import requests
 
 import zenpy
+import datetime
 
 SINGLE_RESPONSE = {
-    'meta': {'has_more': False}
+    'meta': {'has_more': False},
+    'end_of_stream': False,
+    'after_cursor': 'some_cursor'
+}
+
+END_RESPONSE = {
+    'end_of_stream': True,
 }
 
 PAGINATE_RESPONSE = {
@@ -72,8 +79,9 @@ class TestBackoff(unittest.TestCase):
                mocked_get(status_code=429, headers={'retry-after': 1}, json={"key2": "val2", **SINGLE_RESPONSE}),
                mocked_get(status_code=200, json={"key1": "val1", **SINGLE_RESPONSE}),
            ])
-    def test_get_cursor_based_handles_429(self, mock_get, mock_sleep):
+    def test_get_cursor_based_paginate_and_handles_429(self, mock_get, mock_sleep):
         """Test that the tap:
+        - can paginate the response
         - can handle 429s
         - requests uses a case insensitive dict for the `headers`
         - can handle either a string or an integer for the retry header
@@ -88,6 +96,29 @@ class TestBackoff(unittest.TestCase):
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
+    @patch('requests.get',
+           side_effect=[
+               mocked_get(status_code=200, json={"key1": "val1", **SINGLE_RESPONSE}),
+               mocked_get(status_code=429, headers={'Retry-After': '1'}, json={"key3": "val3", **SINGLE_RESPONSE}),
+               mocked_get(status_code=429, headers={'retry-after': 1}, json={"key2": "val2", **SINGLE_RESPONSE}),
+               mocked_get(status_code=200, json={"key1": "val1", **END_RESPONSE}),
+           ])
+    def test_get_incremental_export_handles_429(self, mock_get, mock_sleep):
+        """Test that the tap:
+        - can handle 429s
+        - requests uses a case insensitive dict for the `headers`
+        - can handle either a string or an integer for the retry header
+        """
+        responses = [response for response in http.get_incremental_export(url='some_url',
+                                                                    access_token='some_token', start_time= datetime.datetime.utcnow())]
+        actual_response = responses[0]
+        self.assertDictEqual({"key1": "val1", **SINGLE_RESPONSE},
+                             actual_response)
+
+        expected_call_count = 4
+        actual_call_count = mock_get.call_count
+        self.assertEqual(expected_call_count, actual_call_count)
+        
     @patch('requests.get',side_effect=[mocked_get(status_code=400, json={"key1": "val1"})])
     def test_get_cursor_based_handles_400(self,mock_get, mock_sleep):
         try:
@@ -258,6 +289,7 @@ class TestBackoff(unittest.TestCase):
         
     @patch('requests.get')
     def test_get_cursor_based_handles_444(self,mock_get, mock_sleep):
+        """Test that tap raise 444 unknown error"""
         fake_response = requests.models.Response()
         fake_response.status_code = 444
         
@@ -272,8 +304,9 @@ class TestBackoff(unittest.TestCase):
 
         self.assertEqual(mock_get.call_count, 1)
                 
-    @patch("tap_zendesk.streams.LOGGER.warning")    
+    @patch("tap_zendesk.streams.LOGGER.warning")  
     def test_raise_or_log_zenpy_apiexception(self, mocked_logger, mock_sleep):
+        """Test that tap raise zenpy error directly if it is other than 403"""
         schema = {}
         stream = 'test_stream'
         error_string = '{"error": "Forbidden", "description": "You are missing the following required scopes: read"}'
@@ -283,18 +316,6 @@ class TestBackoff(unittest.TestCase):
         mocked_logger.assert_called_with(
             "The account credentials supplied do not have access to `%s` custom fields.",
             stream)
-
-    @patch('requests.get')
-    def test_call_api_handles_timeout_error(self,mock_get, mock_sleep):
-        mock_get.side_effect = requests.exceptions.Timeout
-        
-        try:
-            responses = http.call_api(url='some_url', params={}, headers={})
-        except requests.exceptions.Timeout as e:
-            pass
-        
-        # Verify the request retry 5 times on timeout 
-        self.assertEqual(mock_get.call_count, 10)
         
     @patch('requests.get')
     def test_call_api_handles_connection_error(self,mock_get, mock_sleep):
@@ -305,6 +326,6 @@ class TestBackoff(unittest.TestCase):
         except ConnectionError as e:
             pass
         
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 10 times on timeout 
         self.assertEqual(mock_get.call_count, 10)
             

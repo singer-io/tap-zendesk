@@ -194,6 +194,9 @@ class Organizations(Stream):
             yield (self.stream, organization)
 
     def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
         self.client.organizations.incremental(start_time=START_DATE)
 
 class Users(Stream):
@@ -273,6 +276,9 @@ class Users(Stream):
             end = start + datetime.timedelta(seconds=search_window_size)
 
     def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
         self.client.search("", updated_after=START_DATE, updated_before='2000-01-02T00:00:00Z', type="user")
 
 class Tickets(CursorBasedExportStream):
@@ -581,6 +587,9 @@ class TicketForms(Stream):
                 yield (self.stream, form)
 
     def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
         self.client.ticket_forms()
 
 class GroupMemberships(CursorBasedStream):
@@ -621,6 +630,9 @@ class SLAPolicies(Stream):
             yield (self.stream, policy)
 
     def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
         self.client.sla_policies()
 
 STREAMS = {

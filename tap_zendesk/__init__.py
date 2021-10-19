@@ -15,7 +15,7 @@ from tap_zendesk.sync import sync_stream
 
 LOGGER = singer.get_logger()
 
-DEFAULT_TIMEOUT = 300
+
 REQUIRED_CONFIG_KEYS = [
     "start_date",
     "subdomain",
@@ -194,7 +194,7 @@ def main():
     # OAuth has precedence
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
     session = get_session(parsed_args.config)
-    client = Zenpy(session=session, timeout=DEFAULT_TIMEOUT, **creds)
+    client = Zenpy(session=session, **creds)
 
     if not client:
         LOGGER.error("""No suitable authentication keys provided.""")
