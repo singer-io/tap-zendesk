@@ -79,9 +79,8 @@ class TestBackoff(unittest.TestCase):
                mocked_get(status_code=429, headers={'retry-after': 1}, json={"key2": "val2", **SINGLE_RESPONSE}),
                mocked_get(status_code=200, json={"key1": "val1", **SINGLE_RESPONSE}),
            ])
-    def test_get_cursor_based_paginate_and_handles_429(self, mock_get, mock_sleep):
+    def test_get_cursor_based_handles_429(self, mock_get, mock_sleep):
         """Test that the tap:
-        - can paginate the response
         - can handle 429s
         - requests uses a case insensitive dict for the `headers`
         - can handle either a string or an integer for the retry header
@@ -103,9 +102,10 @@ class TestBackoff(unittest.TestCase):
                mocked_get(status_code=429, headers={'retry-after': 1}, json={"key2": "val2", **SINGLE_RESPONSE}),
                mocked_get(status_code=200, json={"key1": "val1", **END_RESPONSE}),
            ])
-    def test_get_incremental_export_handles_429(self, mock_get, mock_sleep):
+    def test_get_incremental_export_can_paginate_and_handles_429(self, mock_get, mock_sleep):
         """Test that the tap:
         - can handle 429s
+        - can paginate the response
         - requests uses a case insensitive dict for the `headers`
         - can handle either a string or an integer for the retry header
         """
