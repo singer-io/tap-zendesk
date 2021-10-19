@@ -12,6 +12,9 @@ class Zenpy():
         pass
 
 def mocked_sync_audits(ticket_id=None):
+    """
+    Mock the audit records which are retrieved in the sync function of the Audits stream
+    """
     ticket_audits = [
     {
         "author_id":387494208358,
@@ -30,6 +33,9 @@ def mocked_sync_audits(ticket_id=None):
         yield ('ticket_audits', audit)
 
 def mocked_sync_metrics(ticket_id=None):
+    """
+    Mock the metric records which are retrieved in the sync function of the Audits stream
+    """
     ticket_metrics = [
     {
         "author_id":387494208358,
@@ -48,6 +54,9 @@ def mocked_sync_metrics(ticket_id=None):
         yield ('ticket_metrics', metric)
 
 def mocked_sync_comments(ticket_id=None):
+    """
+    Mock the comment records which are retrieved in the sync function of the Audits stream
+    """
     ticket_comments = [
     {
         "author_id":387494208356,
@@ -75,7 +84,11 @@ def mocked_sync_comments(ticket_id=None):
 @mock.patch('tap_zendesk.streams.TicketComments.sync')
 @mock.patch('tap_zendesk.streams.CursorBasedExportStream.get_objects')
 def test_yield_records(mock_objects, mock_comments_sync, mock_metrics_sync, mock_audits_sync, mock_comments, mock_metrics, mock_audits, mock_get_bookmark, mock_update_bookmark):
+    """
+    This function tests that the Tickets and its substreams' records are yielded properly.
+    """
     ticket_stream = Tickets(Zenpy(), {})
+    # mocked ticket record for get_objects() function
     tickets = [{
         "url":"https://talend1234.zendesk.com/api/v2/tickets/1.json",
         "id":2,
@@ -94,6 +107,8 @@ def test_yield_records(mock_objects, mock_comments_sync, mock_metrics_sync, mock
         "fields": []
     }]
     mock_objects.return_value = tickets
+
+    # expected audit records after yield
     expected_audits = [
         {
             "author_id":387494208358,
@@ -108,6 +123,8 @@ def test_yield_records(mock_objects, mock_comments_sync, mock_metrics_sync, mock
             "ticket_id":2,
         }
     ]
+
+    # expected metric records after yield
     expected_metrics = [
     {
         "author_id":387494208358,
@@ -122,6 +139,8 @@ def test_yield_records(mock_objects, mock_comments_sync, mock_metrics_sync, mock
         "ticket_id":2,
     }
     ]
+
+    # expected comment records after yield
     expected_comments = [
     {
         "author_id":387494208356,
@@ -149,6 +168,10 @@ def test_yield_records(mock_objects, mock_comments_sync, mock_metrics_sync, mock
     metrics = []
     comments = []
 
+    # the yield returns a list with the first element as the parent stream tickets record 
+    # and other elements as a tuple with the first element as the name of the stream and the second element 
+    # as the record of that stream. Hence we are checking if each element of the stream and appending in our 
+    # custom list and asserting all the lists at last.
     for count, each in enumerate(expected_tickets):
         if count == 0:
             continue
