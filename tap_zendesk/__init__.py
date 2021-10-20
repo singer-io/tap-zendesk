@@ -191,10 +191,12 @@ def get_session(config):
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
+    # Set request timeout to config param `request_timeout` value if passed else defult to 5min
+    request_timeout = parsed_args.config.get('request_timeout', DEFAULT_TIMEOUT)
     # OAuth has precedence
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
     session = get_session(parsed_args.config)
-    client = Zenpy(session=session, timeout=DEFAULT_TIMEOUT, **creds) # Pass request timeout of 5 min
+    client = Zenpy(session=session, timeout=request_timeout, **creds) # Pass request timeout
 
     if not client:
         LOGGER.error("""No suitable authentication keys provided.""")

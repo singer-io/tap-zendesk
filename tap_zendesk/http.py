@@ -4,7 +4,6 @@ import requests
 import singer
 from requests.exceptions import Timeout
 
-DEFAULT_TIMEOUT = 300
 LOGGER = singer.get_logger()
 
 
@@ -25,12 +24,12 @@ def is_fatal(exception):
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,Timeout, #As timeout error does not have attribute status_code, hence giveup does not work in this case.
                       max_tries=10) # So, here we added another backoff expression.
-def call_api(url, params, headers):
-    response = requests.get(url, params=params, headers=headers, timeout=DEFAULT_TIMEOUT) # Pass request timeout to 5 min.
+def call_api(url, request_timeout, params, headers):
+    response = requests.get(url, params=params, headers=headers, timeout=request_timeout) # Pass request timeout
     response.raise_for_status()
     return response
 
-def get_cursor_based(url, access_token, cursor=None, **kwargs):
+def get_cursor_based(url, access_token, request_timeout, cursor=None, **kwargs):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -46,7 +45,7 @@ def get_cursor_based(url, access_token, cursor=None, **kwargs):
     if cursor:
         params['page[after]'] = cursor
 
-    response = call_api(url, params=params, headers=headers)
+    response = call_api(url, request_timeout, params=params, headers=headers)
     response_json = response.json()
 
     yield response_json
@@ -57,13 +56,13 @@ def get_cursor_based(url, access_token, cursor=None, **kwargs):
         cursor = response_json['meta']['after_cursor']
         params['page[after]'] = cursor
 
-        response = call_api(url, params=params, headers=headers)
+        response = call_api(url, request_timeout, params=params, headers=headers)
         response_json = response.json()
 
         yield response_json
         has_more = response_json['meta']['has_more']
 
-def get_offset_based(url, access_token, **kwargs):
+def get_offset_based(url, access_token, request_timeout, **kwargs):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -76,7 +75,7 @@ def get_offset_based(url, access_token, **kwargs):
         **kwargs.get('params', {})
     }
 
-    response = call_api(url, params=params, headers=headers)
+    response = call_api(url, request_timeout, params=params, headers=headers)
     response_json = response.json()
 
     yield response_json
@@ -84,13 +83,13 @@ def get_offset_based(url, access_token, **kwargs):
     next_url = response_json.get('next_page')
 
     while next_url:
-        response = call_api(next_url, params=None, headers=headers)
+        response = call_api(next_url, request_timeout, params=None, headers=headers)
         response_json = response.json()
 
         yield response_json
         next_url = response_json.get('next_page')
 
-def get_incremental_export(url, access_token, start_time):
+def get_incremental_export(url, access_token, request_timeout, start_time):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -99,7 +98,7 @@ def get_incremental_export(url, access_token, start_time):
 
     params = {'start_time': start_time.timestamp()}
 
-    response = call_api(url, params=params, headers=headers)
+    response = call_api(url, request_timeout, params=params, headers=headers)
     response_json = response.json()
 
     yield response_json
