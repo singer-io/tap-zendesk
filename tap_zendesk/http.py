@@ -137,7 +137,7 @@ def raise_for_error(response):
                       max_tries=10,
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,
-                    (ConnectionError, Timeout),#As ConnectionError error and timeout error does not have attribute status_code, 
+                    (ConnectionError, Timeout),#As ConnectionError error and timeout error does not have attribute status_code,
                     max_tries=10, # here we added another backoff expression.
                     factor=2)
 def call_api(url, request_timeout, params, headers):

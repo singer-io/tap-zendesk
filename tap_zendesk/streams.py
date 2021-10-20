@@ -313,15 +313,15 @@ class Tickets(CursorBasedExportStream):
             self.buf[stream_name] = []
 
     def sync(self, state): #pylint: disable=too-many-statements
-        
+
         bookmark = self.get_bookmark(state)
-        
+
         tickets = self.get_objects(bookmark)
-        
+
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
         comments_stream = TicketComments(self.client, self.config)
-        
+
         def emit_sub_stream_metrics(sub_stream):
             if sub_stream.is_selected():
                 singer.metrics.log(LOGGER, Point(metric_type='counter',
@@ -332,29 +332,31 @@ class Tickets(CursorBasedExportStream):
 
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
-        
+
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
-            
+
             generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
-            
+
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
-            
+
             ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
             should_yield = self._buffer_record((self.stream, ticket))
-            
+
             if audits_stream.is_selected():
                 try:
                     for audit in audits_stream.sync(ticket["id"]):
                         self._buffer_record(audit)
                 except http.ZendeskNotFoundError:
-                    LOGGER.warning("Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id']))
+                    message = "Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id'])
+                    LOGGER.warning(message)
             if metrics_stream.is_selected():
                 try:
                     for metric in metrics_stream.sync(ticket["id"]):
                         self._buffer_record(metric)
                 except http.ZendeskNotFoundError:
-                    LOGGER.warning("Unable to retrieve metrics for ticket (ID: {}), record not found".format(ticket['id']))
+                    message = "Unable to retrieve metrics for ticket (ID: {}), record not found".format(ticket['id'])
+                    LOGGER.warning(message)
 
             if comments_stream.is_selected():
                 try:
@@ -363,8 +365,9 @@ class Tickets(CursorBasedExportStream):
                     for comment in comments_stream.sync(ticket["id"]):
                         self._buffer_record(comment)
                 except http.ZendeskNotFoundError:
-                    LOGGER.warning("Unable to retrieve comments for ticket (ID: {}), record not found".format(ticket['id']))
-            
+                    message = "Unable to retrieve comments for ticket (ID: {}), record not found".format(ticket['id'])
+                    LOGGER.warning(message)
+
             if should_yield:
                 for rec in self._empty_buffer():
                     yield rec
@@ -372,7 +375,7 @@ class Tickets(CursorBasedExportStream):
                 emit_sub_stream_metrics(metrics_stream)
                 emit_sub_stream_metrics(comments_stream)
                 singer.write_state(state)
-        
+
         for rec in self._empty_buffer():
             yield rec
 
