@@ -2,7 +2,7 @@ from time import sleep
 import backoff
 import requests
 import singer
-from requests.exceptions import HTTPError
+from requests.exceptions import Timeout, HTTPError
 
 
 
@@ -137,15 +137,15 @@ def raise_for_error(response):
                       max_tries=10,
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,
-                      ConnectionError, #As ConnectionError error does not have attribute status_code, here we added another backoff expression.
-                        max_tries=10,
-                        factor=2)
-def call_api(url, params, headers):
-    response = requests.get(url, params=params, headers=headers)
+                    (ConnectionError, Timeout),#As ConnectionError error and timeout error does not have attribute status_code, 
+                    max_tries=10, # here we added another backoff expression.
+                    factor=2)
+def call_api(url, request_timeout, params, headers):
+    response = requests.get(url, params=params, headers=headers, timeout=request_timeout) # Pass request timeout
     raise_for_error(response)
     return response
 
-def get_cursor_based(url, access_token, cursor=None, **kwargs):
+def get_cursor_based(url, access_token, request_timeout, cursor=None, **kwargs):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -161,7 +161,7 @@ def get_cursor_based(url, access_token, cursor=None, **kwargs):
     if cursor:
         params['page[after]'] = cursor
 
-    response = call_api(url, params=params, headers=headers)
+    response = call_api(url, request_timeout, params=params, headers=headers)
     response_json = response.json()
 
     yield response_json
@@ -172,13 +172,13 @@ def get_cursor_based(url, access_token, cursor=None, **kwargs):
         cursor = response_json['meta']['after_cursor']
         params['page[after]'] = cursor
 
-        response = call_api(url, params=params, headers=headers)
+        response = call_api(url, request_timeout, params=params, headers=headers)
         response_json = response.json()
 
         yield response_json
         has_more = response_json['meta']['has_more']
 
-def get_offset_based(url, access_token, **kwargs):
+def get_offset_based(url, access_token, request_timeout, **kwargs):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -191,7 +191,7 @@ def get_offset_based(url, access_token, **kwargs):
         **kwargs.get('params', {})
     }
 
-    response = call_api(url, params=params, headers=headers)
+    response = call_api(url, request_timeout, params=params, headers=headers)
     response_json = response.json()
 
     yield response_json
@@ -199,13 +199,13 @@ def get_offset_based(url, access_token, **kwargs):
     next_url = response_json.get('next_page')
 
     while next_url:
-        response = call_api(next_url, params=None, headers=headers)
+        response = call_api(next_url, request_timeout, params=None, headers=headers)
         response_json = response.json()
 
         yield response_json
         next_url = response_json.get('next_page')
 
-def get_incremental_export(url, access_token, start_time):
+def get_incremental_export(url, access_token, request_timeout, start_time):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -214,7 +214,7 @@ def get_incremental_export(url, access_token, start_time):
 
     params = {'start_time': start_time.timestamp()}
 
-    response = call_api(url, params=params, headers=headers)
+    response = call_api(url, request_timeout, params=params, headers=headers)
     response_json = response.json()
 
     yield response_json
@@ -230,7 +230,7 @@ def get_incremental_export(url, access_token, start_time):
         # response.raise_for_status()
         # Because it doing the same as call_api. So, now error handling will work properly with backoff
         # as earlier backoff was not possible
-        response = call_api(url, params=params, headers=headers)
+        response = call_api(url, request_timeout, params=params, headers=headers)
 
         response_json = response.json()
 

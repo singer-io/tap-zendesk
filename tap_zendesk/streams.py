@@ -15,11 +15,11 @@ from tap_zendesk import http
 LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
 
+DEFAULT_TIMEOUT = 300
 HEADERS = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
 }
-START_DATE = datetime.datetime.strftime(datetime.datetime.utcnow() - datetime.timedelta(days=1), "%Y-%m-%dT00:00:00Z")
 CUSTOM_TYPES = {
     'text': 'string',
     'textarea': 'string',
@@ -115,7 +115,7 @@ class Stream():
         url = self.endpoint.format(self.config['subdomain'])
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
-        http.call_api(url, params={'per_page': 1}, headers=HEADERS)
+        http.call_api(url, self.config.get('request_timeout', DEFAULT_TIMEOUT), params={'per_page': 1}, headers=HEADERS)
 
 class CursorBasedStream(Stream):
     item_key = None
@@ -126,8 +126,8 @@ class CursorBasedStream(Stream):
         Cursor based object retrieval
         '''
         url = self.endpoint.format(self.config['subdomain'])
-
-        for page in http.get_cursor_based(url, self.config['access_token'], **kwargs):
+        # Pass `request_timeout` parameter
+        for page in http.get_cursor_based(url, self.config['access_token'], self.config.get('request_timeout', DEFAULT_TIMEOUT), **kwargs):
             yield from page[self.item_key]
 
 class CursorBasedExportStream(Stream):
@@ -139,8 +139,8 @@ class CursorBasedExportStream(Stream):
         Retrieve objects from the incremental exports endpoint using cursor based pagination
         '''
         url = self.endpoint.format(self.config['subdomain'])
-
-        for page in http.get_incremental_export(url, self.config['access_token'], start_time):
+        # Pass `request_timeout` parameter
+        for page in http.get_incremental_export(url, self.config['access_token'], self.config.get('request_timeout', DEFAULT_TIMEOUT), start_time):
             yield from page[self.item_key]
 
 
@@ -197,7 +197,7 @@ class Organizations(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        self.client.organizations.incremental(start_time=START_DATE)
+        self.client.organizations.incremental(start_time=datetime.datetime.utcnow())
 
 class Users(Stream):
     name = "users"
@@ -279,7 +279,7 @@ class Users(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        self.client.search("", updated_after=START_DATE, updated_before='2000-01-02T00:00:00Z', type="user")
+        self.client.search("", updated_after=datetime.datetime.utcnow(), updated_before='2000-01-02T00:00:00Z', type="user")
 
 class Tickets(CursorBasedExportStream):
     name = "tickets"
@@ -313,13 +313,15 @@ class Tickets(CursorBasedExportStream):
             self.buf[stream_name] = []
 
     def sync(self, state): #pylint: disable=too-many-statements
+        
         bookmark = self.get_bookmark(state)
+        
         tickets = self.get_objects(bookmark)
-
+        
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
         comments_stream = TicketComments(self.client, self.config)
-
+        
         def emit_sub_stream_metrics(sub_stream):
             if sub_stream.is_selected():
                 singer.metrics.log(LOGGER, Point(metric_type='counter',
@@ -330,28 +332,29 @@ class Tickets(CursorBasedExportStream):
 
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
-
+        
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
+            
             generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
+            
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
-
+            
             ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
             should_yield = self._buffer_record((self.stream, ticket))
-
+            
             if audits_stream.is_selected():
                 try:
                     for audit in audits_stream.sync(ticket["id"]):
                         self._buffer_record(audit)
                 except http.ZendeskNotFoundError:
-                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), record not found", ticket['id'])
-
+                    LOGGER.warning("Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id']))
             if metrics_stream.is_selected():
                 try:
                     for metric in metrics_stream.sync(ticket["id"]):
                         self._buffer_record(metric)
                 except http.ZendeskNotFoundError:
-                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), record not found", ticket['id'])
+                    LOGGER.warning("Unable to retrieve metrics for ticket (ID: {}), record not found".format(ticket['id']))
 
             if comments_stream.is_selected():
                 try:
@@ -360,8 +363,8 @@ class Tickets(CursorBasedExportStream):
                     for comment in comments_stream.sync(ticket["id"]):
                         self._buffer_record(comment)
                 except http.ZendeskNotFoundError:
-                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), record not found", ticket['id'])
-
+                    LOGGER.warning("Unable to retrieve comments for ticket (ID: {}), record not found".format(ticket['id']))
+            
             if should_yield:
                 for rec in self._empty_buffer():
                     yield rec
@@ -369,9 +372,10 @@ class Tickets(CursorBasedExportStream):
                 emit_sub_stream_metrics(metrics_stream)
                 emit_sub_stream_metrics(comments_stream)
                 singer.write_state(state)
-
+        
         for rec in self._empty_buffer():
             yield rec
+
         emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
         emit_sub_stream_metrics(comments_stream)
@@ -384,7 +388,7 @@ class Tickets(CursorBasedExportStream):
         url = self.endpoint.format(self.config['subdomain'])
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
-        http.call_api(url, params={'start_time': 1610368140, 'per_page': 1}, headers=HEADERS)
+        http.call_api(url, self.config.get('request_timeout', DEFAULT_TIMEOUT), params={'start_time': 1610368140, 'per_page': 1}, headers=HEADERS)
 
 
 class TicketAudits(Stream):
@@ -396,7 +400,8 @@ class TicketAudits(Stream):
 
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
-        pages = http.get_offset_based(url, self.config['access_token'])
+        # Pass `request_timeout` parameter
+        pages = http.get_offset_based(url, self.config['access_token'], self.config.get('request_timeout', DEFAULT_TIMEOUT))
         for page in pages:
             yield from page[self.item_key]
 
@@ -415,7 +420,7 @@ class TicketAudits(Stream):
         url = self.endpoint.format(self.config['subdomain'], '1')
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
         try:
-            http.call_api(url, params={'per_page': 1}, headers=HEADERS)
+            http.call_api(url, self.config.get('request_timeout', DEFAULT_TIMEOUT), params={'per_page': 1}, headers=HEADERS)
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
             pass
@@ -430,7 +435,8 @@ class TicketMetrics(CursorBasedStream):
     def sync(self, ticket_id):
         # Only 1 ticket metric per ticket
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
-        pages = http.get_offset_based(url, self.config['access_token'])
+        # Pass `request_timeout`
+        pages = http.get_offset_based(url, self.config['access_token'], self.config.get('request_timeout', DEFAULT_TIMEOUT))
         for page in pages:
             zendesk_metrics.capture('ticket_metric')
             self.count += 1
@@ -443,7 +449,7 @@ class TicketMetrics(CursorBasedStream):
         url = self.endpoint.format(self.config['subdomain'], '1')
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
         try:
-            http.call_api(url, params={'per_page': 1}, headers=HEADERS)
+            http.call_api(url, self.config.get('request_timeout', DEFAULT_TIMEOUT), params={'per_page': 1}, headers=HEADERS)
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
             pass
@@ -457,7 +463,8 @@ class TicketComments(Stream):
 
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
-        pages = http.get_offset_based(url, self.config['access_token'])
+        # Pass `request_timeout` parameter
+        pages = http.get_offset_based(url, self.config['access_token'], self.config.get('request_timeout', DEFAULT_TIMEOUT))
 
         for page in pages:
             yield from page[self.item_key]
@@ -476,7 +483,7 @@ class TicketComments(Stream):
         url = self.endpoint.format(self.config['subdomain'], '1')
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
         try:
-            http.call_api(url, params={'per_page': 1}, headers=HEADERS)
+            http.call_api(url, self.config.get('request_timeout', DEFAULT_TIMEOUT), params={'per_page': 1}, headers=HEADERS)
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
             pass
