@@ -14,12 +14,18 @@ jobs:
             virtualenv -p python3 /usr/local/share/virtualenvs/tap-zendesk
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
             pip install .[test]
+            pip install coverage
       - run:
           name: 'pylint'
           command: |
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
-            make test
+            nosetests --with-coverage --cover-erase --cover-package=tap_zendesk --cover-html-dir=htmlcov test/unittests
+            coverage html
       - add_ssh_keys
+      - store_test_results:
+          path: test_output/report.xml
+      - store_artifacts:
+          path: htmlcov
       - run:
           name: 'Integration Tests'
           command: |
