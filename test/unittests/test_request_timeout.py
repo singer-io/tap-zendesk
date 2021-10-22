@@ -11,6 +11,9 @@ PAGINATE_RESPONSE = {
     'after_cursor': 'some_cursor',
     'next_page': '3'
 }
+REQUEST_TIMEOUT = 300
+REQUEST_TIMEOUT_STR = "300"
+REQUEST_TIMEOUT_FLOAT = 300.05
 
 SINGLE_RESPONSE = {
     'meta': {'has_more': False}
@@ -54,7 +57,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         try:
             responses = [response for response in http.get_cursor_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=300)]
+                                                                    access_token='some_token', request_timeout=REQUEST_TIMEOUT)]
         except requests.exceptions.Timeout as e:
             pass
 
@@ -70,7 +73,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         try:
             responses = [response for response in http.get_cursor_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=300)]
+                                                                    access_token='some_token', request_timeout=REQUEST_TIMEOUT)]
         except requests.exceptions.Timeout as e:
             pass
 
@@ -84,7 +87,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         
         try:
             responses = [response for response in http.get_offset_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=300)]
+                                                                    access_token='some_token', request_timeout=REQUEST_TIMEOUT)]
         except requests.exceptions.Timeout as e:
             pass
 
@@ -100,7 +103,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         try:
             responses = [response for response in http.get_offset_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=300)]
+                                                                    access_token='some_token', request_timeout=REQUEST_TIMEOUT)]
         except requests.exceptions.Timeout as e:
             pass
 
@@ -114,7 +117,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         try:
             responses = [response for response in http.get_incremental_export(url='some_url',access_token='some_token', 
-                                                                              request_timeout=300, start_time= datetime.datetime.utcnow())]
+                                                                              request_timeout=REQUEST_TIMEOUT, start_time= datetime.datetime.utcnow())]
         except requests.exceptions.Timeout as e:
             pass
 
@@ -156,7 +159,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        ticket_audits = streams.TicketAudits(config={'subdomain': '34', 'access_token': 'df'})
+        ticket_audits = streams.TicketAudits(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_STR})
         try:
             responses = list(ticket_audits.get_objects('i1'))
         except requests.exceptions.Timeout as e:
@@ -170,7 +173,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        ticket_metrics = streams.TicketMetrics(config={'subdomain': '34', 'access_token': 'df'})
+        ticket_metrics = streams.TicketMetrics(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_STR})
         try:
             responses = list(ticket_metrics.sync('i1'))
         except requests.exceptions.Timeout as e:
@@ -184,7 +187,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        ticket_comments = streams.TicketComments(config={'subdomain': '34', 'access_token': 'df'})
+        ticket_comments = streams.TicketComments(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_STR})
         try:
             responses = list(ticket_comments.get_objects('i1'))
         except requests.exceptions.Timeout as e:

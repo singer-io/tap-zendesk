@@ -13,6 +13,7 @@ PAGINATE_RESPONSE = {
              'after_cursor': 'some_cursor'}
 }
 
+REQUEST_TIMEOUT = 300
 def mocked_get(*args, **kwargs):
     fake_response = requests.models.Response()
     fake_response.headers.update(kwargs.get('headers', {}))
@@ -36,7 +37,7 @@ class TestBackoff(unittest.TestCase):
            side_effect=[mocked_get(status_code=200, json=SINGLE_RESPONSE)])
     def test_get_cursor_based_gets_one_page(self, mock_get):
         responses = [response for response in http.get_cursor_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=300)]
+                                                                    access_token='some_token', request_timeout=REQUEST_TIMEOUT)]
         actual_response = responses[0]
         self.assertDictEqual(SINGLE_RESPONSE,
                              actual_response)
@@ -53,7 +54,7 @@ class TestBackoff(unittest.TestCase):
     def test_get_cursor_based_can_paginate(self, mock_get):
         responses = [response
                      for response in http.get_cursor_based(url='some_url',
-                                                           access_token='some_token', request_timeout=300)]
+                                                           access_token='some_token', request_timeout=REQUEST_TIMEOUT)]
 
         self.assertDictEqual({"key1": "val1", **PAGINATE_RESPONSE},
                               responses[0])
@@ -78,7 +79,7 @@ class TestBackoff(unittest.TestCase):
         - can handle either a string or an integer for the retry header
         """
         responses = [response for response in http.get_cursor_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=300)]
+                                                                    access_token='some_token', request_timeout=REQUEST_TIMEOUT)]
         actual_response = responses[0]
         self.assertDictEqual({"key1": "val1", **SINGLE_RESPONSE},
                              actual_response)

@@ -15,7 +15,7 @@ from tap_zendesk.sync import sync_stream
 
 LOGGER = singer.get_logger()
 
-DEFAULT_TIMEOUT = 300
+REQUEST_TIMEOUT = 300
 REQUIRED_CONFIG_KEYS = [
     "start_date",
     "subdomain",
@@ -191,8 +191,8 @@ def get_session(config):
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
-    # Set request timeout to config param `request_timeout` value if passed else defult to 5min
-    request_timeout = parsed_args.config.get('request_timeout', DEFAULT_TIMEOUT)
+    # Set request timeout to config param `request_timeout` value. Set default to 5min
+    request_timeout = float(parsed_args.config.get('request_timeout', REQUEST_TIMEOUT))
     # OAuth has precedence
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
     session = get_session(parsed_args.config)
