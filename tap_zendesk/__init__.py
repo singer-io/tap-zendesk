@@ -194,7 +194,7 @@ def main():
     # Set request timeout to config param `request_timeout` value.
     # If value is 0,"0","" or not passed then it set default to 300 seconds.
     config_request_timeout = parsed_args.config.get('request_timeout')
-    request_timeout = config_request_timeout and float(config_request_timeout) or REQUEST_TIMEOUT
+    request_timeout = config_request_timeout and float(config_request_timeout) or REQUEST_TIMEOUT # pylint: disable=consider-using-ternary
     # OAuth has precedence
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
     session = get_session(parsed_args.config)
