@@ -140,6 +140,36 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 10)
         
     @patch('requests.get')
+    def test_cursor_based_stream_timeout_error_with_zero_str_value(self, mock_get, mock_sleep):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times when string "0" value of `request_timeout` passed,
+        """
+        mock_get.side_effect = requests.exceptions.Timeout
+        cursor_based_stream = streams.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': "0"})
+        cursor_based_stream.endpoint = 'https://{}'
+        try:
+            responses = list(cursor_based_stream.get_objects())
+        except requests.exceptions.Timeout as e:
+            pass
+
+        # Verify the request retry 10 times on timeout 
+        self.assertEqual(mock_get.call_count, 10)
+
+    @patch('requests.get')
+    def test_cursor_based_stream_timeout_error_with_zero_int_value(self, mock_get, mock_sleep):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times when int 0 value of `request_timeout` passed,
+        """
+        mock_get.side_effect = requests.exceptions.Timeout
+        cursor_based_stream = streams.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': 0})
+        cursor_based_stream.endpoint = 'https://{}'
+        try:
+            responses = list(cursor_based_stream.get_objects())
+        except requests.exceptions.Timeout as e:
+            pass
+
+        # Verify the request retry 10 times on timeout 
+        self.assertEqual(mock_get.call_count, 10)
+        
+    @patch('requests.get')
     def test_cursor_based_stream_timeout_error_with_str_value(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times when string value of `request_timeout` passed,
         """
@@ -203,6 +233,36 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """
         mock_get.side_effect = requests.exceptions.Timeout
         cursor_based_export_stream = streams.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df'})
+        cursor_based_export_stream.endpoint = 'https://{}'
+        try:
+            responses = list(cursor_based_export_stream.get_objects(datetime.datetime.utcnow()))
+        except requests.exceptions.Timeout as e:
+            pass
+
+        # Verify the request retry 10 times on timeout 
+        self.assertEqual(mock_get.call_count, 10)
+
+    @patch('requests.get')
+    def test_cursor_based_export_stream_timeout_error_with_zero_str_value(self, mock_get, mock_sleep):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times when stiring "0" value of `request_timeout` passed,
+        """
+        mock_get.side_effect = requests.exceptions.Timeout
+        cursor_based_export_stream = streams.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': '0'})
+        cursor_based_export_stream.endpoint = 'https://{}'
+        try:
+            responses = list(cursor_based_export_stream.get_objects(datetime.datetime.utcnow()))
+        except requests.exceptions.Timeout as e:
+            pass
+
+        # Verify the request retry 10 times on timeout 
+        self.assertEqual(mock_get.call_count, 10)
+
+    @patch('requests.get')
+    def test_cursor_based_export_stream_timeout_error_with_zero_int_value(self, mock_get, mock_sleep):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times when int 0 value of `request_timeout` passed,
+        """
+        mock_get.side_effect = requests.exceptions.Timeout
+        cursor_based_export_stream = streams.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': 0})
         cursor_based_export_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_export_stream.get_objects(datetime.datetime.utcnow()))
@@ -278,6 +338,34 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """
         mock_get.side_effect = requests.exceptions.Timeout
         ticket_audits = streams.TicketAudits(config={'subdomain': '34', 'access_token': 'df'})
+        try:
+            responses = list(ticket_audits.get_objects('i1'))
+        except requests.exceptions.Timeout as e:
+            pass
+
+        # Verify the request retry 10 times on timeout 
+        self.assertEqual(mock_get.call_count, 10)
+
+    @patch('requests.get')
+    def test_ticket_audits_timeout_error_with_zero_str_value(self, mock_get, mock_sleep):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times when string "0" value of `request_timeout` passed,
+        """
+        mock_get.side_effect = requests.exceptions.Timeout
+        ticket_audits = streams.TicketAudits(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': "0"})
+        try:
+            responses = list(ticket_audits.get_objects('i1'))
+        except requests.exceptions.Timeout as e:
+            pass
+
+        # Verify the request retry 10 times on timeout 
+        self.assertEqual(mock_get.call_count, 10)
+        
+    @patch('requests.get')
+    def test_ticket_audits_timeout_error_with_zero_int_value(self, mock_get, mock_sleep):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times when int 0 value of `request_timeout` passed,
+        """
+        mock_get.side_effect = requests.exceptions.Timeout
+        ticket_audits = streams.TicketAudits(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': 0})
         try:
             responses = list(ticket_audits.get_objects('i1'))
         except requests.exceptions.Timeout as e:
@@ -369,6 +457,34 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         # Verify the request retry 10 times on timeout 
         self.assertEqual(mock_get.call_count, 10)
+
+    @patch('requests.get')
+    def test_ticket_metrics_timeout_error_with_zero_str_value(self, mock_get, mock_sleep):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times when string "0" value of `request_timeout` passed,
+        """
+        mock_get.side_effect = requests.exceptions.Timeout
+        ticket_metrics = streams.TicketMetrics(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': "0"})
+        try:
+            responses = list(ticket_metrics.sync('i1'))
+        except requests.exceptions.Timeout as e:
+            pass
+
+        # Verify the request retry 10 times on timeout 
+        self.assertEqual(mock_get.call_count, 10)
+        
+    @patch('requests.get')
+    def test_ticket_metrics_timeout_error_with_zero_int_value(self, mock_get, mock_sleep):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times when int 0 value of `request_timeout` passed,
+        """
+        mock_get.side_effect = requests.exceptions.Timeout
+        ticket_metrics = streams.TicketMetrics(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': 0})
+        try:
+            responses = list(ticket_metrics.sync('i1'))
+        except requests.exceptions.Timeout as e:
+            pass
+
+        # Verify the request retry 10 times on timeout 
+        self.assertEqual(mock_get.call_count, 10)
         
     @patch('requests.get')
     def test_ticket_metrics_timeout_error_with_str_value(self, mock_get, mock_sleep):
@@ -432,6 +548,34 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """
         mock_get.side_effect = requests.exceptions.Timeout
         ticket_comments = streams.TicketComments(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': ''})
+        try:
+            responses = list(ticket_comments.get_objects('i1'))
+        except requests.exceptions.Timeout as e:
+            pass
+
+        # Verify the request retry 10 times on timeout 
+        self.assertEqual(mock_get.call_count, 10)
+
+    @patch('requests.get')
+    def test_ticket_comments_timeout_error_with_zero_str_value(self, mock_get, mock_sleep):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times when string "0" value of `request_timeout` passed,
+        """
+        mock_get.side_effect = requests.exceptions.Timeout
+        ticket_comments = streams.TicketComments(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': "0"})
+        try:
+            responses = list(ticket_comments.get_objects('i1'))
+        except requests.exceptions.Timeout as e:
+            pass
+
+        # Verify the request retry 10 times on timeout 
+        self.assertEqual(mock_get.call_count, 10)
+        
+    @patch('requests.get')
+    def test_ticket_comments_timeout_error_with_int_str_value(self, mock_get, mock_sleep):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 10 times when int 0 value of `request_timeout` passed,
+        """
+        mock_get.side_effect = requests.exceptions.Timeout
+        ticket_comments = streams.TicketComments(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': 0})
         try:
             responses = list(ticket_comments.get_objects('i1'))
         except requests.exceptions.Timeout as e:

@@ -191,8 +191,10 @@ def get_session(config):
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
-    # Set request timeout to config param `request_timeout` value. Set default to 5min
-    request_timeout = float(parsed_args.config.get('request_timeout') or REQUEST_TIMEOUT)
+    # Set request timeout to config param `request_timeout` value.
+    # If value is 0,"0","" or not passed then it set default to 300 seconds.
+    config_request_timeout = parsed_args.config.get('request_timeout')
+    request_timeout = config_request_timeout and float(config_request_timeout) or REQUEST_TIMEOUT
     # OAuth has precedence
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
     session = get_session(parsed_args.config)
