@@ -23,7 +23,7 @@ OAuth is the default authentication method for `tap-zendesk`. To use OAuth, you 
   "request_timeout": 300
 }
 ```
-
+- `request_timeout` (integer, `300`): It is the time for which request should wait to get response. It is an optional parameter and default request_timeout is 300 seconds.
 ### Using API Tokens
 
 For a simplified, but less granular setup, you can use the API Token authentication which can be generated from the Zendesk Admin page. See https://support.zendesk.com/hc/en-us/articles/226022787-Generating-a-new-API-token- for more details about generating an API Token. You'll then be able to use the admins's `email` and the generated `api_token` to authenticate.
@@ -38,5 +38,6 @@ For a simplified, but less granular setup, you can use the API Token authenticat
   "request_timeout": 300
 }
 ```
+- `request_timeout` (integer, `300`):It is the time for which request should wait to get response. It is an optional parameter and default request_timeout is 300 seconds.
 
 Copyright &copy; 2018 Stitch
