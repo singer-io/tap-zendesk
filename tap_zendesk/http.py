@@ -116,6 +116,10 @@ def is_fatal(exception):
     return 400 <=status_code < 500
 
 def raise_for_error(response):
+    """ Error handling method which throws custom error. Class for each error defined above which extends `ZendeskError`.
+    This method map the status code with `ERROR_CODE_EXCEPTION_MAPPING` dictionary and accordingly raise the error.
+    If status_code is 200 then simply return json response.
+    """
     try:
         response_json = response.json()
     except Exception: # pylint: disable=broad-except
