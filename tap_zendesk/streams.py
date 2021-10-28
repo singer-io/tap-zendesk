@@ -64,9 +64,11 @@ class Stream():
         self.client = client
         self.config = config
 
+    #Get bookmark from the state file
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
 
+    #Update bookmark in state file
     def update_bookmark(self, state, value):
         current_bookmark = self.get_bookmark(state)
         if value and utils.strptime_with_tz(value) > current_bookmark:
@@ -79,6 +81,7 @@ class Stream():
             schema = json.load(f)
         return self._add_custom_fields(schema)
 
+    # Return custom fields to add into a catalog for provided instance(stream)
     def _add_custom_fields(self, schema): # pylint: disable=no-self-use
         return schema
 
@@ -86,12 +89,15 @@ class Stream():
         schema = self.load_schema()
         mdata = metadata.new()
 
+        # Write key properties and replication method to metadata
         mdata = metadata.write(mdata, (), 'table-key-properties', self.key_properties)
         mdata = metadata.write(mdata, (), 'forced-replication-method', self.replication_method)
 
+        # Write replication key to metadata
         if self.replication_key:
             mdata = metadata.write(mdata, (), 'valid-replication-keys', [self.replication_key])
 
+        # Make inclusion automatic for the key properties and replication keys
         for field_name in schema['properties'].keys():
             if field_name in self.key_properties or field_name == self.replication_key:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
@@ -152,6 +158,7 @@ class Organizations(Stream):
     endpoint = 'https://{}.zendesk.com/api/v2/organizations'
     item_key = 'organizations'
 
+    #Add custom fields for organization stream
     def _add_custom_fields(self, schema):
         endpoint = self.client.organizations.endpoint
         # NB: Zenpy doesn't have a public endpoint for this at time of writing
@@ -180,6 +187,7 @@ class Users(Stream):
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
 
+    #Add custom fields for user stream
     def _add_custom_fields(self, schema):
         try:
             field_gen = self.client.user_fields()
@@ -195,15 +203,20 @@ class Users(Stream):
         original_search_window_size = int(self.config.get('search_window_size', DEFAULT_SEARCH_WINDOW_SIZE))
         search_window_size = original_search_window_size
         bookmark = self.get_bookmark(state)
+        #start as 1 second less than last saved bookmark
         start = bookmark - datetime.timedelta(seconds=1)
+        #end as start + search_window_size
         end = start + datetime.timedelta(seconds=search_window_size)
+        #sync_end as 1 minute less than current time
         sync_end = singer.utils.now() - datetime.timedelta(minutes=1)
         parsed_sync_end = singer.strftime(sync_end, "%Y-%m-%dT%H:%M:%SZ")
 
         # ASSUMPTION: updated_at value always comes back in utc
         num_retries = 0
+        #Loop over start to sync_end for user records
         while start < sync_end:
             parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
+            #parsed_end as minimum of sync_end and end
             parsed_end = min(singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ"), parsed_sync_end)
             LOGGER.info("Querying for users between %s and %s", parsed_start, parsed_end)
             users = self.client.search("", updated_after=parsed_start, updated_before=parsed_end, type="user")
@@ -223,6 +236,7 @@ class Users(Stream):
             # Consume the records to account for dates lower than window start
             users = [user for user in users] # pylint: disable=unnecessary-comprehension
 
+            #Check if record is older than start
             if not all(parsed_start <= user.updated_at for user in users):
                 # Only retry up to 30 minutes (60 attempts at 30 seconds each)
                 if num_retries < 60:
@@ -245,6 +259,7 @@ class Users(Stream):
 
             # Assumes that the for loop got everything
             singer.write_state(state)
+            # If search_window_size is less or equal to half of the original window size, then make it double.
             if search_window_size <= original_search_window_size // 2:
                 search_window_size = search_window_size * 2
                 LOGGER.info("Successfully requested records. Doubling search window to %s seconds", search_window_size)
@@ -264,19 +279,24 @@ class Tickets(CursorBasedExportStream):
     buf_time = 60
     def _buffer_record(self, record):
         stream_name = record[0].tap_stream_id
+        #Set last_record_emit to current time if it is none
         if self.last_record_emit.get(stream_name) is None:
             self.last_record_emit[stream_name] = utils.now()
 
+        #Create buffer list
         if self.buf.get(stream_name) is None:
             self.buf[stream_name] = []
+        #Append record to buffer
         self.buf[stream_name].append(record)
 
+        #If buffer time elapsed by 60 seconds then return true
         if (utils.now() - self.last_record_emit[stream_name]).total_seconds() > self.buf_time:
             self.last_record_emit[stream_name] = utils.now()
             return True
 
         return False
 
+    #Yield records from the buffer list
     def _empty_buffer(self):
         for stream_name, stream_buf in self.buf.items():
             for rec in stream_buf:
@@ -285,6 +305,7 @@ class Tickets(CursorBasedExportStream):
 
     def sync(self, state): #pylint: disable=too-many-statements
         bookmark = self.get_bookmark(state)
+        #Get records of tickets
         tickets = self.get_objects(bookmark)
 
         audits_stream = TicketAudits(self.client, self.config)
@@ -302,17 +323,20 @@ class Tickets(CursorBasedExportStream):
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
 
+        #Loop over records of parent stream tickets
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
             generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
             ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+            #Append ticket record in buffer and if buffer time elapsed by 60 seconds then set should_yield to true
             should_yield = self._buffer_record((self.stream, ticket))
 
             if audits_stream.is_selected():
                 try:
                     for audit in audits_stream.sync(ticket["id"]):
+                        #Append audit record in buffer
                         self._buffer_record(audit)
                 except HTTPError as e:
                     if e.response.status_code == 404:
@@ -323,6 +347,7 @@ class Tickets(CursorBasedExportStream):
             if metrics_stream.is_selected():
                 try:
                     for metric in metrics_stream.sync(ticket["id"]):
+                        #Append metric record in buffer
                         self._buffer_record(metric)
                 except HTTPError as e:
                     if e.response.status_code == 404:
@@ -335,6 +360,7 @@ class Tickets(CursorBasedExportStream):
                     # add ticket_id to ticket_comment so the comment can
                     # be linked back to it's corresponding ticket
                     for comment in comments_stream.sync(ticket["id"]):
+                        #Append comment record in buffer
                         self._buffer_record(comment)
                 except HTTPError as e:
                     if e.response.status_code == 404:
@@ -343,6 +369,7 @@ class Tickets(CursorBasedExportStream):
                         raise e
 
             if should_yield:
+                #Yield records from the buffer list
                 for rec in self._empty_buffer():
                     yield rec
                 emit_sub_stream_metrics(audits_stream)
@@ -364,6 +391,7 @@ class TicketAudits(Stream):
     endpoint='https://{}.zendesk.com/api/v2/tickets/{}/audits.json'
     item_key='audits'
 
+    #Get records of ticket_audits
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
         pages = http.get_offset_based(url, self.config['access_token'])
@@ -384,6 +412,7 @@ class TicketMetrics(CursorBasedStream):
     endpoint = 'https://{}.zendesk.com/api/v2/tickets/{}/metrics'
     item_key = 'ticket_metric'
 
+    #Get records of ticket_metrics
     def sync(self, ticket_id):
         # Only 1 ticket metric per ticket
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
@@ -400,6 +429,7 @@ class TicketComments(Stream):
     endpoint = "https://{}.zendesk.com/api/v2/tickets/{}/comments.json"
     item_key='comments'
 
+    #Get records of ticket_comments
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
         pages = http.get_offset_based(url, self.config['access_token'])
@@ -425,9 +455,13 @@ class SatisfactionRatings(CursorBasedStream):
         bookmark = self.get_bookmark(state)
         epoch_bookmark = int(bookmark.timestamp())
         params = {'start_time': epoch_bookmark}
+        #Get records of satisfaction_ratings
         ratings = self.get_objects(params=params)
         for rating in ratings:
             if utils.strptime_with_tz(rating['updated_at']) >= bookmark:
+                # NB: We don't trust that the records come back ordered by
+                # updated_at (we've observed out-of-order records),
+                # so we can't save state until we've seen all records
                 self.update_bookmark(state, rating['updated_at'])
                 yield (self.stream, rating)
 
@@ -442,6 +476,7 @@ class Groups(CursorBasedStream):
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
+        #Get records of groups stream
         groups = self.get_objects()
         for group in groups:
             if utils.strptime_with_tz(group['updated_at']) >= bookmark:
@@ -461,6 +496,7 @@ class Macros(CursorBasedStream):
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
+        #Get records of macros
         macros = self.get_objects()
         for macro in macros:
             if utils.strptime_with_tz(macro['updated_at']) >= bookmark:
@@ -478,6 +514,7 @@ class Tags(CursorBasedStream):
     item_key = 'tags'
 
     def sync(self, state): # pylint: disable=unused-argument
+        #Get records of tags
         tags = self.get_objects()
 
         for tag in tags:
@@ -493,6 +530,7 @@ class TicketFields(CursorBasedStream):
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
+        #Get records of ticket_fields
         fields = self.get_objects()
         for field in fields:
             if utils.strptime_with_tz(field['updated_at']) >= bookmark:
@@ -510,6 +548,7 @@ class TicketForms(Stream):
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
+        #Get records of ticket_forms
         forms = self.client.ticket_forms()
         for form in forms:
             if utils.strptime_with_tz(form.updated_at) >= bookmark:
@@ -529,6 +568,7 @@ class GroupMemberships(CursorBasedStream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
+        #Get records of group_membership
         memberships = self.get_objects()
 
         for membership in memberships:

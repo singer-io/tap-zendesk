@@ -46,15 +46,18 @@ def request_metrics_patch(self, method, url, **kwargs):
 Session.request = request_metrics_patch
 # end patch
 
+# Discover schemas for all streams and dump catalog
 def do_discover(client):
     LOGGER.info("Starting discover")
     catalog = {"streams": discover_streams(client)}
     json.dump(catalog, sys.stdout, indent=2)
     LOGGER.info("Finished discover")
 
+# Check stream selected or not from metadata
 def stream_is_selected(mdata):
     return mdata.get((), {}).get('selected', False)
 
+# Return list of all the selected streams in catalog
 def get_selected_streams(catalog):
     selected_stream_names = []
     for stream in catalog.streams:
@@ -68,6 +71,7 @@ SUB_STREAMS = {
     'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments']
 }
 
+# Return list of all the sub streams of the streams
 def get_sub_stream_names():
     sub_stream_names = []
     for parent_stream in SUB_STREAMS:
@@ -77,6 +81,7 @@ def get_sub_stream_names():
 class DependencyException(Exception):
     pass
 
+# Validate and raise exceptions if sub-streams are selected but related parents not selected
 def validate_dependencies(selected_stream_ids):
     errs = []
     msg_tmpl = ("Unable to extract {0} data. "
@@ -90,11 +95,13 @@ def validate_dependencies(selected_stream_ids):
     if errs:
         raise DependencyException(" ".join(errs))
 
+# Populate class schemas for all the streams selected in the catalog
 def populate_class_schemas(catalog, selected_stream_names):
     for stream in catalog.streams:
         if stream.tap_stream_id in selected_stream_names:
             STREAMS[stream.tap_stream_id].stream = stream
 
+# run sync mode
 def do_sync(client, catalog, state, config):
 
     selected_stream_names = get_selected_streams(catalog)
@@ -102,9 +109,11 @@ def do_sync(client, catalog, state, config):
     populate_class_schemas(catalog, selected_stream_names)
     all_sub_stream_names = get_sub_stream_names()
 
+    # Loop over streams in catalog
     for stream in catalog.streams:
         stream_name = stream.tap_stream_id
         mdata = metadata.to_map(stream.metadata)
+        # If the stream is not selected then skip it.
         if stream_name not in selected_stream_names:
             LOGGER.info("%s: Skipping - not selected", stream_name)
             continue
@@ -120,11 +129,14 @@ def do_sync(client, catalog, state, config):
         #     LOGGER.info("%s: Starting", stream_name)
 
 
+        # Write schema of streams to STDOUT
         key_properties = metadata.get(mdata, (), 'table-key-properties')
         singer.write_schema(stream_name, stream.schema.to_dict(), key_properties)
 
         sub_stream_names = SUB_STREAMS.get(stream_name)
+        # Populate class schemas and write a schema for the selected substreams of the stream
         if sub_stream_names:
+            # Loop over sub-streams of current stream
             for sub_stream_name in sub_stream_names:
                 if sub_stream_name not in selected_stream_names:
                     continue
@@ -148,6 +160,7 @@ def do_sync(client, catalog, state, config):
     LOGGER.info("Finished sync")
     zendesk_metrics.log_aggregate_rates()
 
+#Return dictionary of params for authentication using oauth
 def oauth_auth(args):
     if not set(OAUTH_CONFIG_KEYS).issubset(args.config.keys()):
         LOGGER.debug("OAuth authentication unavailable.")
@@ -159,6 +172,7 @@ def oauth_auth(args):
         "oauth_token": args.config['access_token'],
     }
 
+#Return dictionary of params for authentication using api_token
 def api_token_auth(args):
     if not set(API_TOKEN_CONFIG_KEYS).issubset(args.config.keys()):
         LOGGER.debug("API Token authentication unavailable.")
@@ -171,6 +185,7 @@ def api_token_auth(args):
         "token": args.config['api_token']
     }
 
+#Return session object to pass in Zenpy class
 def get_session(config):
     """ Add partner information to requests Session object if specified in the config. """
     if not all(k in config for k in ["marketplace_name",

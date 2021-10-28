@@ -38,11 +38,13 @@ class TestBackoff(unittest.TestCase):
         responses = [response for response in http.get_cursor_based(url='some_url',
                                                                     access_token='some_token')]
         actual_response = responses[0]
+        # Verify actual response of cursor-based gets is equal to SINGLE_RESPONSE
         self.assertDictEqual(SINGLE_RESPONSE,
                              actual_response)
 
         expected_call_count = 1
         actual_call_count = mock_get.call_count
+        #Verify actual_call_count is only 1
         self.assertEqual(expected_call_count, actual_call_count)
 
     @patch('requests.get',
@@ -55,13 +57,16 @@ class TestBackoff(unittest.TestCase):
                      for response in http.get_cursor_based(url='some_url',
                                                            access_token='some_token')]
 
+        #Verify response of 1st call have expected pagination attribute
         self.assertDictEqual({"key1": "val1", **PAGINATE_RESPONSE},
                               responses[0])
+        #Verify response of 2nd call has expected SINGLE_RESPONSE
         self.assertDictEqual({"key2": "val2", **SINGLE_RESPONSE},
                               responses[1])
 
         expected_call_count = 2
         actual_call_count = mock_get.call_count
+        #Verify actual call count of api is 2
         self.assertEqual(expected_call_count, actual_call_count)
 
 
@@ -85,4 +90,5 @@ class TestBackoff(unittest.TestCase):
 
         expected_call_count = 3
         actual_call_count = mock_get.call_count
+        #Verify get_cursor_based can retry 429 error and actual_call_count is expected.
         self.assertEqual(expected_call_count, actual_call_count)

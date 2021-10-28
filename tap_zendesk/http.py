@@ -7,6 +7,7 @@ import singer
 LOGGER = singer.get_logger()
 
 
+#Check whether error should be retried or not.
 def is_fatal(exception):
     status_code = exception.response.status_code
 
@@ -18,6 +19,7 @@ def is_fatal(exception):
 
     return 400 <= status_code < 500
 
+#Call Api and retry 429 error.
 @backoff.on_exception(backoff.expo,
                       requests.exceptions.HTTPError,
                       max_tries=10,
@@ -27,6 +29,7 @@ def call_api(url, params, headers):
     response.raise_for_status()
     return response
 
+#Retrieve data with cursor based pagination of particular stream
 def get_cursor_based(url, access_token, cursor=None, **kwargs):
     headers = {
         'Content-Type': 'application/json',
@@ -50,6 +53,7 @@ def get_cursor_based(url, access_token, cursor=None, **kwargs):
 
     has_more = response_json['meta']['has_more']
 
+    #If has_more is true, then fetch next page of data.
     while has_more:
         cursor = response_json['meta']['after_cursor']
         params['page[after]'] = cursor
@@ -60,6 +64,7 @@ def get_cursor_based(url, access_token, cursor=None, **kwargs):
         yield response_json
         has_more = response_json['meta']['has_more']
 
+#Retrieve data with offset based pagination of particular stream
 def get_offset_based(url, access_token, **kwargs):
     headers = {
         'Content-Type': 'application/json',
@@ -80,6 +85,7 @@ def get_offset_based(url, access_token, **kwargs):
 
     next_url = response_json.get('next_page')
 
+    #If next_url is true then fetch next page of data.
     while next_url:
         response = call_api(next_url, params=None, headers=headers)
         response_json = response.json()
@@ -87,6 +93,7 @@ def get_offset_based(url, access_token, **kwargs):
         yield response_json
         next_url = response_json.get('next_page')
 
+#Retrieve data from the incremental exports endpoint using cursor based pagination
 def get_incremental_export(url, access_token, start_time):
     headers = {
         'Content-Type': 'application/json',
