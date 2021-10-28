@@ -347,8 +347,8 @@ class Tickets(CursorBasedExportStream):
                 try:
                     for audit in audits_stream.sync(ticket["id"]):
                         self._buffer_record(audit)
-                except http.ZendeskNotFoundError: 
-                    # Skip stream if ticket_audit does not found for particular ticekt_id. Earlier it throwing HTTPError 
+                except http.ZendeskNotFoundError:
+                    # Skip stream if ticket_audit does not found for particular ticekt_id. Earlier it throwing HTTPError
                     # but now as error handling updated, it throws ZendeskNotFoundError.
                     message = "Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id'])
                     LOGGER.warning(message)
@@ -357,7 +357,7 @@ class Tickets(CursorBasedExportStream):
                     for metric in metrics_stream.sync(ticket["id"]):
                         self._buffer_record(metric)
                 except http.ZendeskNotFoundError:
-                    # Skip stream if ticket_metric does not found for particular ticekt_id. Earlier it throwing HTTPError 
+                    # Skip stream if ticket_metric does not found for particular ticekt_id. Earlier it throwing HTTPError
                     # but now as error handling updated, it throws ZendeskNotFoundError.
                     message = "Unable to retrieve metrics for ticket (ID: {}), record not found".format(ticket['id'])
                     LOGGER.warning(message)
@@ -369,7 +369,7 @@ class Tickets(CursorBasedExportStream):
                     for comment in comments_stream.sync(ticket["id"]):
                         self._buffer_record(comment)
                 except http.ZendeskNotFoundError:
-                    # Skip stream if ticket_comment does not found for particular ticekt_id. Earlier it throwing HTTPError 
+                    # Skip stream if ticket_comment does not found for particular ticekt_id. Earlier it throwing HTTPError
                     # but now as error handling updated, it throws ZendeskNotFoundError.
                     message = "Unable to retrieve comments for ticket (ID: {}), record not found".format(ticket['id'])
                     LOGGER.warning(message)
