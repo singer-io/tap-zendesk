@@ -38,7 +38,7 @@ class TestBackoff(unittest.TestCase):
         responses = [response for response in http.get_cursor_based(url='some_url',
                                                                     access_token='some_token')]
         actual_response = responses[0]
-        #Verify actual response of cursor based gets is equall to SINGLE_RESPONSE
+        # Verify actual response of cursor-based gets is equal to SINGLE_RESPONSE
         self.assertDictEqual(SINGLE_RESPONSE,
                              actual_response)
 

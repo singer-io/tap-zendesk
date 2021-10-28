@@ -259,7 +259,7 @@ class Users(Stream):
 
             # Assumes that the for loop got everything
             singer.write_state(state)
-            #If search_window_size less or equall than half of original window size then make it double.
+            # If search_window_size is less or equal to half of the original window size, then make it double.
             if search_window_size <= original_search_window_size // 2:
                 search_window_size = search_window_size * 2
                 LOGGER.info("Successfully requested records. Doubling search window to %s seconds", search_window_size)

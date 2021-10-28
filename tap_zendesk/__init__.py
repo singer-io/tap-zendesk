@@ -113,7 +113,7 @@ def do_sync(client, catalog, state, config):
     for stream in catalog.streams:
         stream_name = stream.tap_stream_id
         mdata = metadata.to_map(stream.metadata)
-        #If stream does not selected then skip it.
+        # If the stream is not selected then skip it.
         if stream_name not in selected_stream_names:
             LOGGER.info("%s: Skipping - not selected", stream_name)
             continue
