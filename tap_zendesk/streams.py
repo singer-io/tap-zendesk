@@ -275,6 +275,7 @@ class Tickets(CursorBasedExportStream):
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
             ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+            # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
             yield (self.stream, ticket)
 
             if audits_stream.is_selected():
