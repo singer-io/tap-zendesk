@@ -8,6 +8,7 @@ from requests.exceptions import HTTPError
 import singer
 from singer import metadata
 from singer import utils
+from singer.metrics import Point
 from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk import http
 
@@ -266,6 +267,14 @@ class Tickets(CursorBasedExportStream):
         metrics_stream = TicketMetrics(self.client, self.config)
         comments_stream = TicketComments(self.client, self.config)
 
+        def emit_sub_stream_metrics(sub_stream):
+            if sub_stream.is_selected():
+                singer.metrics.log(LOGGER, Point(metric_type='counter',
+                                                 metric=singer.metrics.Metric.record_count,
+                                                 value=sub_stream.count,
+                                                 tags={'endpoint':sub_stream.stream.tap_stream_id}))
+                sub_stream.count = 0
+
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
 
@@ -311,6 +320,9 @@ class Tickets(CursorBasedExportStream):
                         raise e
 
             singer.write_state(state)
+        emit_sub_stream_metrics(audits_stream)
+        emit_sub_stream_metrics(metrics_stream)
+        emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
 
 class TicketAudits(Stream):
