@@ -2,7 +2,7 @@ from tap_zendesk import LOGGER, oauth_auth
 import unittest
 from unittest import mock
 from unittest.mock import patch
-from tap_zendesk.streams import Stream, Tickets, zendesk_metrics
+from tap_zendesk.streams import Stream, TicketAudits, Tickets, zendesk_metrics
 from tap_zendesk.sync import sync_stream
 from tap_zendesk import Zenpy
 import json
@@ -74,6 +74,9 @@ def mocked_sync_comments(ticket_id=None):
     for comment in ticket_comments:
         yield ('ticket_comments', comment)
 
+def logger(logger, point):
+    return "test stream"
+
 @mock.patch('tap_zendesk.streams.Stream.update_bookmark')
 @mock.patch('tap_zendesk.streams.Stream.get_bookmark')
 @mock.patch('tap_zendesk.streams.TicketAudits.is_selected')
@@ -83,7 +86,11 @@ def mocked_sync_comments(ticket_id=None):
 @mock.patch('tap_zendesk.streams.TicketMetrics.sync')
 @mock.patch('tap_zendesk.streams.TicketComments.sync')
 @mock.patch('tap_zendesk.streams.CursorBasedExportStream.get_objects')
-def test_yield_records(mock_objects, mock_comments_sync, mock_metrics_sync, mock_audits_sync, mock_comments, mock_metrics, mock_audits, mock_get_bookmark, mock_update_bookmark):
+@mock.patch('tap_zendesk.streams.TicketAudits.stream')
+@mock.patch('tap_zendesk.streams.TicketComments.stream')
+@mock.patch('tap_zendesk.streams.TicketMetrics.stream')
+@mock.patch('singer.metrics.log')
+def test_yield_records(mocked_log, mocked_audits_stream, mocked_comments_stream, mocked_metrics_stream, mock_objects, mock_comments_sync, mock_metrics_sync, mock_audits_sync, mock_comments, mock_metrics, mock_audits, mock_get_bookmark, mock_update_bookmark):
     """
     This function tests that the Tickets and its substreams' records are yielded properly.
     """
