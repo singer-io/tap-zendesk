@@ -41,13 +41,13 @@ def discover_streams(client, config):
         except ZendeskForbiddenError as e:
             error_list.append(s.name) # Append stream name to the error_list
         except zenpy.lib.exception.APIException as e:
-            args0 = e.args[0]
-            err = json.loads(args0).get('error')
+            args0 = json.loads(e.args[0])
+            err = args0.get('error')
 
             if isinstance(err, dict):
                 if err.get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
                     error_list.append(s.name)
-            elif json.loads(args0).get('description') == "You are missing the following required scopes: read":
+            elif args0.get('description') == "You are missing the following required scopes: read":
                 error_list.append(s.name)
             else:
                 raise e from None # raise error if it is other than 403 forbidden error
