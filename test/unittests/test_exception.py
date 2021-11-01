@@ -15,6 +15,9 @@ class ValueError(Exception):
 class TestException(unittest.TestCase):
     @mock.patch("tap_zendesk.streams.LOGGER.warning")
     def test_exception_logger(self, mocked_logger):
+        """
+        Test whether the specific logger message is correctly printed when access error occurs and the error is a dict
+        """
         schema = {}
         stream = 'test_stream'
         error_string = '{"error":{"message": "You do not have access to this page. Please contact the account owner of this help desk for further help."}' + "}"
@@ -25,6 +28,9 @@ class TestException(unittest.TestCase):
             stream)
         
     def test_zenpy_exception_raised(self):
+        """
+        Test whether the no logger message is printed in case of errors other then access error and the exception is raised
+        """
         try:
             schema = {}
             stream = 'test_stream'
@@ -36,6 +42,9 @@ class TestException(unittest.TestCase):
 
         
     def test_zenpy_exception_but_different_message_raised(self):
+        """
+        Test whether the exception is raised when the error is a dict but with different error message
+        """
         try:
             schema = {}
             stream = 'test_stream'
