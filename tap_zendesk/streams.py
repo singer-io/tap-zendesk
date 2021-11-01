@@ -4,7 +4,7 @@ import datetime
 import time
 import pytz
 import zenpy
-from zenpy.lib.exception import RecordNotFoundException
+from requests.exceptions import HTTPError
 import singer
 from singer import metadata
 from singer import utils
@@ -59,21 +59,10 @@ class Stream():
     replication_key = None
     key_properties = KEY_PROPERTIES
     stream = None
-    item_key = None
-    endpoint = None
 
     def __init__(self, client=None, config=None):
         self.client = client
         self.config = config
-
-    def get_objects(self, **kwargs):
-        '''
-        Cursor based object retrieval
-        '''
-        url = self.endpoint.format(self.config['subdomain'])
-
-        for page in http.get_cursor_based(url, self.config['access_token'], **kwargs):
-            yield from page[self.item_key]
 
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
@@ -113,6 +102,33 @@ class Stream():
 
     def is_selected(self):
         return self.stream is not None
+
+class CursorBasedStream(Stream):
+    item_key = None
+    endpoint = None
+
+    def get_objects(self, **kwargs):
+        '''
+        Cursor based object retrieval
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+
+        for page in http.get_cursor_based(url, self.config['access_token'], **kwargs):
+            yield from page[self.item_key]
+
+class CursorBasedExportStream(Stream):
+    endpoint = None
+    item_key = None
+
+    def get_objects(self, start_time):
+        '''
+        Retrieve objects from the incremental exports endpoint using cursor based pagination
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+
+        for page in http.get_incremental_export(url, self.config['access_token'], start_time):
+            yield from page[self.item_key]
+
 
 def raise_or_log_zenpy_apiexception(schema, stream, e):
     # There are multiple tiers of Zendesk accounts. Some of them have
@@ -238,10 +254,12 @@ class Users(Stream):
             end = start + datetime.timedelta(seconds=search_window_size)
 
 
-class Tickets(Stream):
+class Tickets(CursorBasedExportStream):
     name = "tickets"
     replication_method = "INCREMENTAL"
     replication_key = "generated_timestamp"
+    item_key = "tickets"
+    endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
 
     last_record_emit = {}
     buf = {}
@@ -267,13 +285,13 @@ class Tickets(Stream):
                 yield rec
             self.buf[stream_name] = []
 
-    def sync(self, state):
+    def sync(self, state): #pylint: disable=too-many-statements
         bookmark = self.get_bookmark(state)
-        tickets = self.client.tickets.incremental(start_time=bookmark, paginate_by_time=False)
+        tickets = self.get_objects(bookmark)
 
-        audits_stream = TicketAudits(self.client)
-        metrics_stream = TicketMetrics(self.client)
-        comments_stream = TicketComments(self.client)
+        audits_stream = TicketAudits(self.client, self.config)
+        metrics_stream = TicketMetrics(self.client, self.config)
+        comments_stream = TicketComments(self.client, self.config)
 
         def emit_sub_stream_metrics(sub_stream):
             if sub_stream.is_selected():
@@ -288,42 +306,43 @@ class Tickets(Stream):
 
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
-            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(tzinfo=pytz.UTC)
+            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
-            ticket_dict = ticket.to_dict()
-            ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
-            should_yield = self._buffer_record((self.stream, ticket_dict))
+            ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+            should_yield = self._buffer_record((self.stream, ticket))
 
             if audits_stream.is_selected():
                 try:
-                    for audit in audits_stream.sync(ticket_dict["id"]):
-                        zendesk_metrics.capture('ticket_audit')
+                    for audit in audits_stream.sync(ticket["id"]):
                         self._buffer_record(audit)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                except HTTPError as e:
+                    if e.response.status_code == 404:
+                        LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), record not found", ticket['id'])
+                    else:
+                        raise e
 
             if metrics_stream.is_selected():
                 try:
-                    for metric in metrics_stream.sync(ticket_dict["id"]):
-                        zendesk_metrics.capture('ticket_metric')
+                    for metric in metrics_stream.sync(ticket["id"]):
                         self._buffer_record(metric)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                except HTTPError as e:
+                    if e.response.status_code == 404:
+                        LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), record not found", ticket['id'])
+                    else:
+                        raise e
 
             if comments_stream.is_selected():
                 try:
                     # add ticket_id to ticket_comment so the comment can
                     # be linked back to it's corresponding ticket
-                    for comment in comments_stream.sync(ticket_dict["id"]):
-                        zendesk_metrics.capture('ticket_comment')
-                        comment[1].ticket_id = ticket_dict["id"]
+                    for comment in comments_stream.sync(ticket["id"]):
                         self._buffer_record(comment)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                except HTTPError as e:
+                    if e.response.status_code == 404:
+                        LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), record not found", ticket['id'])
+                    else:
+                        raise e
 
             if should_yield:
                 for rec in self._empty_buffer():
@@ -344,35 +363,60 @@ class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
     count = 0
+    endpoint='https://{}.zendesk.com/api/v2/tickets/{}/audits.json'
+    item_key='audits'
+
+    def get_objects(self, ticket_id):
+        url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        pages = http.get_offset_based(url, self.config['access_token'])
+        for page in pages:
+            yield from page[self.item_key]
 
     def sync(self, ticket_id):
-        ticket_audits = self.client.tickets.audits(ticket=ticket_id)
+        ticket_audits = self.get_objects(ticket_id)
         for ticket_audit in ticket_audits:
+            zendesk_metrics.capture('ticket_audit')
             self.count += 1
             yield (self.stream, ticket_audit)
 
-class TicketMetrics(Stream):
+class TicketMetrics(CursorBasedStream):
     name = "ticket_metrics"
     replication_method = "INCREMENTAL"
     count = 0
+    endpoint = 'https://{}.zendesk.com/api/v2/tickets/{}/metrics'
+    item_key = 'ticket_metric'
 
     def sync(self, ticket_id):
-        ticket_metric = self.client.tickets.metrics(ticket=ticket_id)
-        self.count += 1
-        yield (self.stream, ticket_metric)
+        # Only 1 ticket metric per ticket
+        url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        pages = http.get_offset_based(url, self.config['access_token'])
+        for page in pages:
+            zendesk_metrics.capture('ticket_metric')
+            self.count += 1
+            yield (self.stream, page[self.item_key])
 
 class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
     count = 0
+    endpoint = "https://{}.zendesk.com/api/v2/tickets/{}/comments.json"
+    item_key='comments'
+
+    def get_objects(self, ticket_id):
+        url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        pages = http.get_offset_based(url, self.config['access_token'])
+
+        for page in pages:
+            yield from page[self.item_key]
 
     def sync(self, ticket_id):
-        ticket_comments = self.client.tickets.comments(ticket=ticket_id)
-        for ticket_comment in ticket_comments:
+        for ticket_comment in self.get_objects(ticket_id):
             self.count += 1
+            zendesk_metrics.capture('ticket_comment')
+            ticket_comment['ticket_id'] = ticket_id
             yield (self.stream, ticket_comment)
 
-class SatisfactionRatings(Stream):
+class SatisfactionRatings(CursorBasedStream):
     name = "satisfaction_ratings"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
@@ -390,7 +434,7 @@ class SatisfactionRatings(Stream):
                 yield (self.stream, rating)
 
 
-class Groups(Stream):
+class Groups(CursorBasedStream):
     name = "groups"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
@@ -409,7 +453,7 @@ class Groups(Stream):
                 self.update_bookmark(state, group['updated_at'])
                 yield (self.stream, group)
 
-class Macros(Stream):
+class Macros(CursorBasedStream):
     name = "macros"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
@@ -428,7 +472,7 @@ class Macros(Stream):
                 self.update_bookmark(state, macro['updated_at'])
                 yield (self.stream, macro)
 
-class Tags(Stream):
+class Tags(CursorBasedStream):
     name = "tags"
     replication_method = "FULL_TABLE"
     key_properties = ["name"]
@@ -441,7 +485,7 @@ class Tags(Stream):
         for tag in tags:
             yield (self.stream, tag)
 
-class TicketFields(Stream):
+class TicketFields(CursorBasedStream):
     name = "ticket_fields"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
@@ -477,7 +521,7 @@ class TicketForms(Stream):
                 self.update_bookmark(state, form.updated_at)
                 yield (self.stream, form)
 
-class GroupMemberships(Stream):
+class GroupMemberships(CursorBasedStream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
