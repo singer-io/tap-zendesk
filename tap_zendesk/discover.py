@@ -36,17 +36,18 @@ def discover_streams(client, config):
         try:
             # Here it call the check_access method to check whether stream have read permission or not.
             # If stream does not have read permission then append that stream name to list and at the end of all streams
-            # raise forbidden error with proper message containinn stream names.
+            # raise forbidden error with proper message containing stream names.
             s.check_access()
         except ZendeskForbiddenError as e:
-            error_list.append(s.name) # Append stream name to the
+            error_list.append(s.name) # Append stream name to the error_list
         except zenpy.lib.exception.APIException as e:
-            err = json.loads(e.args[0]).get('error')
+            args0 = e.args[0]
+            err = json.loads(args0).get('error')
 
             if isinstance(err, dict):
                 if err.get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
                     error_list.append(s.name)
-            elif json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read":
+            elif json.loads(args0).get('description') == "You are missing the following required scopes: read":
                 error_list.append(s.name)
             else:
                 raise e from None # raise error if it is other than 403 forbidden error

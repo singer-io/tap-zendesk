@@ -16,6 +16,7 @@ LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
 
 DEFAULT_TIMEOUT = 300
+TICKET_START_TIME = 1610368140
 HEADERS = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -397,7 +398,7 @@ class Tickets(CursorBasedExportStream):
         url = self.endpoint.format(self.config['subdomain'])
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
-        http.call_api(url, self.config.get('request_timeout', DEFAULT_TIMEOUT), params={'start_time': 1610368140, 'per_page': 1}, headers=HEADERS)
+        http.call_api(url, self.config.get('request_timeout', DEFAULT_TIMEOUT), params={'start_time': TICKET_START_TIME, 'per_page': 1}, headers=HEADERS)
 
 
 class TicketAudits(Stream):
