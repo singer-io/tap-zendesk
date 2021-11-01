@@ -60,10 +60,16 @@ class Stream():
     replication_key = None
     key_properties = KEY_PROPERTIES
     stream = None
+    request_timeout = None
 
     def __init__(self, client=None, config=None):
         self.client = client
         self.config = config
+        # Set and pass request timeout to config param `request_timeout` value.
+        # If value is 0,"0","" or not passed then it set default to 300 seconds.
+        config_request_timeout = self.config.get('request_timeout')
+        self.request_timeout = (config_request_timeout and float(config_request_timeout)) or REQUEST_TIMEOUT # pylint: disable=consider-using-ternary
+
 
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
@@ -114,12 +120,8 @@ class CursorBasedStream(Stream):
         '''
         url = self.endpoint.format(self.config['subdomain'])
 
-        # Set and pass request timeout to config param `request_timeout` value.
-        # If value is 0,"0","" or not passed then it set default to 300 seconds.
-        config_request_timeout = self.config.get('request_timeout')
-        request_timeout = config_request_timeout and float(config_request_timeout) or REQUEST_TIMEOUT # pylint: disable=consider-using-ternary
-
-        for page in http.get_cursor_based(url, self.config['access_token'], request_timeout, **kwargs):
+        # Pass `request_timeout` parameter
+        for page in http.get_cursor_based(url, self.config['access_token'], self.request_timeout, **kwargs):
             yield from page[self.item_key]
 
 class CursorBasedExportStream(Stream):
@@ -132,11 +134,8 @@ class CursorBasedExportStream(Stream):
         '''
         url = self.endpoint.format(self.config['subdomain'])
 
-        # Set and pass request timeout to config param `request_timeout` value.
-        # If value is 0,"0","" or not passed then it set default to 300 seconds.
-        config_request_timeout = self.config.get('request_timeout')
-        request_timeout = config_request_timeout and float(config_request_timeout) or REQUEST_TIMEOUT # pylint: disable=consider-using-ternary
-        for page in http.get_incremental_export(url, self.config['access_token'], request_timeout, start_time):
+        # Pass `request_timeout` parameter
+        for page in http.get_incremental_export(url, self.config['access_token'], self.request_timeout, start_time):
             yield from page[self.item_key]
 
 
@@ -376,11 +375,8 @@ class TicketAudits(Stream):
 
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
-        # Set and pass request timeout to config param `request_timeout` value.
-        # If value is 0,"0","" or not passed then it set default to 300 seconds.
-        config_request_timeout = self.config.get('request_timeout')
-        request_timeout = config_request_timeout and float(config_request_timeout) or REQUEST_TIMEOUT # pylint: disable=consider-using-ternary
-        pages = http.get_offset_based(url, self.config['access_token'], request_timeout)
+        # Pass `request_timeout` parameter
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
         for page in pages:
             yield from page[self.item_key]
 
@@ -401,11 +397,8 @@ class TicketMetrics(CursorBasedStream):
     def sync(self, ticket_id):
         # Only 1 ticket metric per ticket
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
-        # Set and pass request timeout to config param `request_timeout` value.
-        # If value is 0,"0","" or not passed then it set default to 300 seconds.
-        config_request_timeout = self.config.get('request_timeout')
-        request_timeout = config_request_timeout and float(config_request_timeout) or REQUEST_TIMEOUT # pylint: disable=consider-using-ternary
-        pages = http.get_offset_based(url, self.config['access_token'], request_timeout)
+        # Pass `request_timeout`
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
         for page in pages:
             zendesk_metrics.capture('ticket_metric')
             self.count += 1
@@ -420,11 +413,8 @@ class TicketComments(Stream):
 
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
-        # Set and pass request timeout to config param `request_timeout` value.
-        # If value is 0,"0","" or not passed then it set default to 300 seconds.
-        config_request_timeout = self.config.get('request_timeout')
-        request_timeout = config_request_timeout and float(config_request_timeout) or REQUEST_TIMEOUT # pylint: disable=consider-using-ternary
-        pages = http.get_offset_based(url, self.config['access_token'], request_timeout)
+        # Pass `request_timeout` parameter
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
 
         for page in pages:
             yield from page[self.item_key]

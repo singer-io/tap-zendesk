@@ -20,12 +20,12 @@ def load_shared_schema_refs():
 
     return shared_schema_refs
 
-def discover_streams(client):
+def discover_streams(client, config):
     streams = []
     refs = load_shared_schema_refs()
 
     for s in STREAMS.values():
-        s = s(client)
+        s = s(client, config)
         schema = singer.resolve_schema_references(s.load_schema(), refs)
         streams.append({'stream': s.name, 'tap_stream_id': s.name, 'schema': schema, 'metadata': s.load_metadata()})
     return streams
