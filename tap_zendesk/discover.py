@@ -44,6 +44,8 @@ def discover_streams(client, config):
             args0 = json.loads(e.args[0])
             err = args0.get('error')
 
+            # check if the error is of type dictionary and the message retrieved from the dictionary
+            # is the expected message. If so, only then print the logger message and return the schema
             if isinstance(err, dict):
                 if err.get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
                     error_list.append(s.name)
