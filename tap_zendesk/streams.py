@@ -16,7 +16,7 @@ LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
 
 REQUEST_TIMEOUT = 300
-TICKET_START_TIME = 1610368140
+START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 HEADERS = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -403,9 +403,11 @@ class Tickets(CursorBasedExportStream):
         Check whether the permission was given to access stream resources or not.
         '''
         url = self.endpoint.format(self.config['subdomain'])
+        # Convert start_date parameter to timestamp to pass with request param
+        start_time = datetime.datetime.strptime(self.config['start_date'], START_DATE_FORMAT).timestamp()
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
-        http.call_api(url, self.request_timeout, params={'start_time': TICKET_START_TIME, 'per_page': 1}, headers=HEADERS)
+        http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=HEADERS)
 
 
 class TicketAudits(Stream):

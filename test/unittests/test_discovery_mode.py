@@ -9,6 +9,7 @@ ACCSESS_TOKEN_ERROR = '{"error": "Forbidden", "description": "You are missing th
 API_TOKEN_ERROR = '{"error": {"title": "Forbidden",'\
         '"message": "You do not have access to this page. Please contact the account owner of this help desk for further help."}}'
 AUTH_ERROR = '{"error": "Could not authenticate you"}'
+START_DATE = "2021-10-30T00:00:00Z"
 
 def mocked_get(*args, **kwargs):
     fake_response = requests.models.Response()
@@ -57,7 +58,7 @@ class TestDiscovery(unittest.TestCase):
 
         '''
         try:
-            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
+            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
         except tap_zendesk.http.ZendeskForbiddenError as e:
             expected_error_message =  "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
                 "The account credentials supplied do not have read access for the following stream(s):  groups, users, "\
@@ -104,7 +105,7 @@ class TestDiscovery(unittest.TestCase):
         some of stream method which call request of zenpy module and also mock get method of requests module with 200, 403 error.
         '''
         try:
-            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
+            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
         except tap_zendesk.http.ZendeskForbiddenError as e:
             expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
                 "The account credentials supplied do not have read access for the following stream(s):  groups, users, "\
@@ -150,7 +151,7 @@ class TestDiscovery(unittest.TestCase):
         some of stream method which call request of zenpy module and also mock get method of requests module with 200, 403 error.
         '''
         try:
-            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
+            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
         except tap_zendesk.http.ZendeskForbiddenError as e:
             expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
                 "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, users, "\
@@ -191,7 +192,7 @@ class TestDiscovery(unittest.TestCase):
         some of stream method which call request of zenpy module and also mock get method of requests module with 200, 403 error.
         '''
         try:
-            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
+            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
         except http.ZendeskBadRequestError as e:
             expected_error_message = "HTTP-error-code: 400, Error: A validation exception has occurred."
             # Verifying the message formed for the custom exception
@@ -230,7 +231,7 @@ class TestDiscovery(unittest.TestCase):
         call request of zenpy module and also mock get method of requests module with 400, 403 error.
         '''
         try:
-            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
+            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
         except zenpy.lib.exception.APIException as e:
             expected_error_message = AUTH_ERROR
             # Verifying the message formed for the custom exception
@@ -268,7 +269,7 @@ class TestDiscovery(unittest.TestCase):
         '''
         Test that discovery mode does not raise any error in case of all streams have read permission
         '''
-        discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token'})
+        discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
 
         expected_call_count = 10
         actual_call_count = mock_get.call_count
