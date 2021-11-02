@@ -69,7 +69,7 @@ class ZendeskAllFields(ZendeskTest):
 
                 # Verify that more than just the automatic fields are replicated for each stream.
                 self.assertTrue(expected_automatic_keys.issubset(
-                    expected_all_keys), msg=f'{expected_automatic_keys-expected_all_keys} is not in "expected_all_keys"')
+                    expected_all_keys), msg='{} is not in "expected_all_keys"'.format(expected_automatic_keys-expected_all_keys))
                 
                 # As we can't generate following fields by zendesk APIs now so expected.
                 if stream == "ticket_fields":
