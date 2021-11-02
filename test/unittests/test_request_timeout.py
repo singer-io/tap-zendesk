@@ -15,7 +15,7 @@ PAGINATE_RESPONSE = {
 SINGLE_RESPONSE = {
     'meta': {'has_more': False}
 }
-
+START_TIME = datetime.datetime.strptime("2021-10-30T00:00:00Z", "%Y-%m-%dT%H:%M:%SZ")
 def mocked_get(*args, **kwargs):
     fake_response = requests.models.Response()
     fake_response.headers.update(kwargs.get('headers', {}))
@@ -114,7 +114,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         try:
             responses = [response for response in http.get_incremental_export(url='some_url',access_token='some_token', 
-                                                                              request_timeout=300, start_time= datetime.datetime.utcnow())]
+                                                                              request_timeout=300, start_time= START_TIME)]
         except requests.exceptions.Timeout as e:
             pass
 
@@ -144,7 +144,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         cursor_based_export_stream = streams.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df'})
         cursor_based_export_stream.endpoint = 'https://{}'
         try:
-            responses = list(cursor_based_export_stream.get_objects(datetime.datetime.utcnow()))
+            responses = list(cursor_based_export_stream.get_objects(START_TIME))
         except requests.exceptions.Timeout as e:
             pass
 

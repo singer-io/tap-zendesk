@@ -205,7 +205,10 @@ class Organizations(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        self.client.organizations.incremental(start_time=datetime.datetime.utcnow())
+        # Convert datetime object to standard format with timezone. Used utcnow to reduce API call burden at discovery time. 
+        # Because API will return records from now which will be very less
+        start_time = datetime.datetime.utcnow().strftime(START_DATE_FORMAT)
+        self.client.organizations.incremental(start_time=start_time)
 
 class Users(Stream):
     name = "users"
@@ -287,7 +290,10 @@ class Users(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        self.client.search("", updated_after=datetime.datetime.utcnow(), updated_before='2000-01-02T00:00:00Z', type="user")
+        # Convert datetime object to standard format with timezone. Used utcnow to reduce API call burden at discovery time. 
+        # Because API will return records from now which will be very less
+        start_time = datetime.datetime.utcnow().strftime(START_DATE_FORMAT)
+        self.client.search("", updated_after=start_time, updated_before='2000-01-02T00:00:00Z', type="user")
 
 class Tickets(CursorBasedExportStream):
     name = "tickets"
