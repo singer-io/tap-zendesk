@@ -66,10 +66,11 @@ class Stream():
         self.client = client
         self.config = config
         # Set and pass request timeout to config param `request_timeout` value.
-        # If value is 0,"0","" or not passed then it set default to 300 seconds.
         config_request_timeout = self.config.get('request_timeout')
-        self.request_timeout = (config_request_timeout and float(config_request_timeout)) or REQUEST_TIMEOUT # pylint: disable=consider-using-ternary
-
+        if config_request_timeout and float(config_request_timeout):
+            self.request_timeout = float(config_request_timeout)
+        else:
+            self.request_timeout = REQUEST_TIMEOUT # If value is 0,"0","" or not passed then it set default to 300 seconds.
 
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
