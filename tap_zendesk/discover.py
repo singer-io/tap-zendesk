@@ -30,16 +30,17 @@ def discover_streams(client, config):
     refs = load_shared_schema_refs()
 
 
-    for s in STREAMS.values():
-        s = s(client, config)
-        schema = singer.resolve_schema_references(s.load_schema(), refs)
+    for stream in STREAMS.values():
+        # for each stream in the `STREAMS` check if the user has the permission to access the data of that stream
+        stream = stream(client, config)
+        schema = singer.resolve_schema_references(stream.load_schema(), refs)
         try:
             # Here it call the check_access method to check whether stream have read permission or not.
             # If stream does not have read permission then append that stream name to list and at the end of all streams
             # raise forbidden error with proper message containing stream names.
-            s.check_access()
+            stream.check_access()
         except ZendeskForbiddenError as e:
-            error_list.append(s.name) # Append stream name to the error_list
+            error_list.append(stream.name) # Append stream name to the error_list
         except zenpy.lib.exception.APIException as e:
             args0 = json.loads(e.args[0])
             err = args0.get('error')
@@ -48,13 +49,13 @@ def discover_streams(client, config):
             # is the expected message. If so, only then print the logger message and return the schema
             if isinstance(err, dict):
                 if err.get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
-                    error_list.append(s.name)
+                    error_list.append(stream.name)
             elif args0.get('description') == "You are missing the following required scopes: read":
-                error_list.append(s.name)
+                error_list.append(stream.name)
             else:
                 raise e from None # raise error if it is other than 403 forbidden error
 
-        streams.append({'stream': s.name, 'tap_stream_id': s.name, 'schema': schema, 'metadata': s.load_metadata()})
+        streams.append({'stream': stream.name, 'tap_stream_id': stream.name, 'schema': schema, 'metadata': stream.load_metadata()})
 
     if error_list:
         streams_name = ", ".join(error_list)
