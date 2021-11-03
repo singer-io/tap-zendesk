@@ -15,6 +15,7 @@ from tap_zendesk.sync import sync_stream
 
 LOGGER = singer.get_logger()
 
+
 REQUIRED_CONFIG_KEYS = [
     "start_date",
     "subdomain",
@@ -46,9 +47,9 @@ def request_metrics_patch(self, method, url, **kwargs):
 Session.request = request_metrics_patch
 # end patch
 
-def do_discover(client):
+def do_discover(client, config):
     LOGGER.info("Starting discover")
-    catalog = {"streams": discover_streams(client)}
+    catalog = {"streams": discover_streams(client, config)}
     json.dump(catalog, sys.stdout, indent=2)
     LOGGER.info("Finished discover")
 
@@ -199,7 +200,8 @@ def main():
         LOGGER.error("""No suitable authentication keys provided.""")
 
     if parsed_args.discover:
-        do_discover(client)
+        # passing the config to check the authentication in the do_discover method
+        do_discover(client, parsed_args.config)
     elif parsed_args.catalog:
         state = parsed_args.state
         do_sync(client, parsed_args.catalog, state, parsed_args.config)
