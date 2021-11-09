@@ -118,10 +118,10 @@ class ZendeskDiscover(ZendeskTest):
                                         msg="Expected FULL replication "
                                         "since there is no replication key")
                     
-                 # verify the actual replication matches our expected replication method
-                self.assertEqual(expected_replication_method, actual_replication_method,
-                                    msg="The actual replication method {} doesn't match the expected {}".format(
-                                        actual_replication_method, expected_replication_method))
+                    # verify the actual replication matches our expected replication method
+                    self.assertEqual(expected_replication_method, actual_replication_method,
+                                        msg="The actual replication method {} doesn't match the expected {}".format(
+                                            actual_replication_method, expected_replication_method))
 
                 # verify replication key(s)
                 self.assertEqual(expected_replication_keys, actual_replication_keys,

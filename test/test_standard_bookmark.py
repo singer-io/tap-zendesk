@@ -36,10 +36,6 @@ class ZendeskBookMark(ZendeskTest):
         
         expected_streams = self.expected_check_streams()
         
-        #Given below streams are child stremas of parent stream `tickets` and tickets is incremental streams
-        #Child streams also behave as incremental streams but does not save it's own state. Skipping it.
-        expected_streams = expected_streams - {"ticket_comments", "ticket_audits", "ticket_metrics"}
-        
         expected_replication_keys = self.expected_replication_keys()
         expected_replication_methods = self.expected_replication_method()
 
@@ -134,10 +130,14 @@ class ZendeskBookMark(ZendeskTest):
                     # Verify the second sync bookmark is Equal to the first sync bookmark
                     # assumes no changes to data during test
                     if not stream == "users":
-                        # For `users` stream it stores bookmark as 1 minute less than current time if `updated_at` of 
-                        # last records less than it. So, if there is no data change then second_bookmark_value will be 
-                        # 1 minute less than current time. So, skipping below assertion for users stream.
                         self.assertEqual(second_bookmark_value,
+                                        first_bookmark_value)
+                    else:
+                        # For `users` stream it stores bookmark as 1 minute less than current time if `updated_at` of
+                        # last records less than it. So, if there is no data change then second_bookmark_value will be
+                        # 1 minute less than current time. Therefore second_bookmark_value will always be
+                        # greater or equal to first_bookmark_value
+                        self.assertGreaterEqual(second_bookmark_value,
                                         first_bookmark_value)
 
                     for record in first_sync_messages:
@@ -176,7 +176,12 @@ class ZendeskBookMark(ZendeskTest):
                     self.assertIsNone(second_bookmark_key_value)
 
                     # Verify the number of records in the second sync is the same as the first
-                    self.assertEqual(second_sync_count, first_sync_count)
+
+                    # Given below streams are child stremas of parent stream `tickets` and tickets is incremental streams
+                    # Child streams also behave like incremental streams but does not save it's own state. So, it don't 
+                    # have same no of record on second sync and first sync.
+                    if not stream in ["ticket_comments", "ticket_audits", "ticket_metrics"]:
+                        self.assertEqual(second_sync_count, first_sync_count)
 
                 else:
 

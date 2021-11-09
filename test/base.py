@@ -105,10 +105,12 @@ class ZendeskTest(unittest.TestCase):
                 self.OBEYS_START_DATE: False
             },
             "ticket_comments": {
+                # ticket_comments is child stream of tickets, and tickets is incremental stream.
+                # But it does not save its own bookmark. It fetches records based on the record of the parent stream.
+                # That's why make it FULL_TABLE
                 self.PRIMARY_KEYS: {"id"},
-                self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: set(),
-               self.OBEYS_START_DATE: True
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
             },
             "ticket_fields": {
                 self.PRIMARY_KEYS: {"id"},
@@ -123,10 +125,12 @@ class ZendeskTest(unittest.TestCase):
                 self.OBEYS_START_DATE: True
             },
             "ticket_metrics": {
+                # ticket_metrics is child stream of tickets, and tickets is incremental stream.
+                # But it does not save its own bookmark. It fetches records based on the record of the parent stream.
+                # That's why make it FULL_TABLE
                 self.PRIMARY_KEYS: {"id"},
-                self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: set(),
-               self.OBEYS_START_DATE: True
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
             },
             "tickets": {
                 self.PRIMARY_KEYS: {"id"},
@@ -141,10 +145,12 @@ class ZendeskTest(unittest.TestCase):
                 self.OBEYS_START_DATE: True
             },
             "ticket_audits": {
+                # ticket_audits is child stream of tickets, and tickets is incremental stream.
+                # But it does not save its own bookmark. It fetches records based on the record of the parent stream.
+                # That's why make it FULL_TABLE
                 self.PRIMARY_KEYS: {"id"},
-                self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: set(),
-                self.OBEYS_START_DATE: True
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
             }
         }
 

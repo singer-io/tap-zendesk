@@ -33,10 +33,6 @@ class ZendeskStartDate(ZendeskTest):
         self.start_date = self.start_date_1
 
         expected_streams = expected_streams
-        #Given below streams are child stremas of parent stream `tickets` and tickets is incremental streams
-        #so, child streams also behave as incremental streams but does not save it's own state.
-        stream_to_skip = {"ticket_comments", "ticket_audits", "ticket_metrics"}
-        expected_streams = expected_streams - stream_to_skip
         
         ##########################################################################
         # First Sync
@@ -155,11 +151,15 @@ class ZendeskStartDate(ZendeskTest):
                         primary_keys_sync_2.issubset(primary_keys_sync_1))
 
                 else:
-
+                    # Given below streams are child stremas of parent stream `tickets` and tickets is incremental streams
+                    # Child streams also behave like incremental streams but does not save it's own state. So, it don't 
+                    # have same no of record on second sync and first sync.
+                    
                     # Verify that the 2nd sync with a later start date replicates the same number of
                     # records as the 1st sync.
-                    self.assertEqual(record_count_sync_2, record_count_sync_1)
+                    if not stream in ["ticket_comments", "ticket_audits", "ticket_metrics"]:
+                        self.assertEqual(record_count_sync_2, record_count_sync_1)
 
-                    # Verify by primary key the same records are replicated in the 1st and 2nd syncs
-                    self.assertSetEqual(primary_keys_sync_1,
-                                        primary_keys_sync_2)
+                        # Verify by primary key the same records are replicated in the 1st and 2nd syncs
+                        self.assertSetEqual(primary_keys_sync_1,
+                                            primary_keys_sync_2)
