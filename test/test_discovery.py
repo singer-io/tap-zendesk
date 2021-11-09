@@ -26,10 +26,6 @@ class ZendeskDiscover(ZendeskTest):
     def test_run(self):
         streams_to_test = self.expected_check_streams()
         
-        #Given below streams are child stremas of parent stream `tickets` and tickets is incremental streams
-        #so, child streams also behave as incremental streams but does not save it's own state.
-        stream_to_skip = ["ticket_comments", "ticket_audits", "ticket_metrics"]
-        
         conn_id = connections.ensure_connection(self, payload_hook=None)
 
         # Verify that there are catalogs found
@@ -88,27 +84,6 @@ class ZendeskDiscover(ZendeskTest):
                                 msg="There is NOT only one top level breadcrumb for {}".format(stream) +
                                 "\nstream_properties | {}".format(stream_properties))
 
-                # verify that if there is a replication key we are doing INCREMENTAL otherwise FULL
-                if not stream in stream_to_skip:
-                    if actual_replication_keys:
-                        self.assertTrue(actual_replication_method == self.INCREMENTAL,
-                                        msg="Expected INCREMENTAL replication "
-                                            "since there is a replication key")
-                    else:
-                        self.assertTrue(actual_replication_method == self.FULL_TABLE,
-                                        msg="Expected FULL replication "
-                                        "since there is no replication key")
-                    
-                 # verify the actual replication matches our expected replication method
-                self.assertEqual(expected_replication_method, actual_replication_method,
-                                    msg="The actual replication method {} doesn't match the expected {}".format(
-                                        actual_replication_method, expected_replication_method))
-
-                # verify replication key(s)
-                self.assertEqual(expected_replication_keys, actual_replication_keys,
-                                 msg="expected replication key {} but actual is {}".format(
-                                     expected_replication_keys, actual_replication_keys))
-
                 # verify primary key(s) match expectations
                 self.assertSetEqual(
                     expected_primary_keys, actual_primary_keys,
@@ -128,3 +103,27 @@ class ZendeskDiscover(ZendeskTest):
                          and item.get("breadcrumb", ["properties", None])[1]
                          not in actual_automatic_fields}),
                     msg="Not all non key properties are set to available in metadata")
+
+                # verify that if there is a replication key we are doing INCREMENTAL otherwise FULL
+                # Given below streams are child stremas of parent stream `tickets` and tickets is incremental streams
+                # so, child streams also behave as incremental streams but does not save it's own state. So, skipping it.
+                if not stream in ["ticket_comments", "ticket_audits", "ticket_metrics"]:
+                
+                    if actual_replication_keys:
+                        self.assertTrue(actual_replication_method == self.INCREMENTAL,
+                                        msg="Expected INCREMENTAL replication "
+                                            "since there is a replication key")
+                    else:
+                        self.assertTrue(actual_replication_method == self.FULL_TABLE,
+                                        msg="Expected FULL replication "
+                                        "since there is no replication key")
+                    
+                 # verify the actual replication matches our expected replication method
+                self.assertEqual(expected_replication_method, actual_replication_method,
+                                    msg="The actual replication method {} doesn't match the expected {}".format(
+                                        actual_replication_method, expected_replication_method))
+
+                # verify replication key(s)
+                self.assertEqual(expected_replication_keys, actual_replication_keys,
+                                 msg="expected replication key {} but actual is {}".format(
+                                     expected_replication_keys, actual_replication_keys))

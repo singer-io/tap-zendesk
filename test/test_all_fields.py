@@ -46,8 +46,6 @@ class ZendeskAllFields(ZendeskTest):
 
         self.run_and_verify_sync(conn_id)
 
-        actual_fields_by_stream = runner.examine_target_output_for_fields()
-
         synced_records = runner.get_records_from_target_output()
 
         # Verify no unexpected streams were replicated
@@ -62,22 +60,24 @@ class ZendeskAllFields(ZendeskTest):
                 expected_automatic_keys = expected_automatic_fields.get(
                     stream, set())
 
-                # collect actual values
-                messages = synced_records.get(stream)
-                actual_all_keys = [set(message['data'].keys()) for message in messages['messages']
-                                   if message['action'] == 'upsert'][0]
-
                 # Verify that more than just the automatic fields are replicated for each stream.
                 self.assertTrue(expected_automatic_keys.issubset(
                     expected_all_keys), msg='{} is not in "expected_all_keys"'.format(expected_automatic_keys-expected_all_keys))
-                
+
+                messages = synced_records.get(stream)
+                # collect actual values
+                actual_all_keys = set()
+                for message in messages['messages']:
+                    if message['action'] == 'upsert':
+                        actual_all_keys.update(message['data'].keys())
+
                 # As we can't generate following fields by zendesk APIs now so expected.
                 if stream == "ticket_fields":
-                    expected_all_keys = expected_all_keys - {'system_field_options', 'sub_type_id', 'custom_field_options'}
+                    expected_all_keys = expected_all_keys - {'system_field_options', 'sub_type_id'}
                 elif stream == "users":
                     expected_all_keys = expected_all_keys - {'permanently_deleted'}
                 elif stream == "ticket_metrics":
                     expected_all_keys = expected_all_keys - {'status', 'instance_id', 'metric', 'type', 'time'}
-                      
+                            
                 # verify all fields for each stream are replicated
                 self.assertSetEqual(expected_all_keys, actual_all_keys)

@@ -5,7 +5,6 @@ import tap_tester.menagerie as menagerie
 import tap_tester.runner as runner
 from datetime import datetime as dt
 from datetime import timedelta
-import time
 import dateutil.parser
 import pytz
 
@@ -22,9 +21,7 @@ class ZendeskTest(unittest.TestCase):
     REPLICATION_KEYS = "valid-replication-keys"
     FULL_TABLE = "FULL_TABLE"
     INCREMENTAL = "INCREMENTAL"
-
-    def name(self):
-        return "tap_tester_zendesk_base"
+    OBEYS_START_DATE = "obey-start-date"
 
     def tap_name(self):
         return "tap-zendesk"
@@ -70,70 +67,84 @@ class ZendeskTest(unittest.TestCase):
             "groups": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"updated_at"}
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
             },
             "group_memberships": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"updated_at"}
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
             },
             "macros": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"updated_at"}
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
             },
             "organizations": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"updated_at"}
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
             },
             "satisfaction_ratings": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"updated_at"}
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
             },
             "sla_policies": {
                 self.PRIMARY_KEYS: {"id"},
-                self.REPLICATION_METHOD: self.FULL_TABLE
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
             },
             "tags": {
                 self.PRIMARY_KEYS: {"name"},
-                self.REPLICATION_METHOD: self.FULL_TABLE
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
             },
             "ticket_comments": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: set()
+                self.REPLICATION_KEYS: set(),
+               self.OBEYS_START_DATE: True
             },
             "ticket_fields": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"updated_at"}
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
             },
             "ticket_forms": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"updated_at"}
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
             },
             "ticket_metrics": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: set()
+                self.REPLICATION_KEYS: set(),
+               self.OBEYS_START_DATE: True
             },
             "tickets": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"generated_timestamp"}
+                self.REPLICATION_KEYS: {"generated_timestamp"},
+                self.OBEYS_START_DATE: True
             },
             "users": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"updated_at"}
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
             },
             "ticket_audits": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: set()
+                self.REPLICATION_KEYS: set(),
+                self.OBEYS_START_DATE: True
             }
         }
 
@@ -176,8 +187,7 @@ class ZendeskTest(unittest.TestCase):
         self.assertGreater(len(found_catalogs), 0, msg="unable to locate schemas for connection {}".format(conn_id))
 
         found_catalog_names = set(map(lambda c: c['stream_name'], found_catalogs))
-        print(found_catalog_names)
-        #self.assertSetEqual(self.expected_streams(), found_catalog_names, msg="discovered schemas do not match")
+        self.assertSetEqual(self.expected_check_streams(), found_catalog_names, msg="discovered schemas do not match")
         print("discovered schemas are OK")
 
         return found_catalogs
@@ -334,6 +344,3 @@ class ZendeskTest(unittest.TestCase):
         date_object = dateutil.parser.parse(date_str)
         date_object_utc = date_object.astimezone(tz=pytz.UTC)
         return dt.strftime(date_object_utc, "%Y-%m-%dT%H:%M:%SZ")
-
-    def is_incremental(self, stream):
-        return self.expected_metadata()[stream][self.REPLICATION_METHOD] == self.INCREMENTAL

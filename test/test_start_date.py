@@ -92,10 +92,6 @@ class ZendeskStartDate(ZendeskTest):
 
                 # expected values
                 expected_primary_keys = self.expected_primary_keys()[stream]
-                expected_start_date_1 = self.timedelta_formatted(
-                    self.start_date_1)
-                expected_start_date_2 = self.timedelta_formatted(
-                    self.start_date_2)
 
                 # collect information for assertions from syncs 1 & 2 base on expected values
                 record_count_sync_1 = record_count_by_stream_1.get(stream, 0)
@@ -111,7 +107,7 @@ class ZendeskStartDate(ZendeskTest):
                 primary_keys_sync_1 = set(primary_keys_list_1)
                 primary_keys_sync_2 = set(primary_keys_list_2)
 
-                if self.is_incremental(stream):
+                if self.expected_metadata()[stream][self.OBEYS_START_DATE]:
 
                     # collect information specific to incremental streams from syncs 1 & 2
                     expected_replication_key = next(
@@ -130,9 +126,9 @@ class ZendeskStartDate(ZendeskTest):
 
                         self.assertGreaterEqual(
                             self.parse_date(replication_date), self.parse_date(
-                                expected_start_date_1),
+                                self.start_date_1),
                             msg="Report pertains to a date prior to our start date.\n" +
-                            "Sync start_date: {}\n".format(expected_start_date_1) +
+                            "Sync start_date: {}\n".format(self.start_date_1) +
                                 "Record date: {} ".format(replication_date)
                         )
 
@@ -143,9 +139,9 @@ class ZendeskStartDate(ZendeskTest):
 
                         self.assertGreaterEqual(
                             self.parse_date(replication_date), self.parse_date(
-                                expected_start_date_2),
+                                self.start_date_2),
                             msg="Report pertains to a date prior to our start date.\n" +
-                            "Sync start_date: {}\n".format(expected_start_date_2) +
+                            "Sync start_date: {}\n".format(self.start_date_2) +
                                 "Record date: {} ".format(replication_date)
                         )
 

@@ -134,6 +134,9 @@ class ZendeskBookMark(ZendeskTest):
                     # Verify the second sync bookmark is Equal to the first sync bookmark
                     # assumes no changes to data during test
                     if not stream == "users":
+                        # For `users` stream it stores bookmark as 1 minute less than current time if `updated_at` of 
+                        # last records less than it. So, if there is no data change then second_bookmark_value will be 
+                        # 1 minute less than current time. So, skipping below assertion for users stream.
                         self.assertEqual(second_bookmark_value,
                                         first_bookmark_value)
 
@@ -141,6 +144,7 @@ class ZendeskBookMark(ZendeskTest):
 
                         # Verify the first sync bookmark value is the max replication key value for a given stream
                         replication_key_value = record.get(replication_key)
+                        # For `ticket` stream it stores bookmarks as int timestamp. So, converting it to the string.
                         if stream == "tickets":
                             replication_key_value = datetime.utcfromtimestamp(replication_key_value).strftime('%Y-%m-%dT%H:%M:%SZ')
                       
@@ -155,10 +159,7 @@ class ZendeskBookMark(ZendeskTest):
 
                         if stream == "tickets":
                             replication_key_value = datetime.utcfromtimestamp(replication_key_value).strftime('%Y-%m-%dT%H:%M:%SZ')
-                            
-                        if stream in ["group_memberships", "ticket_fields", "macros"]:
-                            replication_key_value = datetime.strptime(replication_key_value, '%Y-%m-%dT%H:%M:%S.000000Z').strftime('%Y-%m-%dT%H:%M:%SZ')
-                        
+
                         self.assertGreaterEqual(replication_key_value, simulated_bookmark_value,
                                                 msg="Second sync records do not repect the previous bookmark.")
 
@@ -167,12 +168,6 @@ class ZendeskBookMark(ZendeskTest):
                             replication_key_value, second_bookmark_value_utc,
                             msg="Second sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
                         )
-
-                    # verify that you get less data the 2nd time around
-                    self.assertLess(
-                        second_sync_count,
-                        first_sync_count,
-                        msg="second sync didn't have less records, bookmark usage not verified")
 
                 elif expected_replication_method == self.FULL_TABLE:
 
