@@ -159,12 +159,16 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
     # it doesn't have access.
     if not isinstance(e, zenpy.lib.exception.APIException):
         raise ValueError("Called with a bad exception type") from e
+
     #If read permission is not available in OAuth access_token, then it returns the below error.
     if json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read":
         LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
                        stream)
         return schema
-    if json.loads(e.args[0])['error']['message'] == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
+    error = json.loads(e.args[0]).get('error')
+    # check if the error is of type dictionary and the message retrieved from the dictionary
+    # is the expected message. If so, only then print the logger message and return the schema
+    if isinstance(error, dict) and error.get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
         LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
                        stream)
         return schema
