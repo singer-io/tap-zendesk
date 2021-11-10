@@ -10,9 +10,7 @@ class MockClass:
     def sync(self, ticket_id):
         raise http.ZendeskNotFoundError
 
-@patch("tap_zendesk.streams.Tickets._empty_buffer")
 @patch("tap_zendesk.streams.LOGGER.warning")
-@patch('tap_zendesk.streams.Tickets._buffer_record')
 @patch('tap_zendesk.streams.Stream.update_bookmark')
 @patch('tap_zendesk.metrics.capture')
 @patch('tap_zendesk.streams.CursorBasedExportStream.get_objects')
@@ -25,14 +23,12 @@ class TestSkip404Error(unittest.TestCase):
     """
     @patch('tap_zendesk.streams.TicketAudits')
     def test_ticket_audits_skip_404_error(self, mock_ticket_audits, mock_get_bookmark, mock_get_object, mock_metrics, 
-                                          mock_update_bookmark, mock_buffer_record, mock_logger, mock_empty_buffer):
+                                          mock_update_bookmark, mock_logger):
        
         '''
         Test that ticket_audits stream skip the 404 error
         '''
         mock_ticket_audits.return_value = MockClass()
-        mock_empty_buffer.return_value = []
-        mock_buffer_record.return_value = False
         mock_get_object.return_value = [{'generated_timestamp': 12457845, 'fields': {}, 'id': 'i1'}]
         tickets = streams.Tickets(config={'subdomain': '34', 'access_token': 'df'})
 
@@ -46,14 +42,12 @@ class TestSkip404Error(unittest.TestCase):
     
     @patch('tap_zendesk.streams.TicketComments')
     def test_ticket_comments_skip_404_error(self, mock_ticket_comments, mock_get_bookmark, mock_get_object, mock_metrics, 
-                                          mock_update_bookmark, mock_buffer_record, mock_logger, mock_empty_buffer):
+                                          mock_update_bookmark, mock_logger):
 
         '''
         Test that ticket_audits stream skip the 404 error
         '''
         mock_ticket_comments.return_value = MockClass()
-        mock_empty_buffer.return_value = []
-        mock_buffer_record.return_value = False
         mock_get_object.return_value = [{'generated_timestamp': 12457845, 'fields': {}, 'id': 'i1'}]
         tickets = streams.Tickets(config={'subdomain': '34', 'access_token': 'df'})
 
@@ -67,14 +61,12 @@ class TestSkip404Error(unittest.TestCase):
         
     @patch('tap_zendesk.streams.TicketMetrics')
     def test_ticket_metrics_skip_404_error(self, mock_ticket_metrics, mock_get_bookmark, mock_get_object, mock_metrics, 
-                                          mock_update_bookmark, mock_buffer_record, mock_logger, mock_empty_buffer):
+                                          mock_update_bookmark, mock_logger):
        
         '''
         Test that ticket_audits stream skip the 404 error
         '''
         mock_ticket_metrics.return_value = MockClass()
-        mock_empty_buffer.return_value = []
-        mock_buffer_record.return_value = False
         mock_get_object.return_value = [{'generated_timestamp': 12457845, 'fields': {}, 'id': 'i1'}]
         tickets = streams.Tickets(config={'subdomain': '34', 'access_token': 'df'})
 
