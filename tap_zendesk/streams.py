@@ -302,30 +302,6 @@ class Tickets(CursorBasedExportStream):
     item_key = "tickets"
     endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
 
-    last_record_emit = {}
-    buf = {}
-    buf_time = 60
-    def _buffer_record(self, record):
-        stream_name = record[0].tap_stream_id
-        if self.last_record_emit.get(stream_name) is None:
-            self.last_record_emit[stream_name] = utils.now()
-
-        if self.buf.get(stream_name) is None:
-            self.buf[stream_name] = []
-        self.buf[stream_name].append(record)
-
-        if (utils.now() - self.last_record_emit[stream_name]).total_seconds() > self.buf_time:
-            self.last_record_emit[stream_name] = utils.now()
-            return True
-
-        return False
-
-    def _empty_buffer(self):
-        for stream_name, stream_buf in self.buf.items():
-            for rec in stream_buf:
-                yield rec
-            self.buf[stream_name] = []
-
     def sync(self, state): #pylint: disable=too-many-statements
 
         bookmark = self.get_bookmark(state)
@@ -355,21 +331,23 @@ class Tickets(CursorBasedExportStream):
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
             ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
-            should_yield = self._buffer_record((self.stream, ticket))
+            # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
+            yield (self.stream, ticket)
 
             if audits_stream.is_selected():
                 try:
                     for audit in audits_stream.sync(ticket["id"]):
-                        self._buffer_record(audit)
+                        yield audit
                 except http.ZendeskNotFoundError:
                     # Skip stream if ticket_audit does not found for particular ticekt_id. Earlier it throwing HTTPError
                     # but now as error handling updated, it throws ZendeskNotFoundError.
                     message = "Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id'])
                     LOGGER.warning(message)
+
             if metrics_stream.is_selected():
                 try:
                     for metric in metrics_stream.sync(ticket["id"]):
-                        self._buffer_record(metric)
+                        yield metric
                 except http.ZendeskNotFoundError:
                     # Skip stream if ticket_metric does not found for particular ticekt_id. Earlier it throwing HTTPError
                     # but now as error handling updated, it throws ZendeskNotFoundError.
@@ -381,24 +359,14 @@ class Tickets(CursorBasedExportStream):
                     # add ticket_id to ticket_comment so the comment can
                     # be linked back to it's corresponding ticket
                     for comment in comments_stream.sync(ticket["id"]):
-                        self._buffer_record(comment)
+                        yield comment
                 except http.ZendeskNotFoundError:
                     # Skip stream if ticket_comment does not found for particular ticekt_id. Earlier it throwing HTTPError
                     # but now as error handling updated, it throws ZendeskNotFoundError.
                     message = "Unable to retrieve comments for ticket (ID: {}), record not found".format(ticket['id'])
                     LOGGER.warning(message)
 
-            if should_yield:
-                for rec in self._empty_buffer():
-                    yield rec
-                emit_sub_stream_metrics(audits_stream)
-                emit_sub_stream_metrics(metrics_stream)
-                emit_sub_stream_metrics(comments_stream)
-                singer.write_state(state)
-
-        for rec in self._empty_buffer():
-            yield rec
-
+            singer.write_state(state)
         emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
         emit_sub_stream_metrics(comments_stream)
