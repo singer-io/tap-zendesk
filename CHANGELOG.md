@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0
+  * Removed Buffer System [77](https://github.com/singer-io/tap-zendesk/pull/77)
+  * Check API access in discovery mode [74](https://github.com/singer-io/tap-zendesk/pull/74)
+  * Comprehensive Error Messaging [69](https://github.com/singer-io/tap-zendesk/pull/69)
+  * Other small enhancements including request timeout, following best practicesfor integration testing [78](https://github.com/singer-io/tap-zendesk/pull/78)
+
 ## 1.6.0
   * Fixing the via.from field on the tickets, and ticket_comments stream [#75](https://github.com/singer-io/tap-zendesk/pull/75)
     * Remove usage of `zenpy` library for tickets stream and all sub-streams
