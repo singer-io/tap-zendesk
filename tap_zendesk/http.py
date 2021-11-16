@@ -23,7 +23,7 @@ def is_fatal(exception):
                       max_tries=10,
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,Timeout, #As timeout error does not have attribute status_code, hence giveup does not work in this case.
-                      max_tries=10) # So, here we added another backoff expression.
+                      max_tries=5, factor=2) # So, here we added another backoff expression.
 def call_api(url, request_timeout, params, headers):
     response = requests.get(url, params=params, headers=headers, timeout=request_timeout) # Pass request timeout
     response.raise_for_status()
