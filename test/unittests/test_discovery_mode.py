@@ -59,6 +59,9 @@ class TestDiscovery(unittest.TestCase):
 
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
+        expected_call_count = 10
+        actual_call_count = mock_get.call_count
+        self.assertEqual(expected_call_count, actual_call_count)
 
         # Verifying the logger message
         mock_logger.assert_called_with("The account credentials supplied do not have read access for the following "\
@@ -100,6 +103,10 @@ class TestDiscovery(unittest.TestCase):
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
 
+        expected_call_count = 10
+        actual_call_count = mock_get.call_count
+        self.assertEqual(expected_call_count, actual_call_count)
+
         # Verifying the logger message
         mock_logger.assert_called_with("The account credentials supplied do not have read access for the following stream(s): "\
             "groups, users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, "\
@@ -140,6 +147,10 @@ class TestDiscovery(unittest.TestCase):
         '''
 
         responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
+        expected_call_count = 10
+        actual_call_count = mock_get.call_count
+        self.assertEqual(expected_call_count, actual_call_count)
+
         # Verifying the logger message
         mock_logger.assert_called_with("The account credentials supplied do not have read access for the following stream(s): "\
             "tickets, groups, users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, "\
