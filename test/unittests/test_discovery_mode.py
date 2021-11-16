@@ -64,10 +64,10 @@ class TestDiscovery(unittest.TestCase):
         self.assertEqual(expected_call_count, actual_call_count)
 
         # Verifying the logger message
-        mock_logger.assert_called_with("The account credentials supplied do not have read access for the following "\
-            "stream(s): groups, users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, "\
-            "group_memberships, macros, satisfaction_ratings, tags, ticket_metrics.The data for the mentioned streams "\
-            "will not be collected if selected due to a lack of 'read' permission.")
+        mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): "\
+            "groups, users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, "\
+            "satisfaction_ratings, tags, ticket_metrics. The data for these streams would not be collected due to lack of required "\
+            "permission.")
 
     @patch("tap_zendesk.discover.LOGGER.warning")
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -106,12 +106,12 @@ class TestDiscovery(unittest.TestCase):
         expected_call_count = 10
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
-
+    
         # Verifying the logger message
-        mock_logger.assert_called_with("The account credentials supplied do not have read access for the following stream(s): "\
-            "groups, users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, "\
-            "macros, satisfaction_ratings, tags, ticket_metrics, sla_policies.The data for the mentioned streams will not be "\
-            "collected if selected due to a lack of 'read' permission.")
+        mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): "\
+            "groups, users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, "\
+            "satisfaction_ratings, tags, ticket_metrics, sla_policies. The data for these streams would not be collected due to "\
+            "lack of required permission.")
 
     @patch("tap_zendesk.discover.LOGGER.warning")
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
@@ -152,9 +152,9 @@ class TestDiscovery(unittest.TestCase):
         self.assertEqual(expected_call_count, actual_call_count)
 
         # Verifying the logger message
-        mock_logger.assert_called_with("The account credentials supplied do not have read access for the following stream(s): "\
+        mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): "\
             "tickets, groups, users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, "\
-            "tags.The data for the mentioned streams will not be collected if selected due to a lack of 'read' permission.")
+            "tags. The data for these streams would not be collected due to lack of required permission.")
         
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -302,9 +302,8 @@ class TestDiscovery(unittest.TestCase):
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
         except http.ZendeskForbiddenError as e:
-            expected_message = "The account credentials supplied do not have read access for the following stream(s): "\
-                "tickets, groups, users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, "\
-                "group_memberships, macros, satisfaction_ratings, tags, ticket_metrics, sla_policies.The data for the "\
-                "mentioned streams will not be collected if selected due to a lack of 'read' permission."
-            # Verifying the message formed for the custom exception
+            expected_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. The account credentials "\
+                "supplied do not have read access for the following stream(s):  tickets, groups, users, organizations, ticket_audits, "\
+                "ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags, ticket_metrics, sla_policies"
+            # # Verifying the message formed for the custom exception
             self.assertEqual(str(e), expected_message)
