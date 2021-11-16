@@ -59,17 +59,17 @@ def discover_streams(client, config):
 
     if error_list:
 
-        total_stream = len(STREAMS.values()) # Total no od streams
+        total_stream = len(STREAMS.values()) # Total no of streams
         streams_name = ", ".join(error_list)
         message = "The account credentials supplied do not have read access for the following stream(s): {}."\
             "The data for the mentioned streams will not be collected if selected due to a lack of 'read' permission.".format(streams_name)
-        if len(error_list) == total_stream:
-            # If any one of stream does not have read permission then raise error.
-            raise ZendeskForbiddenError(message)
-        else:
+        if len(error_list) != total_stream:
             # If atleast one stream have read permission then just print warning message for all streams
             # which does not have read permission
             LOGGER.warning(message)
+        else:
+            # If any one of stream does not have read permission then raise error.
+            raise ZendeskForbiddenError(message)
 
 
     return streams
