@@ -26,6 +26,7 @@ class TestDiscovery(unittest.TestCase):
     '''
     Test that we can call api for each stream in discovey mode and handle forbidden error.
     '''
+    @patch("tap_zendesk.discover.LOGGER.warning")
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -47,32 +48,25 @@ class TestDiscovery(unittest.TestCase):
                 mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 9th get request call
                 mocked_get(status_code=403, json={"key1": "val1"}) # Response of the 10th get request call
             ])
-    def test_discovery_handles_403__raise_tap_zendesk_forbidden_error(self, mock_get, mock_resolve_schema_references, 
-                                mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
-                                mocked_ticket_forms, mock_users, mock_organizations):
+    def test_discovery_handles_403__raise_tap_zendesk_forbidden_error(self, mock_get, mock_resolve_schema_references,
+                                mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies,
+                                mocked_ticket_forms, mock_users, mock_organizations, mock_logger):
         '''
-        Test that we handle forbidden error for child streams. discover_streams calls check_access for each stream to 
-        check the read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata, 
-        load_schema, resolve_schema_references also which we mock to test forbidden error. We mock check_access method of 
+        Test that we handle forbidden error for child streams. discover_streams calls check_access for each stream to
+        check the read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata,
+        load_schema, resolve_schema_references also which we mock to test forbidden error. We mock check_access method of
         some of stream method which call request of zenpy module and also mock get method of requests module with 200, 403 error.
 
         '''
-        try:
-            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
-        except tap_zendesk.http.ZendeskForbiddenError as e:
-            expected_error_message =  "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                "The account credentials supplied do not have read access for the following stream(s):  groups, users, "\
-                "organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, "\
-                    "satisfaction_ratings, tags, ticket_metrics"
+        discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
 
-            # Verifying the message formed for the custom exception
-            self.assertEqual(str(e), expected_error_message)
+        # Verifying the logger message
+        mock_logger.assert_called_with("The account credentials supplied do not have read access for the following "\
+            "stream(s): groups, users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, "\
+            "group_memberships, macros, satisfaction_ratings, tags, ticket_metrics.The data for the mentioned streams "\
+            "will not be collected if selected due to a lack of 'read' permission.")
 
-        expected_call_count = 10
-        actual_call_count = mock_get.call_count
-        self.assertEqual(expected_call_count, actual_call_count)
-
-        
+    @patch("tap_zendesk.discover.LOGGER.warning")
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -94,31 +88,25 @@ class TestDiscovery(unittest.TestCase):
                 mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 9th get request call
                 mocked_get(status_code=403, json={"key1": "val1"}) # Response of the 10th get request call
             ])
-    def test_discovery_handles_403_raise_zenpy_forbidden_error_for_access_token(self, mock_get, mock_resolve_schema_references, mock_load_metadata, 
-                                mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, mocked_ticket_forms, 
-                                mock_users, mock_organizations):
+    def test_discovery_handles_403_raise_zenpy_forbidden_error_for_access_token(self, mock_get, mock_resolve_schema_references, mock_load_metadata,
+                                mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, mocked_ticket_forms,
+                                mock_users, mock_organizations, mock_logger):
         '''
         Test that we handle forbidden error received from last failed request which we called from zenpy module and
-        raised zenpy.lib.exception.APIException. discover_streams calls check_access for each stream to check the 
-        read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata, 
-        load_schema, resolve_schema_references also which we mock to test forbidden error. We mock check_access method of 
+        log proper warning message. discover_streams calls check_access for each stream to check the
+        read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata,
+        load_schema, resolve_schema_references also which we mock to test forbidden error. We mock check_access method of
         some of stream method which call request of zenpy module and also mock get method of requests module with 200, 403 error.
         '''
-        try:
-            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
-        except tap_zendesk.http.ZendeskForbiddenError as e:
-            expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                "The account credentials supplied do not have read access for the following stream(s):  groups, users, "\
-                "organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, "\
-                "satisfaction_ratings, tags, ticket_metrics, sla_policies"
+        discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
 
-            self.assertEqual(str(e), expected_error_message)
+        # Verifying the logger message
+        mock_logger.assert_called_with("The account credentials supplied do not have read access for the following stream(s): "\
+            "groups, users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, "\
+            "macros, satisfaction_ratings, tags, ticket_metrics, sla_policies.The data for the mentioned streams will not be "\
+            "collected if selected due to a lack of 'read' permission.")
 
-        expected_call_count = 10
-        actual_call_count = mock_get.call_count
-        self.assertEqual(expected_call_count, actual_call_count)
-
-
+    @patch("tap_zendesk.discover.LOGGER.warning")
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
@@ -142,27 +130,20 @@ class TestDiscovery(unittest.TestCase):
             ])
     def test_discovery_handles_403_raise_zenpy_forbidden_error_for_api_token(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
-                                mocked_ticket_forms, mock_users, mock_organizations):
+                                mocked_ticket_forms, mock_users, mock_organizations, mock_logger):
         '''
         Test that we handle forbidden error received from last failed request which we called from zenpy module and
-        raised zenpy.lib.exception.APIException. discover_streams calls check_access for each stream to check the 
+        log proper warning message. discover_streams calls check_access for each stream to check the 
         read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata, 
         load_schema, resolve_schema_references also which we mock to test forbidden error. We mock check_access method of 
         some of stream method which call request of zenpy module and also mock get method of requests module with 200, 403 error.
         '''
-        try:
-            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
-        except tap_zendesk.http.ZendeskForbiddenError as e:
-            expected_error_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                "The account credentials supplied do not have read access for the following stream(s):  tickets, groups, users, "\
-                "organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags"
 
-            self.assertEqual(str(e), expected_error_message)
-
-        expected_call_count = 10
-        actual_call_count = mock_get.call_count
-        self.assertEqual(expected_call_count, actual_call_count)
-        
+        responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
+        # Verifying the logger message
+        mock_logger.assert_called_with("The account credentials supplied do not have read access for the following stream(s): "\
+            "tickets, groups, users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, "\
+            "tags.The data for the mentioned streams will not be collected if selected due to a lack of 'read' permission.")
         
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -274,3 +255,45 @@ class TestDiscovery(unittest.TestCase):
         expected_call_count = 10
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
+
+    @patch("tap_zendesk.discover.LOGGER.warning")
+    @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
+    @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
+    @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
+    @patch('tap_zendesk.streams.SLAPolicies.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
+    @patch('tap_zendesk.discover.load_shared_schema_refs', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_metadata', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_schema', return_value={})
+    @patch('singer.resolve_schema_references', return_value={})
+    @patch('requests.get',
+           side_effect=[
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 1st get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 2nd get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 3rd get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 4th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 5th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 6th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 7th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 8th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 9th get request call
+                mocked_get(status_code=403, json={"key1": "val1"}) # Response of the 10th get request call
+            ])
+    def test_discovery_handles_403_for_all_streams_api_token(self, mock_get, mock_resolve_schema_references, 
+                                mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
+                                mocked_ticket_forms, mock_users, mock_organizations, mock_logger):
+        '''
+        Test that we handle forbidden error received from all streams and raise the ZendeskForbiddenError
+        with proper error message. discover_streams calls check_access for each stream to check the 
+        read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata, 
+        load_schema, resolve_schema_references also which we mock to test forbidden error. We mock check_access method of 
+        some of stream method which call request of zenpy module and also mock get method of requests module with 200, 403 error.
+        '''
+        try:
+            responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
+        except http.ZendeskForbiddenError as e:
+            expected_message = "The account credentials supplied do not have read access for the following stream(s): "\
+                "tickets, groups, users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, "\
+                "group_memberships, macros, satisfaction_ratings, tags, ticket_metrics, sla_policies.The data for the "\
+                "mentioned streams will not be collected if selected due to a lack of 'read' permission."
+            # Verifying the message formed for the custom exception
+            self.assertEqual(str(e), expected_message)
