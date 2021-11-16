@@ -302,8 +302,7 @@ class TestDiscovery(unittest.TestCase):
         try:
             responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
         except http.ZendeskForbiddenError as e:
-            expected_message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. The account credentials "\
-                "supplied do not have read access for the following stream(s):  tickets, groups, users, organizations, ticket_audits, "\
-                "ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, tags, ticket_metrics, sla_policies"
+            expected_message = "HTTP-error-code: 403, Error: The account credentials supplied do not have 'read' access to any "\
+            "of streams supported by the tap. Data collection cannot be initiated due to lack of permissions."
             # # Verifying the message formed for the custom exception
             self.assertEqual(str(e), expected_message)

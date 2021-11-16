@@ -68,8 +68,8 @@ def discover_streams(client, config):
             # which does not have read permission
             LOGGER.warning(message)
         else:
-            message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                    "The account credentials supplied do not have read access for the following stream(s):  {}".format(streams_name)
+            message ="HTTP-error-code: 403, Error: The account credentials supplied do not have 'read' access to any "\
+            "of streams supported by the tap. Data collection cannot be initiated due to lack of permissions."
             # If none of the streams are having the 'read' access, then the code will raise an error
             raise ZendeskForbiddenError(message)
 
