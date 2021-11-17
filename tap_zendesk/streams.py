@@ -134,7 +134,6 @@ class CursorBasedStream(Stream):
         Cursor based object retrieval
         '''
         url = self.endpoint.format(self.config['subdomain'])
-
         # Pass `request_timeout` parameter
         for page in http.get_cursor_based(url, self.config['access_token'], self.request_timeout, **kwargs):
             yield from page[self.item_key]
@@ -148,7 +147,6 @@ class CursorBasedExportStream(Stream):
         Retrieve objects from the incremental exports endpoint using cursor based pagination
         '''
         url = self.endpoint.format(self.config['subdomain'])
-
         # Pass `request_timeout` parameter
         for page in http.get_incremental_export(url, self.config['access_token'], self.request_timeout, start_time):
             yield from page[self.item_key]
