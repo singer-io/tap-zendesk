@@ -16,6 +16,7 @@ from tap_zendesk.sync import sync_stream
 LOGGER = singer.get_logger()
 
 REQUEST_TIMEOUT = 300
+
 REQUIRED_CONFIG_KEYS = [
     "start_date",
     "subdomain",
@@ -206,6 +207,7 @@ def main():
         LOGGER.error("""No suitable authentication keys provided.""")
 
     if parsed_args.discover:
+        # passing the config to check the authentication in the do_discover method
         do_discover(client, parsed_args.config)
     elif parsed_args.catalog:
         state = parsed_args.state

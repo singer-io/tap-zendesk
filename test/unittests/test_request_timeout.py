@@ -19,6 +19,7 @@ SINGLE_RESPONSE = {
     'meta': {'has_more': False}
 }
 
+START_TIME = datetime.datetime.strptime("2021-10-30T00:00:00Z", "%Y-%m-%dT%H:%M:%SZ")
 def mocked_get(*args, **kwargs):
     fake_response = requests.models.Response()
     fake_response.headers.update(kwargs.get('headers', {}))

@@ -2,31 +2,151 @@ from time import sleep
 import backoff
 import requests
 import singer
-from requests.exceptions import Timeout
+from requests.exceptions import Timeout, HTTPError
+
+
 
 LOGGER = singer.get_logger()
 
 
+class ZendeskError(Exception):
+    def __init__(self, message=None, response=None):
+        super().__init__(message)
+        self.message = message
+        self.response = response
+
+class ZendeskBackoffError(ZendeskError):
+    pass
+
+class ZendeskBadRequestError(ZendeskError):
+    pass
+
+class ZendeskUnauthorizedError(ZendeskError):
+    pass
+
+class ZendeskForbiddenError(ZendeskError):
+    pass
+
+class ZendeskNotFoundError(ZendeskError):
+    pass
+
+class ZendeskConflictError(ZendeskError):
+    pass
+
+class ZendeskUnprocessableEntityError(ZendeskError):
+    pass
+
+class ZendeskRateLimitError(ZendeskBackoffError):
+    pass
+
+class ZendeskInternalServerError(ZendeskBackoffError):
+    pass
+
+class ZendeskNotImplementedError(ZendeskBackoffError):
+    pass
+
+class ZendeskBadGatewayError(ZendeskBackoffError):
+    pass
+
+class ZendeskServiceUnavailableError(ZendeskBackoffError):
+    pass
+
+ERROR_CODE_EXCEPTION_MAPPING = {
+    400: {
+        "raise_exception": ZendeskBadRequestError,
+        "message": "A validation exception has occurred."
+    },
+    401: {
+        "raise_exception": ZendeskUnauthorizedError,
+        "message": "The access token provided is expired, revoked, malformed or invalid for other reasons."
+    },
+    403: {
+        "raise_exception": ZendeskForbiddenError,
+        "message": "You are missing the following required scopes: read"
+    },
+    404: {
+        "raise_exception": ZendeskNotFoundError,
+        "message": "The resource you have specified cannot be found."
+    },
+    409: {
+        "raise_exception": ZendeskConflictError,
+        "message": "The API request cannot be completed because the requested operation would conflict with an existing item."
+    },
+    422: {
+        "raise_exception": ZendeskUnprocessableEntityError,
+        "message": "The request content itself is not processable by the server."
+    },
+    429: {
+        "raise_exception": ZendeskRateLimitError,
+        "message": "The API rate limit for your organisation/application pairing has been exceeded."
+    },
+    500: {
+        "raise_exception": ZendeskInternalServerError,
+        "message": "The server encountered an unexpected condition which prevented" \
+            " it from fulfilling the request."
+    },
+    501: {
+        "raise_exception": ZendeskNotImplementedError,
+        "message": "The server does not support the functionality required to fulfill the request."
+    },
+    502: {
+        "raise_exception": ZendeskBadGatewayError,
+        "message": "Server received an invalid response."
+    },
+    503: {
+        "raise_exception": ZendeskServiceUnavailableError,
+        "message": "API service is currently unavailable."
+    }
+}
 def is_fatal(exception):
     status_code = exception.response.status_code
 
-    if status_code == 429:
-        sleep_time = int(exception.response.headers['Retry-After'])
-        LOGGER.info("Caught HTTP 429, retrying request in %s seconds", sleep_time)
-        sleep(sleep_time)
-        return False
+    if status_code in [429, 503]:
+        # If status_code is 429 or 503 then checking whether response header has 'Retry-After' attribute or not.
+        # If response header has 'Retry-After' attribute then retry the error otherwise raise the error directly.
+        retry_after = exception.response.headers.get('Retry-After')
+        if retry_after:
+            sleep_time = int(retry_after)
+            LOGGER.info("Caught HTTP %s, retrying request in %s seconds", status_code, sleep_time)
+            sleep(sleep_time)
+            return False
+        else:
+            return True
 
-    return 400 <= status_code < 500
+    return 400 <=status_code < 500
+
+def raise_for_error(response):
+    """ Error handling method which throws custom error. Class for each error defined above which extends `ZendeskError`.
+    This method map the status code with `ERROR_CODE_EXCEPTION_MAPPING` dictionary and accordingly raise the error.
+    If status_code is 200 then simply return json response.
+    """
+    try:
+        response_json = response.json()
+    except Exception: # pylint: disable=broad-except
+        response_json = {}
+    if response.status_code != 200:
+        if response_json.get('error'):
+            message = "HTTP-error-code: {}, Error: {}".format(response.status_code, response_json.get('error'))
+        else:
+            message = "HTTP-error-code: {}, Error: {}".format(
+                response.status_code,
+                response_json.get("message", ERROR_CODE_EXCEPTION_MAPPING.get(
+                    response.status_code, {}).get("message", "Unknown Error")))
+        exc = ERROR_CODE_EXCEPTION_MAPPING.get(
+            response.status_code, {}).get("raise_exception", ZendeskError)
+        raise exc(message, response) from None
 
 @backoff.on_exception(backoff.expo,
-                      requests.exceptions.HTTPError,
+                      (HTTPError, ZendeskBackoffError),
                       max_tries=10,
                       giveup=is_fatal)
-@backoff.on_exception(backoff.expo,Timeout, #As timeout error does not have attribute status_code, hence giveup does not work in this case.
-                      max_tries=5, factor=2) # So, here we added another backoff expression.
+@backoff.on_exception(backoff.expo,
+                    (ConnectionError, Timeout),#As ConnectionError error and timeout error does not have attribute status_code,
+                    max_tries=5, # here we added another backoff expression.
+                    factor=2)
 def call_api(url, request_timeout, params, headers):
     response = requests.get(url, params=params, headers=headers, timeout=request_timeout) # Pass request timeout
-    response.raise_for_status()
+    raise_for_error(response)
     return response
 
 def get_cursor_based(url, access_token, request_timeout, cursor=None, **kwargs):
@@ -109,8 +229,13 @@ def get_incremental_export(url, access_token, request_timeout, start_time):
         cursor = response_json['after_cursor']
 
         params = {'cursor': cursor}
-        response = requests.get(url, params=params, headers=headers)
-        response.raise_for_status()
+        # Replaced below line of code with call_api method
+        # response = requests.get(url, params=params, headers=headers)
+        # response.raise_for_status()
+        # Because it doing the same as call_api. So, now error handling will work properly with backoff
+        # as earlier backoff was not possible
+        response = call_api(url, request_timeout, params=params, headers=headers)
+
         response_json = response.json()
 
         yield response_json
