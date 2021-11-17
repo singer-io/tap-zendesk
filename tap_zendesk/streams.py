@@ -14,7 +14,6 @@ from tap_zendesk import http
 
 LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
-REQUEST_TIMEOUT = 300
 
 REQUEST_TIMEOUT = 300
 START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
