@@ -82,11 +82,12 @@ def populate_class_schemas(catalog, selected_stream_names):
             STREAMS[stream.tap_stream_id].stream = stream
 
 def do_sync(client, catalog, state, start_date, lookback_minutes):
-
     selected_stream_names = get_selected_streams(catalog)
     validate_dependencies(selected_stream_names)
     populate_class_schemas(catalog, selected_stream_names)
     all_sub_stream_names = get_sub_stream_names()
+
+    sync_errors = 0
 
     for stream in catalog.streams:
         stream_name = stream.tap_stream_id
@@ -125,14 +126,22 @@ def do_sync(client, catalog, state, start_date, lookback_minutes):
 
         LOGGER.info("%s: Starting sync", stream_name)
         instance = STREAMS[stream_name](client, start_date)
-        counter_value = sync_stream(state, start_date, instance, lookback_minutes)
-        singer.write_state(state)
-        LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
-        zendesk_metrics.log_aggregate_rates()
+        try:
+            counter_value = sync_stream(state, start_date, instance, lookback_minutes)
+            singer.write_state(state)
+            LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
+            zendesk_metrics.log_aggregate_rates()
+        except Exception:
+            # Don't allow an error in one stream prevent other streams
+            # from running
+            sync_errors += 1
+            LOGGER.exception("%s: Sync failed", stream_name)
 
     singer.write_state(state)
     LOGGER.info("Finished sync")
     zendesk_metrics.log_aggregate_rates()
+
+    sys.exit(sync_errors)
 
 def oauth_auth(args):
     if not set(OAUTH_CONFIG_KEYS).issubset(args.config.keys()):
