@@ -58,10 +58,20 @@ def discover_streams(client, config):
         streams.append({'stream': stream.name, 'tap_stream_id': stream.name, 'schema': schema, 'metadata': stream.load_metadata()})
 
     if error_list:
+
+        total_stream = len(STREAMS.values()) # Total no of streams
         streams_name = ", ".join(error_list)
-        message = "HTTP-error-code: 403, Error: You are missing the following required scopes: read. "\
-                    "The account credentials supplied do not have read access for the following stream(s):  {}".format(streams_name)
-        raise ZendeskForbiddenError(message)
+        if len(error_list) != total_stream:
+            message = "The account credentials supplied do not have 'read' access to the following stream(s): {}. "\
+                "The data for these streams would not be collected due to lack of required permission.".format(streams_name)
+            # If atleast one stream have read permission then just print warning message for all streams
+            # which does not have read permission
+            LOGGER.warning(message)
+        else:
+            message ="HTTP-error-code: 403, Error: The account credentials supplied do not have 'read' access to any "\
+            "of streams supported by the tap. Data collection cannot be initiated due to lack of permissions."
+            # If none of the streams are having the 'read' access, then the code will raise an error
+            raise ZendeskForbiddenError(message)
 
 
     return streams
