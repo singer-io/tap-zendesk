@@ -197,7 +197,7 @@ def main():
     if config_request_timeout and float(config_request_timeout):
         request_timeout = float(config_request_timeout)
     else:
-        request_timeout = REQUEST_TIMEOUT # If value is 0,"0","" or not passed then it set default to 300 seconds.
+        request_timeout = REQUEST_TIMEOUT # If value is 0, "0", "" or not passed then it sets default to 300 seconds.
     # OAuth has precedence
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
     session = get_session(parsed_args.config)
