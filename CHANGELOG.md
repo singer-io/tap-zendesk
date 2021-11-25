@@ -1,5 +1,7 @@
 # Changelog
 
+## 1.7.1
+  * Reverted back API access change login during discover mode [90](https://github.com/singer-io/tap-zendesk/pull/90)
 ## 1.7.0
   * Removed Buffer System [77](https://github.com/singer-io/tap-zendesk/pull/77)
   * Check API access in discovery mode [74](https://github.com/singer-io/tap-zendesk/pull/74)
