@@ -308,3 +308,35 @@ class TestBackoff(unittest.TestCase):
         # Verify the request retry 5 times on timeout 
         self.assertEqual(mock_get.call_count, 10)
             
+
+    @patch('requests.get',side_effect=10*[mocked_get(status_code=524, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_524(self,mock_get, mock_sleep):
+        """
+        Test that the tap can handle 524 error and retry it 10 times
+        """
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token', request_timeout=300)]
+        except http.ZendeskError as e:
+            expected_error_message = "HTTP-error-code: 524, Error: Unknown Error"
+            # Verify the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+
+        #Verify the request retry 10 times
+        self.assertEqual(mock_get.call_count, 10)
+
+    @patch('requests.get',side_effect=10*[mocked_get(status_code=520, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_520(self,mock_get, mock_sleep):
+        """
+        Test that the tap can handle 520 error and retry it 10 times
+        """
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token', request_timeout=300)]
+        except http.ZendeskError as e:
+            expected_error_message = "HTTP-error-code: 520, Error: Unknown Error"
+            # Verify the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+
+        #Verify the request retry 10 times
+        self.assertEqual(mock_get.call_count, 10)
