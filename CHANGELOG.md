@@ -1,5 +1,6 @@
 # Changelog
-
+## 1.7.2
+  * 524 and 520 error codes are taken care in this release to retry [93](https://github.com/singer-io/tap-zendesk/pull/93)
 ## 1.7.1
   * Reverted back API access change login during discover mode [90](https://github.com/singer-io/tap-zendesk/pull/90)
 ## 1.7.0
