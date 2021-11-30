@@ -137,7 +137,7 @@ def raise_for_error(response):
         raise exc(message, response) from None
 
 @backoff.on_exception(backoff.expo,
-                      (HTTPError, ZendeskError), # Added support of backoff for all 5xx errors.
+                      (HTTPError, ZendeskError), # Added support of backoff for all unhandled status codes.
                       max_tries=10,
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,
