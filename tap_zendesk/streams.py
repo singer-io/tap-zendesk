@@ -397,10 +397,6 @@ class TicketMetricEvents(Stream):
         ticket_metric_events = self.client.ticket_metric_events(start_time=start_time)
         for event in ticket_metric_events:
             self.update_bookmark(state, event.time)
-            event_dict = event.to_dict()
-            if event_dict.get('sla'):
-                # TODO I don't know what this consists of yet
-                event_dict['sla'] = json.dumps(event_dict['sla'])
             yield (self.stream, event)
 
 class SatisfactionRatings(Stream):
