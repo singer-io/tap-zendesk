@@ -108,3 +108,4 @@ state.*.json
 target-config.json
 target-config.*.json
 tags
+configs/

@@ -14,7 +14,7 @@ setup(name='tap-zendesk',
           # specifically install the correct version of our fork before
           # trying to install this package.
           'singer-python==5.7.*',
-          'zenpy==2.0.12',
+          'zenpy==2.0.24',
       ],
       extras_require={
           'dev': [
