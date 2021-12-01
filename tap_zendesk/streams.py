@@ -386,6 +386,19 @@ class TicketComments(Stream):
                 child_event['ticket_id'] = event.ticket_id
                 yield (self.stream, child_event)
 
+class TicketMetricEvents(Stream):
+    name = "ticket_metric_events"
+    replication_method = "INCREMENTAL"
+    key_properties = ['id']
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+        start_time = int(bookmark.timestamp())
+        ticket_metric_events = self.client.ticket_metric_events(start_time=start_time)
+        for event in ticket_metric_events:
+            self.update_bookmark(state, event.time)
+            yield (self.stream, event)
+
 class SatisfactionRatings(Stream):
     name = "satisfaction_ratings"
     replication_method = "INCREMENTAL"
@@ -601,6 +614,7 @@ STREAMS = {
     "ticket_comments": TicketComments,
     "ticket_fields": TicketFields,
     "ticket_forms": TicketForms,
+    "ticket_metric_events": TicketMetricEvents,
     "group_memberships": GroupMemberships,
     "macros": Macros,
     "satisfaction_ratings": SatisfactionRatings,
