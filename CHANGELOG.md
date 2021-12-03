@@ -1,4 +1,6 @@
 # Changelog
+## 1.7.3
+  * 503 error code retry is taken care in ths release [#95](https://github.com/singer-io/tap-zendesk/pull/95)
 ## 1.7.2
   * 524 and 520 error codes are taken care in this release to retry [93](https://github.com/singer-io/tap-zendesk/pull/93)
 ## 1.7.1
