@@ -101,17 +101,11 @@ ERROR_CODE_EXCEPTION_MAPPING = {
 def is_fatal(exception):
     status_code = exception.response.status_code
 
-    if status_code in [429, 503]:
-        # If status_code is 429 or 503 then checking whether response header has 'Retry-After' attribute or not.
-        # If response header has 'Retry-After' attribute then retry the error otherwise raise the error directly.
-        retry_after = exception.response.headers.get('Retry-After')
-        if retry_after:
-            sleep_time = int(retry_after)
-            LOGGER.info("Caught HTTP %s, retrying request in %s seconds", status_code, sleep_time)
-            sleep(sleep_time)
-            return False
-        else:
-            return True
+    if status_code == 429:
+        sleep_time = int(exception.response.headers['Retry-After'])
+        LOGGER.info("Caught HTTP 429, retrying request in %s seconds", sleep_time)
+        sleep(sleep_time)
+        return False
 
     return 400 <=status_code < 500
 
@@ -137,7 +131,7 @@ def raise_for_error(response):
         raise exc(message, response) from None
 
 @backoff.on_exception(backoff.expo,
-                      (HTTPError, ZendeskBackoffError),
+                      (HTTPError, ZendeskError), # Added support of backoff for all unhandled status codes.
                       max_tries=10,
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,

@@ -219,43 +219,6 @@ class TestBackoff(unittest.TestCase):
 
         #Verify the request retry 10 times
         self.assertEqual(mock_get.call_count, 10)
- 
-    @patch('requests.get',
-           side_effect=[
-               mocked_get(status_code=503, headers={'Retry-After': '1'}, json={"key3": "val3", **SINGLE_RESPONSE}),
-               mocked_get(status_code=503, headers={'retry-after': 1}, json={"key2": "val2", **SINGLE_RESPONSE}),
-               mocked_get(status_code=200, json={"key1": "val1", **SINGLE_RESPONSE}),
-           ])
-    def test_get_cursor_based_handles_503(self,mock_get, mock_sleep):
-        """Test that the tap:
-        - can handle 503s
-        - requests uses a case insensitive dict for the `headers`
-        - can handle either a string or an integer for the retry header
-        """
-        responses = [response for response in http.get_cursor_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=300)]
-        actual_response = responses[0]
-        self.assertDictEqual({"key1": "val1", **SINGLE_RESPONSE},
-                             actual_response)
-        
-        #Verify the request calls only 3 times
-        self.assertEqual(mock_get.call_count, 3)
-
-    @patch('requests.get',
-           side_effect=[mocked_get(status_code=503)])
-    def test_get_cursor_based_handles_503_without_retry_after(self,mock_get, mock_sleep):
-        """Test that the tap can handle 503 without retry-after headers
-        """
-        try:
-            responses = [response for response in http.get_cursor_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=300)]
-        except http.ZendeskServiceUnavailableError as e:
-            expected_error_message =  'HTTP-error-code: 503, Error: API service is currently unavailable.'
-            # Verify the message formed for the custom exception
-            self.assertEqual(str(e), expected_error_message)
-        
-        #Verify the request calls only 1 time
-        self.assertEqual(mock_get.call_count, 1)
         
     @patch('requests.get')
     def test_get_cursor_based_handles_444(self,mock_get, mock_sleep):
@@ -309,3 +272,51 @@ class TestBackoff(unittest.TestCase):
         # Verify the request retry 5 times on timeout 
         self.assertEqual(mock_get.call_count, 5)
             
+
+    @patch('requests.get',side_effect=10*[mocked_get(status_code=524, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_524(self,mock_get, mock_sleep):
+        """
+        Test that the tap can handle 524 error and retry it 10 times
+        """
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token', request_timeout=300)]
+        except http.ZendeskError as e:
+            expected_error_message = "HTTP-error-code: 524, Error: Unknown Error"
+            # Verify the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+
+        #Verify the request retry 10 times
+        self.assertEqual(mock_get.call_count, 10)
+
+    @patch('requests.get',side_effect=10*[mocked_get(status_code=520, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_520(self,mock_get, mock_sleep):
+        """
+        Test that the tap can handle 520 error and retry it 10 times
+        """
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token', request_timeout=300)]
+        except http.ZendeskError as e:
+            expected_error_message = "HTTP-error-code: 520, Error: Unknown Error"
+            # Verify the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+
+        #Verify the request retry 10 times
+        self.assertEqual(mock_get.call_count, 10)
+        
+    @patch('requests.get',side_effect=10*[mocked_get(status_code=503, json={"key1": "val1"})])
+    def test_get_cursor_based_handles_503(self,mock_get, mock_sleep):
+        """
+        Test that the tap can handle 503 error and retry it 10 times
+        """
+        try:
+            responses = [response for response in http.get_cursor_based(url='some_url',
+                                                                    access_token='some_token', request_timeout=300)]
+        except http.ZendeskServiceUnavailableError as e:
+            expected_error_message = "HTTP-error-code: 503, Error: API service is currently unavailable."
+            # Verify the message formed for the custom exception
+            self.assertEqual(str(e), expected_error_message)
+
+        #Verify the request retry 10 times
+        self.assertEqual(mock_get.call_count, 10)
