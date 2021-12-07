@@ -15,6 +15,7 @@ from tap_zendesk.sync import sync_stream
 
 LOGGER = singer.get_logger()
 
+REQUEST_TIMEOUT = 300
 
 REQUIRED_CONFIG_KEYS = [
     "start_date",
@@ -191,10 +192,16 @@ def get_session(config):
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
+    # Set request timeout to config param `request_timeout` value.
+    config_request_timeout = parsed_args.config.get('request_timeout')
+    if config_request_timeout and float(config_request_timeout):
+        request_timeout = float(config_request_timeout)
+    else:
+        request_timeout = REQUEST_TIMEOUT # If value is 0, "0", "" or not passed then it sets default to 300 seconds.
     # OAuth has precedence
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
     session = get_session(parsed_args.config)
-    client = Zenpy(session=session, **creds)
+    client = Zenpy(session=session, timeout=request_timeout, **creds) # Pass request timeout
 
     if not client:
         LOGGER.error("""No suitable authentication keys provided.""")
