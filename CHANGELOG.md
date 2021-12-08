@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.7.4
-  * Request Timeout Implementation
+  * Request Timeout Implementation [#79](https://github.com/singer-io/tap-zendesk/pull/79)
 ## 1.7.3
   * 503 error code retry is taken care in ths release [#95](https://github.com/singer-io/tap-zendesk/pull/95)
 ## 1.7.2
