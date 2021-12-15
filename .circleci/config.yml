@@ -2,10 +2,19 @@ version: 2.1
 orbs:
   slack: circleci/slack@3.4.2
 
-jobs:
-  build:
+executors:
+  docker-executor:
     docker:
       - image: 218546966473.dkr.ecr.us-east-1.amazonaws.com/circle-ci:stitch-tap-tester
+
+jobs:
+  build:
+    executor: docker-executor
+    steps:
+      - run: echo 'CI done'
+
+  build_and_test:
+    executor: docker-executor
     steps:
       - checkout
       - run:
@@ -15,7 +24,10 @@ jobs:
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
             pip install .[test]
             pip install coverage
-      - run: aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox /tmp/circleci_workspace/dev_env.sh
+      - persist_to_workspace:
+          root: /usr/local/share/virtualenvs
+          paths:
+            - tap-zendesk
       - run:
           name: 'pylint'
           command: |
@@ -32,24 +44,20 @@ jobs:
           path: test_output/report.xml
       - store_artifacts:
           path: htmlcov
-      - persist_to_workspace:
-          root: /tmp/circleci_workspace
-          paths:
-            - dev_env.sh
 
   integration_tests:
-    docker:
-      - image: 218546966473.dkr.ecr.us-east-1.amazonaws.com/circle-ci:stitch-tap-tester
+    executor: docker-executor
     parallelism: 10
     steps:
       - checkout
       - attach_workspace:
-          at: /tmp/circleci_workspace
+          at: /usr/local/share/virtualenvs
       - run:
           name: 'Integration Tests'
           no_output_timeout: 200m
           command: |
-            source /tmp/circleci_workspace/dev_env.sh
+            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
+            source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
             pip install 'zenpy==2.0.24'
             circleci tests glob "test/*.py" | circleci tests split > ./tests-to-run
@@ -66,12 +74,16 @@ workflows:
   version: 2
   commit: &commit_jobs
     jobs:
-      - build:
+      - build_and_test:
           context: circleci-user
       - integration_tests:
           context: circleci-user
           requires:
-            - build
+            - build_and_test
+      - build:
+          requires:
+            - integration_tests
+
   build_daily:
     <<: *commit_jobs
     triggers:
