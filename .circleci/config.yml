@@ -70,6 +70,8 @@ workflows:
           context: circleci-user
       - integration_tests:
           context: circleci-user
+          requires:
+            - build
   build_daily:
     <<: *commit_jobs
     triggers:
