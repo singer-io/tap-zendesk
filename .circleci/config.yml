@@ -11,6 +11,7 @@ jobs:
   build:
     executor: docker-executor
     steps:
+      - checkout
       - run: echo 'CI done'
 
   build_and_test:

@@ -25,7 +25,6 @@ class ZendeskPagination(ZendeskTest):
         expected_streams = expected_streams - {
             "satisfaction_ratings", # skip as only end user of tickets can create data
             "tags",  # https://jira.talendforge.org/browse/TDL-16895
-
         }
 
         conn_id = connections.ensure_connection(self)
