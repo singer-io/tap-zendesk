@@ -15,37 +15,63 @@ jobs:
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
             pip install .[test]
             pip install coverage
+      - run: aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox /tmp/circleci_workspace/dev_env.sh
       - run:
           name: 'pylint'
           command: |
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
             pylint tap_zendesk -d missing-docstring,invalid-name,line-too-long,too-many-locals,too-few-public-methods,fixme,stop-iteration-return,too-many-branches,useless-import-alias,no-else-return,logging-not-lazy
+      - run:
+          name: 'unittests'
+          when: always
+          command: |
+            source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
             nosetests --with-coverage --cover-erase --cover-package=tap_zendesk --cover-html-dir=htmlcov test/unittests
             coverage html
-      - add_ssh_keys
       - store_test_results:
           path: test_output/report.xml
       - store_artifacts:
           path: htmlcov
+      - persist_to_workspace:
+          root: /tmp/circleci_workspace
+          paths:
+            - dev_env.sh
+
+  integration_tests:
+    docker:
+      - image: 218546966473.dkr.ecr.us-east-1.amazonaws.com/circle-ci:stitch-tap-tester
+    parallelism: 10
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/circleci_workspace
       - run:
           name: 'Integration Tests'
           no_output_timeout: 200m
           command: |
-            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
-            source dev_env.sh
+            source /tmp/circleci_workspace/dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
             pip install 'zenpy==2.0.24'
-            run-test --tap=tap-zendesk test
+            circleci tests glob "test/*.py" | circleci tests split > ./tests-to-run
+            if [ -s ./tests-to-run ]; then
+              for test_file in $(cat ./tests-to-run)
+              do
+                run-test --tap=bin/${CIRCLE_PROJECT_REPONAME} $test_file
+              done
+            fi
       - slack/notify-on-failure:
           only_for_branches: master
 
 workflows:
   version: 2
-  commit:
+  commit: &commit_jobs
     jobs:
       - build:
           context: circleci-user
+      - integration_tests:
+          context: circleci-user
   build_daily:
+    <<: *commit_jobs
     triggers:
       - schedule:
           cron: "0 6 * * *"
@@ -53,6 +79,3 @@ workflows:
             branches:
               only:
                 - master
-    jobs:
-      - build:
-          context: circleci-user
