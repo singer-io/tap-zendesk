@@ -82,6 +82,7 @@ workflows:
           requires:
             - build_and_test
       - build:
+          context: circleci-user
           requires:
             - integration_tests
 
