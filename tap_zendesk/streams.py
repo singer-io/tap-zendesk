@@ -350,9 +350,7 @@ class TicketEvents(Stream):
 
         ticket_events = self.client.tickets.events(bookmark, include=include)
         for event in ticket_events:
-            # Don't use event.timestamp here. It tries to parse _timestamp
-            # as a date, but _timestamp is an integer so it fails.
-            event_timestamp = datetime.datetime.fromtimestamp(event._timestamp, pytz.utc)
+            event_timestamp = datetime.datetime.fromtimestamp(event.timestamp, pytz.utc)
             # See the following URL for why we check the timestamp against the bookmark:
             # https://developer.zendesk.com/rest_api/docs/support/incremental_export#excluding-system-updates
             if event_timestamp >= bookmark:
