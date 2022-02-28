@@ -18,12 +18,15 @@ class ZendeskPagination(ZendeskTest):
         This requires we ensure more than 1 page of data exists at all times for any given stream.
         • Verify by pks that the data replicated matches the data we expect.
 
+        Outstanding Work:
+        TDL-17980 [tap-zendesk][tap-tester] Enable CRUD operations for `tags` stream to stabilize pagination test
         """
         
         # Streams to verify all fields tests
         expected_streams = self.expected_check_streams()
         expected_streams = expected_streams - {
             "satisfaction_ratings", # skip as only end user of tickets can create data
+            "tags", #  Test Stability Issue: TDL-17980
         }
 
         conn_id = connections.ensure_connection(self)
