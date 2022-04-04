@@ -244,7 +244,7 @@ class Users(Stream):
         while start < sync_end:
             parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
             parsed_end = min(singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ"), parsed_sync_end)
-            LOGGER.info("Querying for users with window of exclusive boudaries between %s and %s", parsed_start, parsed_end)
+            LOGGER.info("Querying for users with window of exclusive boundaries between %s and %s", parsed_start, parsed_end)
             users = self.client.search("", updated_after=parsed_start, updated_before=parsed_end, type="user")
 
             # NB: Zendesk will return an error on the 1001st record, so we
