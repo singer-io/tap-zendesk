@@ -244,7 +244,7 @@ class Users(Stream):
         while start < sync_end:
             parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
             parsed_end = min(singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ"), parsed_sync_end)
-            LOGGER.info("Querying for users between %s and %s", parsed_start, parsed_end)
+            LOGGER.info("Querying for users with window of exclusive boudaries between %s and %s", parsed_start, parsed_end)
             users = self.client.search("", updated_after=parsed_start, updated_before=parsed_end, type="user")
 
             # NB: Zendesk will return an error on the 1001st record, so we
@@ -257,7 +257,7 @@ class Users(Stream):
                     LOGGER.info("users - Detected Search API response size too large. Cutting search window in half to %s seconds.", search_window_size)
                     continue
 
-                raise Exception("users - Unable to get all users within minimum window of exclusive boundary in a single second ({}), found {} users within this timestamp. Zendesk can only provide a maximum of 1000 users per request. See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits".format(parsed_start, users.count))
+                raise Exception("users - Unable to get all users within minimum window of a single second ({}), found {} users within this timestamp. Zendesk can only provide a maximum of 1000 users per request. See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits".format(parsed_start, users.count))
 
             # Consume the records to account for dates lower than window start
             users = [user for user in users] # pylint: disable=unnecessary-comprehension
