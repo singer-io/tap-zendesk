@@ -251,6 +251,7 @@ class Users(Stream):
             # need to check total response size before iterating
             # See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits
             if users.count > 1000:
+                # to avoid infinite loop behavior we should reduce the window if it is greater than 2
                 if search_window_size > 2:
                     search_window_size = search_window_size // 2
                     end = start + datetime.timedelta(seconds=search_window_size)
