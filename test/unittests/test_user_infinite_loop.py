@@ -4,7 +4,8 @@ import tap_zendesk
 from tap_zendesk.streams import Users
 from tap_zendesk.streams import STREAMS
 import singer
-
+import datetime
+from dateutil import tz
 
 class MockSearch:
     def __init__(self):
@@ -23,8 +24,8 @@ class MockSearch:
         return self
 
 class TestUserSyncCheck(unittest.TestCase):
-
-    def test_many_records_in_one_seconds_for_user(self):
+    @mock.patch('tap_zendesk.singer.utils.now', side_effect=lambda :  datetime.datetime(2022, 4, 7, 1, 45, 21, 840535, tzinfo=tz.UTC))
+    def test_many_records_in_one_seconds_for_user(self, mocked_now):
         """
             Reproduce infinite looping behavior for Users stream when user have many record in single seconds
         """
