@@ -9,8 +9,6 @@ import tap_tester.runner      as runner
 from base import ZendeskTest
 import unittest
 from functools import reduce
-from singer import utils
-from singer import metadata
 from zenpy import Zenpy
 from zenpy.lib.api_objects import Group, Organization, User
 
@@ -68,10 +66,9 @@ class ZendeskBookmarks(ZendeskTest):
 
         # Select our catalogs
         our_catalogs = [c for c in self.found_catalogs if c.get('tap_stream_id') in self.expected_sync_streams()]
-        for c in our_catalogs:
-            c_annotated = menagerie.get_annotated_schema(conn_id, c['stream_id'])
-            c_metadata = metadata.to_map(c_annotated['metadata'])
-            connections.select_catalog_and_fields_via_metadata(conn_id, c, c_annotated, [], [])
+        for catalog in our_catalogs:
+            schema = menagerie.get_annotated_schema(conn_id, catalog['stream_id'])
+            connections.select_catalog_and_fields_via_metadata(conn_id, catalog, schema, [], [])
 
         # Clear state before our run
         menagerie.set_state(conn_id, {})
@@ -167,8 +164,8 @@ class ZendeskBookmarks(ZendeskTest):
         self.assertTrue(any(new_record))
         self.assertGreaterEqual(len(messages), 3, msg="Sync'd incorrect count of messages: {}".format(len(messages)))
         for message in messages:
-            self.assertGreaterEqual(utils.strptime_to_utc(message.get('data', {}).get('updated_at', '')),
-                                    utils.strptime_to_utc(satisfaction_ratings_bookmark))
+            self.assertGreaterEqual(message.get('data', {}).get('updated_at', ''),
+                                    satisfaction_ratings_bookmark)
 
         # TODO NEW TEST: Ticket Audits/Comments, etc... -- make sure to test Audits+Comments selection permutations
         #       -- e.g., if Comments is selected, but not audits, ensure no audits data is emitted
