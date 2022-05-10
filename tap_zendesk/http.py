@@ -109,6 +109,16 @@ def is_fatal(exception):
 
     return 400 <=status_code < 500
 
+def should_retry_error(exception):
+    """
+        Return true if exception is required to retry otherwise return false
+    """
+    if isinstance(exception, ZendeskConflictError):
+        return True
+    if isinstance(exception,Exception) and isinstance(exception.args[0][1],ConnectionResetError):
+        return True
+    return False
+
 def raise_for_error(response):
     """ Error handling method which throws custom error. Class for each error defined above which extends `ZendeskError`.
     This method map the status code with `ERROR_CODE_EXCEPTION_MAPPING` dictionary and accordingly raise the error.
@@ -131,6 +141,10 @@ def raise_for_error(response):
         raise exc(message, response) from None
 
 @backoff.on_exception(backoff.expo,
+                      (ZendeskConflictError),
+                      max_tries=10,
+                      giveup=lambda e: not should_retry_error(e))
+@backoff.on_exception(backoff.expo,
                       (HTTPError, ZendeskError), # Added support of backoff for all unhandled status codes.
                       max_tries=10,
                       giveup=is_fatal)
@@ -140,6 +154,9 @@ def raise_for_error(response):
                     factor=2)
 def call_api(url, request_timeout, params, headers):
     response = requests.get(url, params=params, headers=headers, timeout=request_timeout) # Pass request timeout
+    print("inside call api\n\n")
+    print(response)
+
     raise_for_error(response)
     return response
 
@@ -158,8 +175,9 @@ def get_cursor_based(url, access_token, request_timeout, cursor=None, **kwargs):
 
     if cursor:
         params['page[after]'] = cursor
-
+    print("test----------409")
     response = call_api(url, request_timeout, params=params, headers=headers)
+    print("test----------409")
     response_json = response.json()
 
     yield response_json
