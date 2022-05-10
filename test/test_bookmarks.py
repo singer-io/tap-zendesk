@@ -9,7 +9,7 @@ import tap_tester.runner      as runner
 from base import ZendeskTest
 import unittest
 from functools import reduce
-from zenpy import Zenpy
+# from zenpy import Zenpy
 from zenpy.lib.api_objects import Group, Organization, User
 
 class ZendeskBookmarks(ZendeskTest):
