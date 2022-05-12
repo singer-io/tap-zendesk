@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.5
+  * Added support for backoff and retry for error 409 [#107](https://github.com/singer-io/tap-zendesk/pull/107)
+  * Code Formatting [#107](https://github.com/singer-io/tap-zendesk/pull/107)
 ## 1.7.4
   * Request Timeout Implementation [#79](https://github.com/singer-io/tap-zendesk/pull/79)
 ## 1.7.3
