@@ -225,66 +225,6 @@
     "via": {
       "properties": {
         "source": {
-          "properties": {
-            "from": {
-              "properties": {
-                "name": {
-                  "type": [
-                    "null",
-                    "string"
-                  ]
-                },
-                "ticket_id": {
-                  "type": [
-                    "null",
-                    "integer"
-                  ]
-                },
-                "address": {
-                  "type": [
-                    "null",
-                    "string"
-                  ]
-                },
-                "subject": {
-                  "type": [
-                    "null",
-                    "string"
-                  ]
-                }
-              },
-              "type": [
-                "null",
-                "object"
-              ]
-            },
-            "to": {
-              "properties": {
-                "address": {
-                  "type": [
-                    "null",
-                    "string"
-                  ]
-                },
-                "name": {
-                  "type": [
-                    "null",
-                    "string"
-                  ]
-                }
-              },
-              "type": [
-                "null",
-                "object"
-              ]
-            },
-            "rel": {
-              "type": [
-                "null",
-                "string"
-              ]
-            }
-          },
           "type": [
             "null",
             "object"
