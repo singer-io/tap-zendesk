@@ -224,12 +224,7 @@
     },
     "via": {
       "properties": {
-        "source": {
-          "type": [
-            "null",
-            "object"
-          ]
-        },
+        "source": {},
         "channel": {
           "type": [
             "null",
