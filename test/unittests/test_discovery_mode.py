@@ -27,6 +27,7 @@ class TestDiscovery(unittest.TestCase):
     Test that we can call api for each stream in discovey mode and handle forbidden error.
     '''
     @patch("tap_zendesk.discover.LOGGER.warning")
+    @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access')
     @patch('tap_zendesk.streams.TicketMetricEvents.check_access')
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -51,7 +52,7 @@ class TestDiscovery(unittest.TestCase):
             ])
     def test_discovery_handles_403__raise_tap_zendesk_forbidden_error(self, mock_get, mock_resolve_schema_references,
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies,
-                                mocked_ticket_forms, mock_users, mock_organizations, mocked_ticket_metric_events, mock_logger):
+                                mocked_ticket_forms, mock_users, mock_organizations, mocked_ticket_metric_events, mocked_talk_phone_numbers, mock_logger):
         '''
         Test that we handle forbidden error for child streams. discover_streams calls check_access for each stream to
         check the read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata,
@@ -71,6 +72,8 @@ class TestDiscovery(unittest.TestCase):
             "permission.")
 
     @patch("tap_zendesk.discover.LOGGER.warning")
+    @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access')
+    @patch('tap_zendesk.streams.TicketMetricEvents.check_access')
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -94,7 +97,7 @@ class TestDiscovery(unittest.TestCase):
             ])
     def test_discovery_handles_403_raise_zenpy_forbidden_error_for_access_token(self, mock_get, mock_resolve_schema_references, mock_load_metadata,
                                 mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, mocked_ticket_forms,
-                                mock_users, mock_organizations, mock_logger):
+                                mock_users, mock_organizations, mocked_ticket_metric_events, mocked_talk_phone_numbers, mock_logger):
         '''
         Test that we handle forbidden error received from last failed request which we called from zenpy module and
         log proper warning message. discover_streams calls check_access for each stream to check the
@@ -115,6 +118,8 @@ class TestDiscovery(unittest.TestCase):
             "lack of required permission.")
 
     @patch("tap_zendesk.discover.LOGGER.warning")
+    @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access')
+    @patch('tap_zendesk.streams.TicketMetricEvents.check_access')
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
@@ -138,7 +143,7 @@ class TestDiscovery(unittest.TestCase):
             ])
     def test_discovery_handles_403_raise_zenpy_forbidden_error_for_api_token(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
-                                mocked_ticket_forms, mock_users, mock_organizations, mock_logger):
+                                mocked_ticket_forms, mock_users, mock_organizations, mocked_ticket_metric_events, mocked_talk_phone_numbers, mock_logger):
         '''
         Test that we handle forbidden error received from last failed request which we called from zenpy module and
         log proper warning message. discover_streams calls check_access for each stream to check the 
@@ -157,6 +162,8 @@ class TestDiscovery(unittest.TestCase):
             "tickets, groups, users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, "\
             "tags. The data for these streams would not be collected due to lack of required permission.")
         
+    @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access')
+    @patch('tap_zendesk.streams.TicketMetricEvents.check_access')
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -177,7 +184,7 @@ class TestDiscovery(unittest.TestCase):
             ])
     def test_discovery_handles_except_403_error_requests_module(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
-                                mocked_ticket_forms, mock_users, mock_organizations):
+                                mocked_ticket_forms, mock_users, mock_organizations, mocked_ticket_metric_events, mocked_talk_phone_numbers):
         '''
         Test that function raises error directly if error code is other than 403. discover_streams calls check_access for each 
         stream to check the read perission. discover_streams call many other methods including load_shared_schema_refs, load_metadata, 
@@ -196,6 +203,8 @@ class TestDiscovery(unittest.TestCase):
         self.assertEqual(expected_call_count, actual_call_count)
 
 
+    @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access')
+    @patch('tap_zendesk.streams.TicketMetricEvents.check_access')
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(AUTH_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(AUTH_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(AUTH_ERROR))
@@ -216,7 +225,7 @@ class TestDiscovery(unittest.TestCase):
             ])
     def test_discovery_handles_except_403_error_zenpy_module(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
-                                mocked_ticket_forms, mock_users, mock_organizations):
+                                mocked_ticket_forms, mock_users, mock_organizations, mocked_ticket_metric_events, mocked_talk_phone_numbers):
         '''
         Test that discovery mode raise error direclty if it is rather than 403 for request zenpy module. discover_streams call 
         many other methods including load_shared_schema_refs, load_metadata, load_schema, resolve_schema_references
@@ -235,6 +244,8 @@ class TestDiscovery(unittest.TestCase):
         self.assertEqual(expected_call_count, actual_call_count)
         
         
+    @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access')
+    @patch('tap_zendesk.streams.TicketMetricEvents.check_access')
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
     @patch('tap_zendesk.streams.Users.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
@@ -258,7 +269,7 @@ class TestDiscovery(unittest.TestCase):
             ])
     def test_discovery_handles_200_response(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
-                                mocked_ticket_forms, mock_users, mock_organizations):
+                                mocked_ticket_forms, mock_users, mock_organizations, mocked_ticket_metric_events, mocked_talk_phone_numbers):
         '''
         Test that discovery mode does not raise any error in case of all streams have read permission
         '''
@@ -269,6 +280,8 @@ class TestDiscovery(unittest.TestCase):
         self.assertEqual(expected_call_count, actual_call_count)
 
     @patch("tap_zendesk.discover.LOGGER.warning")
+    @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access')
+    @patch('tap_zendesk.streams.TicketMetricEvents.check_access')
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
     @patch('tap_zendesk.streams.Users.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
     @patch('tap_zendesk.streams.TicketForms.check_access',side_effect=zenpy.lib.exception.APIException(API_TOKEN_ERROR))
@@ -292,7 +305,7 @@ class TestDiscovery(unittest.TestCase):
             ])
     def test_discovery_handles_403_for_all_streams_api_token(self, mock_get, mock_resolve_schema_references, 
                                 mock_load_metadata, mock_load_schema,mock_load_shared_schema_refs, mocked_sla_policies, 
-                                mocked_ticket_forms, mock_users, mock_organizations, mock_logger):
+                                mocked_ticket_forms, mock_users, mock_organizations, mocked_ticket_metric_events, mocked_talk_phone_numbers, mock_logger):
         '''
         Test that we handle forbidden error received from all streams and raise the ZendeskForbiddenError
         with proper error message. discover_streams calls check_access for each stream to check the 
