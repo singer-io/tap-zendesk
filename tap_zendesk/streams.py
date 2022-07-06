@@ -525,7 +525,7 @@ class TalkPhoneNumbers(Stream):
 
     def check_access(self):
         try:
-           self.client.talk.phone_numbers()
+            self.client.talk.phone_numbers()
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
             pass
