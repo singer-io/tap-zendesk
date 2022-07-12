@@ -466,8 +466,6 @@ class TicketMetricEvents(Stream):
         ticket_metric_events = self.client.tickets.metrics_incremental(start_time=epoch_start)
         for event in ticket_metric_events:
             self.count += 1
-            if parsed_start > event.time:
-                raise AssertionError("TicketMetricEvents - Record found out of time order. Details: start ({}) is not less than or equal to event.time ({})".format(parsed_start, event.time))
             if bookmark < utils.strptime_with_tz(event.time):
                 self.update_bookmark(state, event.time)
             if parsed_start <= event.time:
