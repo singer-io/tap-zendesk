@@ -80,6 +80,8 @@ class ZendeskAllFields(ZendeskTest):
                     expected_all_keys = expected_all_keys - {'status', 'instance_id', 'metric', 'type', 'time'}
                 elif stream == "ticket_metric_events":
                     expected_all_keys = expected_all_keys - {'ola'}
+                elif stream == "talk_phone_numbers":
+                    expected_all_keys = expected_all_keys - {'token'}
                             
                 # verify all fields for each stream are replicated
                 self.assertSetEqual(expected_all_keys, actual_all_keys)
