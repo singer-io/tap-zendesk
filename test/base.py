@@ -215,13 +215,19 @@ class ZendeskTest(unittest.TestCase):
         return found_catalogs
 
     def is_ssl_handshake_error(self, exit_status):
-        """ """
+        """
+        Return True if the exit_status matches our expectations for a known SSL error.
+        Otherwise return False
+        """
         tap_error_message = exit_status["tap_error_message"]
-        self.assertEqual(exit_status['tap_exit_status'], 1)
-        self.assertIn("HTTPSConnectionPool", tap_error_message)
-        self.assertIn("Caused by SSLError", tap_error_message)
-        self.assertIn("handshake", tap_error_message.lower())
-        self.assertIn("failure", tap_error_message.lower())
+        if all([exit_status['tap_exit_status'] == 1,
+                "HTTPSConnectionPool" in tap_error_message,
+                "Caused by SSLError" in tap_error_message,
+                "handshake" in tap_error_message.lower(),
+                "failure" in tap_error_message.lower()]):
+
+            return True
+        return False
 
     # BUG_TDL-19985
     @backoff.on_exception(backoff_wait_times,
@@ -238,7 +244,7 @@ class ZendeskTest(unittest.TestCase):
         try:
             menagerie.verify_sync_exit_status(self, exit_status, sync_job_name)
         except AssertionError as err:
-            LOGGER.info("*******************ASSERTION ERRORR*******************")
+            LOGGER.info("*******************ASSERTION ERROR*******************")
             if self.is_ssl_handshake_error(exit_status):
                 LOGGER.info("*******************RETRYING SYNC DUE TO TIMEOUT ERROR*******************")
                 raise RetryableTapError(err)
