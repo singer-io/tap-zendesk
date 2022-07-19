@@ -238,6 +238,7 @@ class ZendeskTest(unittest.TestCase):
         try:
             menagerie.verify_sync_exit_status(self, exit_status, sync_job_name)
         except AssertionError as err:
+            LOGGER.info("*******************ASSERTION ERRORR*******************")
             if self.is_ssl_handshake_error(exit_status):
                 LOGGER.info("*******************RETRYING SYNC DUE TO TIMEOUT ERROR*******************")
                 raise RetryableTapError(err)
