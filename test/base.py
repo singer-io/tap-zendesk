@@ -11,13 +11,15 @@ from tap_tester import menagerie
 from tap_tester import runner
 from tap_tester import LOGGER
 
+# BUG https://jira.talendforge.org/browse/TDL-19985
 
-def backoff_wait_times():
+
+def backoff_wait_times(): # BUG_TDL-19985
     """Create a generator of wait times as [30, 60, 120, 240, 480, ...]"""
     return backoff.expo(factor=30)
 
 
-class RetryableTapError(Exception):
+class RetryableTapError(Exception): # BUG_TDL-19985
     def __init__(self, message):
         super().__init__(message)
 
@@ -221,6 +223,7 @@ class ZendeskTest(unittest.TestCase):
         self.assertIn("handshake", tap_error_message.lower())
         self.assertIn("failure", tap_error_message.lower())
 
+    # BUG_TDL-19985
     @backoff.on_exception(backoff_wait_times,
                           RetryableTapError,
                           max_tries=3)
@@ -231,6 +234,7 @@ class ZendeskTest(unittest.TestCase):
         # verify tap and target exit codes
         exit_status = menagerie.get_exit_status(conn_id, sync_job_name)
 
+        # BUG_TDL-19985 WORKAROUND START
         try:
             menagerie.verify_sync_exit_status(self, exit_status, sync_job_name)
         except AssertionError as err:
@@ -238,6 +242,8 @@ class ZendeskTest(unittest.TestCase):
                 LOGGER.info("*******************RETRYING SYNC DUE TO TIMEOUT ERROR*******************")
                 raise RetryableTapError(err)
             raise
+        # BUG_TDL-19985 WORKAROUND END
+
         sync_record_count = runner.examine_target_output_file(self,
                                                               conn_id,
                                                               self.expected_check_streams(),
