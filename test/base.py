@@ -14,11 +14,6 @@ from tap_tester import LOGGER
 # BUG https://jira.talendforge.org/browse/TDL-19985
 
 
-def backoff_wait_times(): # BUG_TDL-19985
-    """Create a generator of wait times as [30, 60, 120, 240, 480, ...]"""
-    return backoff.expo(factor=30)
-
-
 class RetryableTapError(Exception): # BUG_TDL-19985
     def __init__(self, message):
         super().__init__(message)
@@ -230,9 +225,10 @@ class ZendeskTest(unittest.TestCase):
         return False
 
     # BUG_TDL-19985
-    @backoff.on_exception(backoff_wait_times,
+    @backoff.on_exception(backoff.expo,
                           RetryableTapError,
-                          max_tries=3)
+                          max_tries=2,
+                          factor=30)
     def run_and_verify_sync(self, conn_id):
 
         sync_job_name = runner.run_sync_mode(self, conn_id)
