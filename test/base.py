@@ -1,12 +1,23 @@
 import unittest
 import os
-import tap_tester.connections as connections
-import tap_tester.menagerie as menagerie
-import tap_tester.runner as runner
+import backoff
 from datetime import datetime as dt
 from datetime import timedelta
 import dateutil.parser
 import pytz
+
+from tap_tester import connections
+from tap_tester import menagerie
+from tap_tester import runner
+from tap_tester import LOGGER
+
+# BUG https://jira.talendforge.org/browse/TDL-19985
+
+
+class RetryableTapError(Exception): # BUG_TDL-19985
+    def __init__(self, message):
+        super().__init__(message)
+
 
 class ZendeskTest(unittest.TestCase):
     start_date = ""
@@ -168,7 +179,7 @@ class ZendeskTest(unittest.TestCase):
     def expected_replication_method(self):
         return {table: properties.get(self.REPLICATION_METHOD, set()) for table, properties
                 in self.expected_metadata().items()}
-        
+
     def expected_automatic_fields(self):
         """return a dictionary with key of table name and set of value of automatic(primary key and bookmark field) fields"""
         auto_fields = {}
@@ -198,12 +209,43 @@ class ZendeskTest(unittest.TestCase):
 
         return found_catalogs
 
+    def is_ssl_handshake_error(self, exit_status):
+        """
+        Return True if the exit_status matches our expectations for a known SSL error.
+        Otherwise return False
+        """
+        tap_error_message = exit_status["tap_error_message"]
+        if all([exit_status['tap_exit_status'] == 1,
+                "HTTPSConnectionPool" in tap_error_message,
+                "Caused by SSLError" in tap_error_message,
+                "handshake" in tap_error_message.lower(),
+                "failure" in tap_error_message.lower()]):
+
+            return True
+        return False
+
+    # BUG_TDL-19985
+    @backoff.on_exception(backoff.expo,
+                          RetryableTapError,
+                          max_tries=2,
+                          factor=30)
     def run_and_verify_sync(self, conn_id):
+
         sync_job_name = runner.run_sync_mode(self, conn_id)
 
         # verify tap and target exit codes
         exit_status = menagerie.get_exit_status(conn_id, sync_job_name)
-        menagerie.verify_sync_exit_status(self, exit_status, sync_job_name)
+
+        # BUG_TDL-19985 WORKAROUND START
+        try:
+            menagerie.verify_sync_exit_status(self, exit_status, sync_job_name)
+        except AssertionError as err:
+            LOGGER.info("*******************ASSERTION ERROR*******************")
+            if self.is_ssl_handshake_error(exit_status):
+                LOGGER.info("*******************RETRYING SYNC DUE TO TIMEOUT ERROR*******************")
+                raise RetryableTapError(err)
+            raise
+        # BUG_TDL-19985 WORKAROUND END
 
         sync_record_count = runner.examine_target_output_file(self,
                                                               conn_id,
@@ -311,7 +353,7 @@ class ZendeskTest(unittest.TestCase):
 
         raise NotImplementedError(
             "Tests do not account for dates of this format: {}".format(date_value))
-        
+
     def calculated_states_by_stream(self, current_state):
         timedelta_by_stream = {stream: [0,1,1]  # {stream_name: [days, hours, minutes], ...}
                                for stream in self.expected_check_streams()}
@@ -330,7 +372,7 @@ class ZendeskTest(unittest.TestCase):
             stream_to_calculated_state[stream] = {state_key: calculated_state_formatted}
 
         return stream_to_calculated_state
-    
+
     def timedelta_formatted(self, dtime, days=0):
         try:
             date_stripped = dt.strptime(dtime, self.START_DATE_FORMAT)
