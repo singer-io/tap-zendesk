@@ -64,11 +64,11 @@
             "enum": ["inbound", "outbound"]
         },
         "duration": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "Call duration in seconds"
         },
         "exceeded_queue_time": {
-            "type": ["boolean"],
+            "type": ["boolean", "null"],
             "description": "The customer exceeded the maximum queue wait time and did not speak with an agent"
         },
         "hold_time": {
@@ -103,7 +103,7 @@
             "description": "How long in seconds the customer spent in IVR. Null if IVR is disabled"
         },
         "minutes_billed": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "Minutes billed"
         },
         "not_recording_time": {
