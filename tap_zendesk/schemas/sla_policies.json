@@ -99,7 +99,12 @@
           "priority": { "type": ["null", "string"] },
           "target": { "type": ["null", "integer"] },
           "business_hours": { "type": ["null", "boolean"] },
-          "metric": { }
+          "metric": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
         },
         "type": [
           "null",
