@@ -2,7 +2,10 @@
     "type": ["object"],
     "properties": {
         "agent_id": {
-            "type": ["integer"]
+            "type": [
+                "integer",
+                "null"
+            ]
         },
         "agent_state": {
             "type": [

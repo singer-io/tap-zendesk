@@ -33,7 +33,7 @@
             "enum": ["queue", "web widget"]
         },
         "completion_status": {
-            "type": ["string"],
+            "type": ["string", "null"],
             "description": "Status of the call",
             "enum": ["completed", "abandoned_in_queue", "abandoned_in_ivr", "abandoned_in_voicemail", "abandoned_on_hold", "pending_voicemail"]
         },
