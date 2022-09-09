@@ -24,7 +24,7 @@
             "enum": ["3"]
         },
         "callback": {
-            "type": ["boolean"],
+            "type": ["boolean", "null"],
             "description": "True if the call was initiated by a callback request from the customer"
         },
         "callback_source": {
@@ -38,11 +38,11 @@
             "enum": ["completed", "abandoned_in_queue", "abandoned_in_ivr", "abandoned_in_voicemail", "abandoned_on_hold", "pending_voicemail"]
         },
         "consultation_time": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "Sum of how long in seconds agents consulted with each other while the customer was on hold"
         },
         "created_at": {
-            "type": ["string"],
+            "type": ["string", "null"],
             "description": "When the call object was created",
             "format": "date-time"
         },
@@ -55,11 +55,11 @@
             "description": "The customer requested to be directed to voicemail instead of waiting for an agent to answer"
         },
         "default_group": {
-            "type": ["boolean"],
+            "type": ["boolean", "null"],
             "description": "The call was answered by an agent who is a member of the call's default group, if group routing is used"
         },
         "direction": {
-            "type": ["string"],
+            "type": ["string", "null"],
             "description": "Inbound or outbound. The agent or customer who initialized the call",
             "enum": ["inbound", "outbound"]
         },
@@ -72,11 +72,11 @@
             "description": "The customer exceeded the maximum queue wait time and did not speak with an agent"
         },
         "hold_time": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "Sum of how long in seconds the customer was placed on hold by an agent(s)"
         },
         "id": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "Call id"
         },
         "ivr_action": {
@@ -111,11 +111,11 @@
             "description": "How long in seconds spent not recording on the call"
         },
         "outside_business_hours": {
-            "type": ["boolean"],
+            "type": ["boolean", "null"],
             "description": "The call was received outside business hours"
         },
         "overflowed": {
-            "type": ["boolean"],
+            "type": ["boolean", "null"],
             "description": "True if the call overflowed"
         },
         "overflowed_to": {
@@ -127,7 +127,7 @@
             "description": "Talk phone associated with the call. Example: \"+1311123456789\""
         },
         "phone_number_id": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "Talk phone number id"
         },
         "quality_issues": {
@@ -167,20 +167,20 @@
             "description": "How long in seconds the customer waited for an agent to answer after hearing the Available agents greeting"
         },
         "updated_at": {
-            "type": ["string"],
+            "type": ["string", "null"],
             "description": "When the call object was last created",
             "format": "date-time"
         },
         "voicemail": {
-            "type": ["boolean"],
+            "type": ["boolean", "null"],
             "description": "If true, the call was a voicemail"
         },
         "wait_time": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "How long in seconds the customer was in the call before an agent answered"
         },
         "wrap_up_time": {
-            "type": ["integer"],
+            "type": ["integer", "null"],
             "description": "Sum of how long in seconds the agent(s) spent in wrap up"
         }
     }
