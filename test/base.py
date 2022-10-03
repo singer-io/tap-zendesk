@@ -244,6 +244,7 @@ class ZendeskTest(unittest.TestCase):
             if self.is_ssl_handshake_error(exit_status):
                 LOGGER.info("*******************RETRYING SYNC DUE TO TIMEOUT ERROR*******************")
                 if state is not None:
+                    LOGGER.info("*******************RESETTING STATE*******************")
                     menagerie.set_state(conn_id, state)
                 raise RetryableTapError(err)
             raise
