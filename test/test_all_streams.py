@@ -70,7 +70,7 @@ class ZendeskAllStreams(ZendeskTest):
 
         # Run a sync job using orchestrator
         # Verify exit status is 0 and verify rows were synced
-        _ = self.run_and_verify_sync(conn_id)
+        _ = self.run_and_verify_sync(conn_id, state={})
 
         # Verify actual rows were synced
 
