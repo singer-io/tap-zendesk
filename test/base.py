@@ -73,6 +73,9 @@ class ZendeskTest(unittest.TestCase):
         return_value["start_date"] = self.start_date
         return return_value
 
+    def to_map(self, raw_metadata):
+        return {tuple(md['breadcrumb']): md['metadata'] for md in raw_metadata}
+
     def expected_metadata(self):
         return {
             "groups": {

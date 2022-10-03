@@ -3,7 +3,6 @@ import tap_tester.menagerie   as menagerie
 import tap_tester.runner      as runner
 
 from functools import reduce
-from singer import metadata
 from base import ZendeskTest
 
 class ZendeskAllStreams(ZendeskTest):
@@ -62,7 +61,7 @@ class ZendeskAllStreams(ZendeskTest):
         our_catalogs = [c for c in self.found_catalogs if c.get('tap_stream_id') in self.expected_sync_streams()]
         for c in our_catalogs:
             c_annotated = menagerie.get_annotated_schema(conn_id, c['stream_id'])
-            c_metadata = metadata.to_map(c_annotated['metadata'])
+            c_metadata = self.to_map(c_annotated['metadata'])
             connections.select_catalog_and_fields_via_metadata(conn_id, c, c_annotated, [], [])
 
         # Clear state before our run
