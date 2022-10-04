@@ -73,6 +73,9 @@ class ZendeskTest(unittest.TestCase):
         return_value["start_date"] = self.start_date
         return return_value
 
+    def to_map(self, raw_metadata):
+        return {tuple(md['breadcrumb']): md['metadata'] for md in raw_metadata}
+
     def expected_metadata(self):
         return {
             "groups": {
@@ -229,7 +232,7 @@ class ZendeskTest(unittest.TestCase):
                           RetryableTapError,
                           max_tries=2,
                           factor=30)
-    def run_and_verify_sync(self, conn_id):
+    def run_and_verify_sync(self, conn_id, state=None):
 
         sync_job_name = runner.run_sync_mode(self, conn_id)
 
@@ -243,6 +246,9 @@ class ZendeskTest(unittest.TestCase):
             LOGGER.info("*******************ASSERTION ERROR*******************")
             if self.is_ssl_handshake_error(exit_status):
                 LOGGER.info("*******************RETRYING SYNC DUE TO TIMEOUT ERROR*******************")
+                if state is not None:
+                    LOGGER.info("*******************RESETTING STATE*******************")
+                    menagerie.set_state(conn_id, state)
                 raise RetryableTapError(err)
             raise
         # BUG_TDL-19985 WORKAROUND END
