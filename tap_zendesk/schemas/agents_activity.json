@@ -1,0 +1,109 @@
+{
+    "type": "object",
+    "properties": {
+        "agent_id": {
+            "type": "string",
+            "description": "The agent's id"
+        },
+        "agent_state": {
+            "type": "string",
+            "description": "The agent's state. Allowed values are 'online', 'offline', 'away', or 'transfers_only'"
+        },
+        "available_time": {
+            "type": "integer",
+            "description":"Total time agent was available to answer calls and set to 'online'. Does not include time on calls or in wrap-up mode"
+        },
+        "avatar_url": {
+            "type": "string",
+            "description": "The URL to agent's avatar"
+        },
+        "away_time": {
+            "type": "integer",
+            "description": "Total time agent's status was set to 'away'"
+        },
+        "call_status": {
+            "type": "string",
+            "description": "The agent's call status. Allowed values are 'on_call', 'wrap_up', or 'null'"
+        },
+        "calls_accepted": {
+            "type": "integer",
+            "description": "The total number of phone calls the agent has accepted"
+        },
+        "calls_denied": {
+            "type": "integer",
+            "description": "The total number of times the agent has declined an incoming call"
+        },
+        "calls_missed": {
+            "type": "integer",
+            "description": "The total number of times an agent has not answered their phone and the call was routed to the next available agent"
+        },
+        "forwarding_number": {
+            "type": "string",
+            "description": "The forwarding number set up by the agent, or null if the agent has no forwarding number"
+        },
+        "name": {
+            "type": "string",
+            "description": "The agent's name"
+        },
+        "online_time": {
+            "type": "integer",
+            "description": "Total time agent's status was set to 'online', 'away', or 'transfers_only'"
+        },
+        "transfers_only_time": {
+            "type": "integer",
+            "description": "Total time agent's status was set to 'transfers_only'"
+        },
+        "total_call_duration": {
+            "type": "integer",
+            "description": "Total time the agent was on call across all calls"
+        },
+        "total_talk_time": {
+            "type": "integer",
+            "description": "Total talk time (excludes hold time and consultation)"
+        },
+        "total_wrap_up_time": {
+            "type": "integer",
+            "description": "Total time spent in wrap-up across all calls"
+        },
+        "via": {
+            "type": "string",
+            "description": "The channel (client/phone) the agent is registered on"
+        },
+        "accepted_third_party_conferences": {
+            "type": "integer",
+            "description": "The average number of conference calls accepted, the number accepted by the selected agent, and the percentage difference between the two"
+        },
+        "accepted_transfers": {
+            "type": "integer",
+            "description": "Total numbers of transfers the agent accepted"
+        },
+        "average_hold_time": {
+            "type": "integer",
+            "description": "Average time the agent spent on hold per call"
+        },
+        "average_talk_time": {
+            "type": "integer",
+            "description": "Average talk time across all calls (excludes hold time and consultation)"
+        },
+        "average_wrap_up_time": {
+            "type": "integer",
+            "description": "Average wrap-up time across all calls"
+        },
+        "calls_put_on_hold": {
+            "type": "integer",
+            "description": "Total number of calls the agent placed on hold"
+        },
+        "started_third_party_conferences": {
+            "type": "integer",
+            "description": "The average number of conference calls initiated, the number initiated by the selected agent, and the percentage difference between the two"
+        },
+        "started_transfers": {
+            "type": "integer",
+            "description": "Total numbers of transfers the agent started"
+        },
+        "total_hold_time": {
+            "type": "integer",
+            "description": "Total time the agent was on hold across all calls"
+        }
+    }
+}
