@@ -453,6 +453,37 @@ class SatisfactionRatings(Stream):
             start = end - datetime.timedelta(seconds=1)
             end = start + datetime.timedelta(seconds=search_window_size)
 
+class AgentsActivity(Stream):
+    name = "agent_activities"
+    replication_method = "INCREMENTAL"
+    replication_key = "updated_at"
+
+    def sync(self, state):
+        # The incremental Talk endpoint isn't currently supported by the Zenpy
+        # library, though there is an open PR for getting that in there:
+        # https://github.com/facetoe/zenpy/pull/454
+        # If/when that gets merged we can update, but for now we have this!
+
+        bookmark = self.get_bookmark(state)
+        bookmark = math.floor(bookmark.timestamp())
+        next_page = f'https://{self.client.talk.subdomain}.zendesk.com/api/v2/channels/voice/stats/incremental/calls?start_time={bookmark}'
+        count = 50
+
+        # this endpoint will always return a value for next_page, so instead we
+        # use the count property to determine if more items are available
+        MINIMUM_REQUIRED_RESULT_SET_SIZE = 50
+
+        while count >= MINIMUM_REQUIRED_RESULT_SET_SIZE:
+            resp = self.client.talk._call_api(self.client.talk.session.get, next_page)
+            result = resp.json()
+            calls = result['calls']
+            for call in calls:
+                self.update_bookmark(state, call['updated_at'])
+                yield (self.stream, call)
+
+            next_page = result['next_page']
+            count = result['count']
+
 
 class Groups(Stream):
     name = "groups"
@@ -569,6 +600,20 @@ class SLAPolicies(Stream):
             yield (self.stream, policy)
 
 
+class Tags(Stream):
+    name = "tags"
+    replication_method = "FULL_TABLE"
+    key_properties = ["name"]
+
+    def sync(self, state): # pylint: disable=unused-argument
+        # NB: Setting page to force it to paginate all tags, instead of just the
+        #     top 100 popular tags
+        tags = self.client.tags(page=1)
+        for tag in tags:
+            yield (self.stream, tag)
+    
+
+
 class Calls(Stream):
     name = "calls"
     replication_method = "INCREMENTAL"
@@ -620,4 +665,5 @@ STREAMS = {
     "ticket_metrics": TicketMetrics,
     "sla_policies": SLAPolicies,
     "calls": Calls,
+    "agent_activities": AgentsActivity
 }
