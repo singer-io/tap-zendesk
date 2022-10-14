@@ -59,12 +59,10 @@ class Stream():
     key_properties = KEY_PROPERTIES
     stream = None
 
-    def __init__(self, client=None, start_date=None):
+    def __init__(self, client=None, config=None):
         self.client = client
-        if start_date:
-            self.start_date = utils.strptime_with_tz(start_date)
-        else:
-            self.start_date = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
+        self.config = config
+        self.start_date = utils.strptime_with_tz(config['start_date'])
 
     last_record_emit = {}
     buf = {}

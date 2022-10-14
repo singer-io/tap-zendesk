@@ -81,7 +81,7 @@ def populate_class_schemas(catalog, selected_stream_names):
         if stream.tap_stream_id in selected_stream_names:
             STREAMS[stream.tap_stream_id].stream = stream
 
-def do_sync(client, catalog, state, start_date, lookback_minutes):
+def do_sync(client, config, catalog, state):
     selected_stream_names = get_selected_streams(catalog)
     validate_dependencies(selected_stream_names)
     populate_class_schemas(catalog, selected_stream_names)
@@ -125,9 +125,9 @@ def do_sync(client, catalog, state, start_date, lookback_minutes):
             continue
 
         LOGGER.info("%s: Starting sync", stream_name)
-        instance = STREAMS[stream_name](client, start_date)
+        instance = STREAMS[stream_name](client, config)
         try:
-            counter_value = sync_stream(state, start_date, instance, lookback_minutes)
+            counter_value = sync_stream(state, instance)
             singer.write_state(state)
             LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
             zendesk_metrics.log_aggregate_rates()
@@ -204,6 +204,10 @@ def main():
         do_discover(client)
     elif parsed_args.catalog:
         state = parsed_args.state
-        start_date = parsed_args.config['start_date']
-        lookback_minutes = parsed_args.config.get('lookback_minutes')
-        do_sync(client, parsed_args.catalog, state, start_date, lookback_minutes)
+        
+        filtered_config = {
+            k: v for k, v in parsed_args.config.items()
+            if k not in OAUTH_CONFIG_KEYS + API_TOKEN_CONFIG_KEYS
+        }
+        LOGGER.info(filtered_config)
+        do_sync(client, filtered_config, parsed_args.catalog, state)
