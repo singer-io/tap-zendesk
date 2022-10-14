@@ -62,7 +62,10 @@ class Stream():
     def __init__(self, client=None, config=None):
         self.client = client
         self.config = config
-        self.start_date = utils.strptime_with_tz(config['start_date'])
+        if config:
+            self.start_date = utils.strptime_with_tz(config['start_date'])
+        else:
+            self.start_date = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
 
     last_record_emit = {}
     buf = {}
@@ -452,13 +455,13 @@ class SatisfactionRatings(Stream):
             end = start + datetime.timedelta(seconds=search_window_size)
 
 class AgentsActivity(Stream):
-    name = "agent_activities"
+    name = "agents_activity"
     replication_method = "FULL_TABLE" # This doesn't matter
     key_properties = ["sync_date", "agent_id"]
 
     def sync(self, state):
         # https://developer.zendesk.com/api-reference/voice/talk-api/stats/#list-agents-activity
-        agent_activities = self.client.talk.agents_activity()
+        agents_activity = self.client.talk.agents_activity()
 
         # The API docs note that the timeframe of this data happens for:
         # "the current day from midnight in your account's timezone to the moment you make the request."
@@ -473,7 +476,7 @@ class AgentsActivity(Stream):
             LOGGER.info(f'Agent activities sync_date is not local aware (assuming UTC), using date of: {sync_date}')
 
         sync_date = str(sync_date.date())
-        for agent_activity in agent_activities:
+        for agent_activity in agents_activity:
             agent_activity = agent_activity.to_dict()
             agent_activity["sync_date"] = sync_date
             yield (self.stream, agent_activity)
@@ -594,20 +597,6 @@ class SLAPolicies(Stream):
             yield (self.stream, policy)
 
 
-class Tags(Stream):
-    name = "tags"
-    replication_method = "FULL_TABLE"
-    key_properties = ["name"]
-
-    def sync(self, state): # pylint: disable=unused-argument
-        # NB: Setting page to force it to paginate all tags, instead of just the
-        #     top 100 popular tags
-        tags = self.client.tags(page=1)
-        for tag in tags:
-            yield (self.stream, tag)
-    
-
-
 class Calls(Stream):
     name = "calls"
     replication_method = "INCREMENTAL"
@@ -659,5 +648,5 @@ STREAMS = {
     "ticket_metrics": TicketMetrics,
     "sla_policies": SLAPolicies,
     "calls": Calls,
-    "agent_activities": AgentsActivity
+    "agents_activity": AgentsActivity
 }
