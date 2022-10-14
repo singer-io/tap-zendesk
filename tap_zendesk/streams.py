@@ -455,34 +455,21 @@ class SatisfactionRatings(Stream):
 
 class AgentsActivity(Stream):
     name = "agent_activities"
-    replication_method = "INCREMENTAL"
-    replication_key = "updated_at"
+    replication_method = "FULL_TABLE" # This doesn't matter
+    key_properties = ["sync_date", "agent_id"]
 
     def sync(self, state):
-        # The incremental Talk endpoint isn't currently supported by the Zenpy
-        # library, though there is an open PR for getting that in there:
-        # https://github.com/facetoe/zenpy/pull/454
-        # If/when that gets merged we can update, but for now we have this!
-
-        bookmark = self.get_bookmark(state)
-        bookmark = math.floor(bookmark.timestamp())
-        next_page = f'https://{self.client.talk.subdomain}.zendesk.com/api/v2/channels/voice/stats/incremental/calls?start_time={bookmark}'
-        count = 50
-
-        # this endpoint will always return a value for next_page, so instead we
-        # use the count property to determine if more items are available
-        MINIMUM_REQUIRED_RESULT_SET_SIZE = 50
-
-        while count >= MINIMUM_REQUIRED_RESULT_SET_SIZE:
-            resp = self.client.talk._call_api(self.client.talk.session.get, next_page)
-            result = resp.json()
-            calls = result['calls']
-            for call in calls:
-                self.update_bookmark(state, call['updated_at'])
-                yield (self.stream, call)
-
-            next_page = result['next_page']
-            count = result['count']
+        # https://developer.zendesk.com/api-reference/voice/talk-api/stats/#list-agents-activity
+        endpoint = f'https://{self.client.talk.subdomain}.zendesk.com/api/v2/channels/voice/stats/agents_activity'
+        resp = self.client.talk._call_api(self.client.talk.session.get, endpoint)
+        result = resp.json()
+        agent_activities = result['agents_activity']
+        for agent_activity in agent_activities:
+            # The API docs note that the timeframe of this data happens for:
+            # "the current day from midnight in your account's timezone to the moment you make the request."
+            # TODO: get the timezone
+            agent_activity["sync_date"] = str(datetime.date.today() + datetime.timedelta(days=2))
+            yield (self.stream, agent_activity)
 
 
 class Groups(Stream):

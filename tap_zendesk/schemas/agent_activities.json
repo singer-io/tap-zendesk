@@ -1,6 +1,11 @@
 {
     "type": "object",
     "properties": {
+        "sync_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Always in UTC"
+        },
         "agent_id": {
             "type": ["string", "null"],
             "description": "The agent's id"
@@ -11,7 +16,7 @@
         },
         "available_time": {
             "type": "integer",
-            "description":"Total time agent was available to answer calls and set to 'online'. Does not include time on calls or in wrap-up mode"
+            "description": "Total time agent was available to answer calls and set to 'online'. Does not include time on calls or in wrap-up mode"
         },
         "avatar_url": {
             "type": "string",
@@ -22,7 +27,7 @@
             "description": "Total time agent's status was set to 'away'"
         },
         "call_status": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "The agent's call status. Allowed values are 'on_call', 'wrap_up', or 'null'"
         },
         "calls_accepted": {
@@ -38,7 +43,7 @@
             "description": "The total number of times an agent has not answered their phone and the call was routed to the next available agent"
         },
         "forwarding_number": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "The forwarding number set up by the agent, or null if the agent has no forwarding number"
         },
         "name": {
