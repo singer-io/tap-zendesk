@@ -4,10 +4,10 @@
         "sync_date": {
             "type": "string",
             "format": "date",
-            "description": "Always in UTC"
+            "description": "Local date aware if the account_timezone is set, otherwise date in UTC."
         },
         "agent_id": {
-            "type": ["string", "null"],
+            "type": "string",
             "description": "The agent's id"
         },
         "agent_state": {
