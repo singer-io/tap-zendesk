@@ -209,5 +209,4 @@ def main():
             k: v for k, v in parsed_args.config.items()
             if k not in OAUTH_CONFIG_KEYS + API_TOKEN_CONFIG_KEYS
         }
-        LOGGER.info(filtered_config)
         do_sync(client, filtered_config, parsed_args.catalog, state)
