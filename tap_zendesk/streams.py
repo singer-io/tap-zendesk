@@ -458,15 +458,24 @@ class AgentsActivity(Stream):
 
     def sync(self, state):
         # https://developer.zendesk.com/api-reference/voice/talk-api/stats/#list-agents-activity
-        endpoint = f'https://{self.client.talk.subdomain}.zendesk.com/api/v2/channels/voice/stats/agents_activity'
-        resp = self.client.talk._call_api(self.client.talk.session.get, endpoint)
-        result = resp.json()
-        agent_activities = result['agents_activity']
+        agent_activities = self.client.talk.agents_activity()
+
+        # The API docs note that the timeframe of this data happens for:
+        # "the current day from midnight in your account's timezone to the moment you make the request."
+        # So mark the date as a local date given the account_timezone in the config
+        # as we can't fetch the account information using the current client
+        sync_date = datetime.datetime.utcnow()
+        if self.config.get('account_timezone'):
+            tz = pytz.timezone(self.config['account_timezone'])
+            sync_date = sync_date.astimezone(tz)
+            LOGGER.info(f'Agent activities sync_date is local aware, using date of: {sync_date}')
+        else:
+            LOGGER.info(f'Agent activities sync_date is not local aware (assuming UTC), using date of: {sync_date}')
+
+        sync_date = str(sync_date.date())
         for agent_activity in agent_activities:
-            # The API docs note that the timeframe of this data happens for:
-            # "the current day from midnight in your account's timezone to the moment you make the request."
-            # TODO: get the timezone
-            agent_activity["sync_date"] = str(datetime.date.today() + datetime.timedelta(days=2))
+            agent_activity = agent_activity.to_dict()
+            agent_activity["sync_date"] = sync_date
             yield (self.stream, agent_activity)
 
 
