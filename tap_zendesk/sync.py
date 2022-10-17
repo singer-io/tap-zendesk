@@ -15,8 +15,10 @@ def process_record(record):
     rec_dict = json.loads(rec_str)
     return rec_dict
 
-def sync_stream(state, start_date, instance, lookback_minutes):
+def sync_stream(state, instance):
     stream = instance.stream
+    start_date = instance.config['start_date']
+    lookback_minutes = instance.config.get('lookback_minutes')
 
     # If we have a bookmark, use it; otherwise use start_date
     if (instance.replication_method == 'INCREMENTAL' and

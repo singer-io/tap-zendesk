@@ -59,10 +59,11 @@ class Stream():
     key_properties = KEY_PROPERTIES
     stream = None
 
-    def __init__(self, client=None, start_date=None):
+    def __init__(self, client=None, config=None):
         self.client = client
-        if start_date:
-            self.start_date = utils.strptime_with_tz(start_date)
+        self.config = config
+        if config:
+            self.start_date = utils.strptime_with_tz(config['start_date'])
         else:
             self.start_date = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
 
@@ -453,6 +454,33 @@ class SatisfactionRatings(Stream):
             start = end - datetime.timedelta(seconds=1)
             end = start + datetime.timedelta(seconds=search_window_size)
 
+class AgentsActivity(Stream):
+    name = "agents_activity"
+    replication_method = "FULL_TABLE" # This doesn't matter
+    key_properties = ["sync_date", "agent_id"]
+
+    def sync(self, state):
+        # https://developer.zendesk.com/api-reference/voice/talk-api/stats/#list-agents-activity
+        agents_activity = self.client.talk.agents_activity()
+
+        # The API docs note that the timeframe of this data happens for:
+        # "the current day from midnight in your account's timezone to the moment you make the request."
+        # So mark the date as a local date given the account_timezone in the config
+        # as we can't fetch the account information using the current client
+        sync_date = datetime.datetime.utcnow()
+        if self.config.get('account_timezone'):
+            tz = pytz.timezone(self.config['account_timezone'])
+            sync_date = sync_date.astimezone(tz)
+            LOGGER.info(f'Agent activities sync_date is local aware, using date of: {sync_date}')
+        else:
+            LOGGER.info(f'Agent activities sync_date is not local aware (assuming UTC), using date of: {sync_date}')
+
+        sync_date = str(sync_date.date())
+        for agent_activity in agents_activity:
+            agent_activity = agent_activity.to_dict()
+            agent_activity["sync_date"] = sync_date
+            yield (self.stream, agent_activity)
+
 
 class Groups(Stream):
     name = "groups"
@@ -620,4 +648,5 @@ STREAMS = {
     "ticket_metrics": TicketMetrics,
     "sla_policies": SLAPolicies,
     "calls": Calls,
+    "agents_activity": AgentsActivity
 }
