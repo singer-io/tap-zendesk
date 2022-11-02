@@ -403,6 +403,7 @@ class TicketMetricEvents(Stream):
     name = "ticket_metric_events"
     replication_method = "INCREMENTAL"
     key_properties = ['id']
+    replication_key = 'time'
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
