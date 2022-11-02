@@ -20,12 +20,13 @@ def sync_stream(state, instance):
     start_date = instance.config['start_date']
     lookback_minutes = instance.config.get('lookback_minutes')
 
-    # If we have a bookmark, use it; otherwise use start_date
+    # If we have a bookmark, use it; otherwise set a temp bookmark as the start_date and use that
+    bookmark_key = instance._get_bookmark_key(log=True)
     if (instance.replication_method == 'INCREMENTAL' and
-            not state.get('bookmarks', {}).get(stream.tap_stream_id, {}).get(instance.replication_key)):
+            not state.get('bookmarks', {}).get(stream.tap_stream_id, {}).get(bookmark_key)):
         singer.write_bookmark(state,
                               stream.tap_stream_id,
-                              instance.replication_key,
+                              bookmark_key,
                               start_date)
 
     parent_stream = stream
