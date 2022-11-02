@@ -91,13 +91,27 @@ class Stream():
                 yield rec
             self.buf[stream_name] = []
 
+    def _get_bookmark_key(self, log: bool=False) -> str:
+        bookmark_key = self.replication_key
+        if self.replication_key is None:
+            # When we serialize None to json, it turns into 'null'. However, when we deserialize the
+            # state, the key to search for is 'null' and not None. This means that it will always use the start date
+            # since the key is never found.
+            bookmark_key = 'null'
+            if log:
+                LOGGER.warning(f'no replication key set for {self.name}, bookmark key set to "{bookmark_key}"')
+        return bookmark_key
+
     def get_bookmark(self, state):
-        return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
+        bookmark_key = self._get_bookmark_key()
+        state_bookmark = singer.get_bookmark(state, self.name, bookmark_key)
+        return utils.strptime_with_tz(state_bookmark)
 
     def update_bookmark(self, state, value):
         current_bookmark = self.get_bookmark(state)
+        bookmark_key = self._get_bookmark_key()
         if value and utils.strptime_with_tz(value) > current_bookmark:
-            singer.write_bookmark(state, self.name, self.replication_key, value)
+            singer.write_bookmark(state, self.name, bookmark_key, value)
 
     def load_schema(self):
         schema_file = "schemas/{}.json".format(self.name)
@@ -389,6 +403,7 @@ class TicketMetricEvents(Stream):
     name = "ticket_metric_events"
     replication_method = "INCREMENTAL"
     key_properties = ['id']
+    replication_key = 'time'
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
