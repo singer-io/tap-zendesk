@@ -361,7 +361,7 @@ class ZendeskTest(unittest.TestCase):
             "Tests do not account for dates of this format: {}".format(date_value))
 
     def calculated_states_by_stream(self, current_state):
-        timedelta_by_stream = {stream: [0,1,1]  # {stream_name: [days, hours, minutes], ...}
+        timedelta_by_stream = {stream: [0,2,1]  # {stream_name: [days, hours, minutes], ...}
                                for stream in self.expected_check_streams()}
 
         stream_to_calculated_state = {stream: "" for stream in current_state['bookmarks'].keys()}
