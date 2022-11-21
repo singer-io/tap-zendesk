@@ -643,6 +643,32 @@ class Calls(Stream):
             next_page = result['next_page']
             count = result['count']
 
+class CallLegs(Stream):
+    name = "call_legs"
+    replication_method = "INCREMENTAL"
+    replication_key = "updated_at"
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+        bookmark = math.floor(bookmark.timestamp())
+        next_page = f'https://{self.client.talk.subdomain}.zendesk.com/api/v2/channels/voice/stats/incremental/legs?start_time={bookmark}'
+        count = 50
+
+        # this endpoint will always return a value for next_page, so instead we
+        # use the count property to determine if more items are available
+        MINIMUM_REQUIRED_RESULT_SET_SIZE = 50
+
+        while count >= MINIMUM_REQUIRED_RESULT_SET_SIZE:
+            resp = self.client.talk._call_api(self.client.talk.session.get, next_page)
+            result = resp.json()
+            call_legs = result['legs']
+            for leg in call_legs:
+                self.update_bookmark(state, leg['updated_at'])
+                yield (self.stream, leg)
+
+            next_page = result['next_page']
+            count = result['count']
+
 
 STREAMS = {
     "tickets": Tickets,
@@ -663,5 +689,6 @@ STREAMS = {
     "ticket_metrics": TicketMetrics,
     "sla_policies": SLAPolicies,
     "calls": Calls,
+    "call_legs": CallLegs,
     "agents_activity": AgentsActivity
 }
