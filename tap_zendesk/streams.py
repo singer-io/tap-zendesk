@@ -652,7 +652,7 @@ class CallLegs(Stream):
         bookmark = self.get_bookmark(state)
         bookmark = math.floor(bookmark.timestamp())
         next_page = f'https://{self.client.talk.subdomain}.zendesk.com/api/v2/channels/voice/stats/incremental/legs?start_time={bookmark}'
-        count = 50
+        count = 50 
 
         # this endpoint will always return a value for next_page, so instead we
         # use the count property to determine if more items are available
