@@ -47,7 +47,7 @@
         },
         "created_at": {
             "type": "string",
-            "format": "date"
+            "format": "date",
             "description": "When the leg object was created"
         },
         "duration": {
@@ -72,7 +72,7 @@
         },
         "quality_issues": {
             "type": "array",
-            "description": "A summary of the call's quality issues related to the call provided to Zendesk from Twilio. Until the information is made available by Twilio, the array contains "information_not_available". If there are no issues, the array contains "none". Other possible values: one or more of 'silence', 'high_jitter', 'high_packet_loss', 'high_pdd', 'high_latency'"
+            "description": "A summary of the call's quality issues related to the call provided to Zendesk from Twilio. Until the information is made available by Twilio, the array contains 'information_not_available'. If there are no issues, the array contains 'none'. Other possible values: one or more of 'silence', 'high_jitter', 'high_packet_loss', 'high_pdd', 'high_latency'"
         },
         "talk_time": {
             "type": "integer",
@@ -102,6 +102,6 @@
         "wrap_up_time": {
             "type": ["integer", "null"],
             "description": "How long in seconds the leg was in wrap up. It can be null on customer leg"
-        },
+        }
     }
 }
