@@ -10,6 +10,9 @@ setup(name='tap-zendesk',
       classifiers=['Programming Language :: Python :: 3 :: Only'],
       py_modules=['tap_zendesk'],
       install_requires=[
+        # Currently this refers to our fork. This will only work if we
+          # specifically install the correct version of our fork before
+          # trying to install this package.
           'singer-python@https://github.com/Pathlight/singer-python/archive/refs/tags/v5.7.3.tar.gz#egg=singer-python-5.7.3',
           'zenpy==2.0.24',
       ],

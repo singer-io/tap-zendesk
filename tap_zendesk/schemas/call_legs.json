@@ -108,10 +108,7 @@
             "description": "How long in seconds the leg existed"
         },
         "id": {
-            "type": [
-                "null",
-                "integer"
-              ],              
+            "type": "integer",        
             "description": "Leg id"
         },
         "minutes_billed": {
