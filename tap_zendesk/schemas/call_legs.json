@@ -2,105 +2,183 @@
     "type": "object",
     "properties": {
         "agent_id": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],
             "description": "Id of the agent associated with this part of the call. When agent_id is positive, then user_id must be 0 and the type is 'agent_leg'"
         },
         "available_via": {
-            "type": "string",
+            "type": [
+                "null",
+                "string"
+              ],
             "description": "Ways the agent is available for incoming calls. It can be null on customer leg. Allowed values are 'browser' or 'phone'"
         },
         "call_charge": {
-            "type": "string",
+            "type": [
+                "null",
+                "string"
+              ],
             "description": "Call charge on the leg. String representation of a decimal number with six decimal places."
         },
         "call_id": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "Call id"
         },
         "completion_status": {
-            "type": "string",
+            "type": [
+                "null",
+                "string"
+              ],
             "description": "Completion status of the leg. Allowed values are 'agent_declined', 'agent_missed', 'agent_transfer_declined', 'customer_hang_up' or 'completed'"
         },
         "conference_from": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "ID of agent who initiated the 3rd party conference"
         },
         "conference_time": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "Time that agent spent in 3rd party conference (if call has multiple conferences we will sum the conference time)"
         },
         "conference_to": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "ID of user or agent who joined the 3rd party conference"
         },
         "consultation_from": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "ID of the agent who requested the consultation"
         },
         "consultation_time": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "How long the agent consulted with another agent while the customer was on hold. null if there was no consultation"
         },
         "consultation_to": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "The id of the agent who received and accepted the consultation request. null if there was no transfer"
         },
         "created_at": {
-            "type": "string",
-            "format": "date",
+            "type": [
+                "null",
+                "string"
+              ],
+              "format": "date-time",
             "description": "When the leg object was created"
         },
         "duration": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "How long in seconds the leg existed"
         },
         "forwarded_to": {
-            "type": "string",
+            "type": [
+                "null",
+                "string"
+              ],
             "description": "Phone number the call was forwarded to. Example: '+1311123456789'. It can be null on customer leg"
         },
         "hold_time": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "How long in seconds the leg existed"
         },
         "id": {
-            "type": "integer",
+            "type": "integer",        
             "description": "Leg id"
         },
         "minutes_billed": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "Minutes billed"
         },
         "quality_issues": {
-            "type": "array",
-            "description": "A summary of the call's quality issues related to the call provided to Zendesk from Twilio. Until the information is made available by Twilio, the array contains 'information_not_available'. If there are no issues, the array contains 'none'. Other possible values: one or more of 'silence', 'high_jitter', 'high_packet_loss', 'high_pdd', 'high_latency'"
-        },
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                    "type": ["null", "string"]
+                }
+              },
+              {
+                "type": "null"
+              }
+          ]
+          },
         "talk_time": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "How long in seconds the agent was in conference with the customer for this leg"
         },
         "transferred_from": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "The id of the agent who initialized the transfer. This value must be 0 on the first agent's leg. null if there was no transfer"
         },
         "transferred_to": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "The id of the agent who received and accepted the transfer request"
         },
         "type": {
-            "type": "string",
+            "type": [
+                "null",
+                "string"
+              ],
             "description": "The type of the leg. Allowed values are 'customer', 'agent', 'external' or 'supervisor'"
         },
         "updated_at": {
-            "type": "string",
-            "format": "date",
+            "type": [
+                "null",
+                "string"
+              ],
+              "format": "date-time",
             "description": "When the leg object was last updated"
         },
         "user_id": {
-            "type": "integer",
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "Id of the customer or user associated with this part of the call. When user_id is positive then agent_id must be 0 and the type is customer_leg"
         },
         "wrap_up_time": {
-            "type": ["integer", "null"],
+            "type": [
+                "null",
+                "integer"
+              ],              
             "description": "How long in seconds the leg was in wrap up. It can be null on customer leg"
         }
     }
