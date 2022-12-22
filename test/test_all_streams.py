@@ -113,7 +113,7 @@ class ZendeskAllStreams(ZendeskTest):
         # Ensure all records have a value for PK(s)
         records = runner.get_records_from_target_output()
 
-        # always assume tags are stale
+        # assume tags are stale since we cannot query tag age / date from synced records or the API
         self.tags_are_stale = True
 
         # If all tags have aged out then refresh them and run another sync, tags not used in over
