@@ -1,0 +1,29 @@
+name: "bootstrapping steps"
+description: "Checks out the repo and builds python/node packages"
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      id: setup-python
+      uses: actions/setup-python@v4
+      with:
+        # NOTE: minor version is flexible; github will bump automatically
+        python-version: 3.8
+    - name: cache installed virtualenv
+      uses: actions/cache@v3
+      id: cache-venv
+      with:
+        path: ./venv/
+        # Cache off pythonLocation / python version to limit venv breakage when
+        # python minor/major versions change in github
+        # "/opt/hostedtoolcache/Python/3.8.13/x64"
+        key: ${{ runner.os }}-${{ env.pythonLocation }}-venv-${{ hashFiles('**/poetry.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ env.pythonLocation }}-venv-
+    - name: Build and install python packages
+      run: python setup.py develop
+      shell: bash
+    - name: Build and install test python packages
+      run: pip install -r test_requirements.txt
+      shell: bash

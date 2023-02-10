@@ -1,0 +1,26 @@
+name: 'CI'
+
+on:
+  push:
+    # Run CI on any branch push
+    branches:
+      - '**'
+    # But ignore all tag pushes
+    tags-ignore:
+      - '**'
+
+# Only run CI for the latest push on a branch (github.ref)
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#concurrency
+concurrency:
+  group: ci-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/workflows/base
+      - run: make test
+  
