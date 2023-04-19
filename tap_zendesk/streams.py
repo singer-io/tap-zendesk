@@ -29,6 +29,7 @@ CUSTOM_TYPES = {
     'integer': 'integer',
     'decimal': 'number',
     'checkbox': 'boolean',
+    'lookup': 'integer',
 }
 
 def get_abs_path(path):
