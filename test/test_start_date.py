@@ -5,17 +5,17 @@ from datetime import datetime
 
 class ZendeskStartDate(ZendeskTest):
     """
-    Ensure both all expected streams respect the start date. Run tap in check mode, 
+    Ensure both all expected streams respect the start date. Run tap in check mode,
     run 1st sync with start date = few days ago, run check mode and 2nd sync on a new connection with start date = today.
     """
 
-    
+
     start_date_1 = ""
     start_date_2 = ""
 
     def name(self):
         return "zendesk_start_date_test"
-    
+
     def test_run(self):
         """
         Test that the start_date configuration is respected
@@ -26,14 +26,14 @@ class ZendeskStartDate(ZendeskTest):
         """
         self.run_test(days=1172, expected_streams=self.expected_check_streams()-{"ticket_forms"})
         self.run_test(days=1774, expected_streams={"ticket_forms"})
-        
+
     def run_test(self, days, expected_streams):
         self.start_date_1 = self.get_properties().get('start_date')
         self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=days)
         self.start_date = self.start_date_1
 
         expected_streams = expected_streams
-        
+
         ##########################################################################
         # First Sync
         ##########################################################################
@@ -49,15 +49,14 @@ class ZendeskStartDate(ZendeskTest):
                                       if catalog.get('tap_stream_id') in expected_streams]
         self.perform_and_verify_table_and_field_selection(
             conn_id_1, test_catalogs_1_all_fields, select_all_fields=True)
-
         # run initial sync
         record_count_by_stream_1 = self.run_and_verify_sync(conn_id_1)
         synced_records_1 = runner.get_records_from_target_output()
-
+        last_record_date = self.max_bookmarks_by_stream(synced_records_1)
         ##########################################################################
         # Update START DATE Between Syncs
         ##########################################################################
-        
+
         print("REPLICATION START DATE CHANGE: {} ===>>> {} ".format(
             self.start_date, self.start_date_2))
         self.start_date = self.start_date_2
@@ -88,15 +87,33 @@ class ZendeskStartDate(ZendeskTest):
 
                 # expected values
                 expected_primary_keys = self.expected_primary_keys()[stream]
-
                 # collect information for assertions from syncs 1 & 2 base on expected values
                 record_count_sync_1 = record_count_by_stream_1.get(stream, 0)
                 record_count_sync_2 = record_count_by_stream_2.get(stream, 0)
-
-                primary_keys_list_1 = [tuple(message.get('data').get(expected_pk) for expected_pk in expected_primary_keys)
+                primary_keys_list_1 = [tuple(message.get('data').get(expected_pk)
+                                             for expected_pk in expected_primary_keys)
                                        for message in synced_records_1.get(stream, {}).get('messages', [])
                                        if message.get('action') == 'upsert']
-                primary_keys_list_2 = [tuple(message.get('data').get(expected_pk) for expected_pk in expected_primary_keys)
+                if self.expected_replication_method().get(stream) == 'INCREMENTAL' :
+                   expected_rk= self.expected_replication_keys().get(stream)
+                   expected_rk = expected_rk.pop()
+                   if stream == "tickets":
+                      primary_keys_list_2 = [tuple(message.get('data').get(expected_pk)
+                                          for expected_pk in expected_primary_keys)
+                                          for message in synced_records_2.get(stream, {}).get('messages', [])
+                                          if message.get('action') == 'upsert' and
+                                          self.parse_date(str(message.get('data').get(expected_rk))) <=
+                                          self.parse_date(str(last_record_date.get(stream).get(expected_rk)))]
+                   else:
+                       primary_keys_list_2 = [tuple(message.get('data').get(expected_pk)
+                                            for expected_pk in expected_primary_keys)
+                                               for message in synced_records_2.get(stream, {}).get('messages', [])
+                                               if message.get('action') == 'upsert' and
+                                               self.parse_date(message.get('data').get(expected_rk)) <=
+                                               self.parse_date(last_record_date.get(stream).get(expected_rk))]
+                else:
+                   primary_keys_list_2 = [tuple(message.get('data').get(expected_pk)
+                                         for expected_pk in expected_primary_keys)
                                        for message in synced_records_2.get(stream, {}).get('messages', [])
                                        if message.get('action') == 'upsert']
 
@@ -113,7 +130,7 @@ class ZendeskStartDate(ZendeskTest):
                                         if row.get('data')]
                     replication_dates_2 = [row.get('data').get(expected_replication_key) for row in
                                         synced_records_2.get(stream, {'messages': []}).get('messages', [])
-                                        if row.get('data')]
+                                           if row.get('data')]
 
                     # Verify replication key is greater or equal to start_date for sync 1
                     for replication_date in replication_dates_1:
@@ -143,8 +160,7 @@ class ZendeskStartDate(ZendeskTest):
 
                     # Verify the number of records replicated in sync 1 is greater than the number
                     # of records replicated in sync 2
-                    self.assertGreater(record_count_sync_1,
-                                       record_count_sync_2)
+                    self.assertGreater(record_count_sync_1, record_count_sync_2)
 
                     # Verify the records replicated in sync 2 were also replicated in sync 1
                     self.assertTrue(
@@ -152,14 +168,13 @@ class ZendeskStartDate(ZendeskTest):
 
                 else:
                     # Given below streams are child stremas of parent stream `tickets` and tickets is incremental streams
-                    # Child streams also behave like incremental streams but does not save it's own state. So, it don't 
+                    # Child streams also behave like incremental streams but does not save it's own state. So, it don't
                     # have same no of record on second sync and first sync.
-                    
+
                     # Verify that the 2nd sync with a later start date replicates the same number of
                     # records as the 1st sync.
                     if not stream in ["ticket_comments", "ticket_audits", "ticket_metrics"]:
                         self.assertEqual(record_count_sync_2, record_count_sync_1)
 
                         # Verify by primary key the same records are replicated in the 1st and 2nd syncs
-                        self.assertSetEqual(primary_keys_sync_1,
-                                            primary_keys_sync_2)
+                        self.assertSetEqual(primary_keys_sync_1, primary_keys_sync_2)
