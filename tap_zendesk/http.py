@@ -223,7 +223,10 @@ def get_incremental_export(url, access_token, request_timeout, start_time):
         'Authorization': 'Bearer {}'.format(access_token),
     }
 
-    params = {'start_time': start_time.timestamp()}
+    params = {'start_time': start_time}
+
+    if not isinstance(start_time, int):
+        params = {'start_time': start_time.timestamp()}
 
     response = call_api(url, request_timeout, params=params, headers=headers)
     response_json = response.json()
