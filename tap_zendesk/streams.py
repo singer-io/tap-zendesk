@@ -1,7 +1,6 @@
 import os
 import json
 import datetime
-import time
 import pytz
 import zenpy
 import singer
