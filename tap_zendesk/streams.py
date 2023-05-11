@@ -239,6 +239,7 @@ class Users(CursorBasedExportStream):
         for user in users:
             self.update_bookmark(state, user["updated_at"])
             yield (self.stream, user)
+
         singer.write_state(state)
 
 
