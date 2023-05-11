@@ -241,6 +241,7 @@ class Users(CursorBasedExportStream):
         users = self.get_objects(epoch_bookmark)
 
         for user in users:
+            self.update_bookmark(state, user["updated_at"])
             yield (self.stream, user)
         singer.write_state(state)
 
