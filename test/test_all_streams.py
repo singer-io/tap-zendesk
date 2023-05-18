@@ -99,12 +99,17 @@ class ZendeskAllStreams(ZendeskTest):
                 print(f"Skipping non-default rating! {tic.get('data').get('satisfaction_rating')}")
                 continue
 
-            # TODO move from client to curl request as client generates the following error:
+            # TODO move from client to curl or request as client generates the following errors?
             # ipdb> zenpy_client.tickets.rate(2297, 'good')
             # *** AttributeError: 'PrimaryEndpoint' object has no attribute 'satisfaction_ratings'
-            # ipdb> zenpy_client.tickets.rate(2325, 'good')
+            # ipdb> zenpy_client.tickets.rate(tic.get('data').get('id'), ratings[i%5])
             # *** AttributeError: 'PrimaryEndpoint' object has no attribute 'satisfaction_ratings'
-            zenpy_client.tickets.rate(tic.get('data').get('id'), ratings[i%5])
+            # ipdb> zenpy_client.tickets.rate(tic.get('data').get('id'), {'score': 'good'})
+            # *** AttributeError: 'PrimaryEndpoint' object has no attribute 'satisfaction_ratings'
+            # ipdb> zenpy_client.tickets.rate(2301, {"satisfaction_rating": {"score": "good", "comment": "Awesome support. Test 1"}})
+            # *** AttributeError: 'PrimaryEndpoint' object has no attribute 'satisfaction_ratings'
+
+            zenpy_client.tickets.rate(tic.get('data').get('id'), {'score': ratings[i%5]})
             #zenpy_client.tickets.rate(id, rating) # example rating {'score': 'good'}
 
 
@@ -142,13 +147,11 @@ class ZendeskAllStreams(ZendeskTest):
         # Verify exit status is 0 and verify rows were synced
         _ = self.run_and_verify_sync(conn_id, state={})
 
-        # Verify actual rows were synced
-
         # Ensure all records have a value for PK(s)
         records = runner.get_records_from_target_output()
 
         # Ensure tickets data have some ratings now that we have records to check
-        # self.rate_tickets(records)  # TODO tickets.rate(id, rating) fails with client.  try with curl directly
+        # self.rate_tickets(records)  # TODO tickets.rate(id, rating) fails with client.
 
         # assume tags are stale since we cannot query tag age / date from synced records or the API
         self.tags_are_stale = True
