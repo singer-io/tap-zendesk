@@ -127,15 +127,13 @@ class ZendeskBookMark(ZendeskTest):
                     # Verify the second sync bookmark is Equal to the first sync bookmark
                     # assumes no changes to data during test
                     if not stream == "users":
-                        self.assertEqual(second_bookmark_value,
-                                        first_bookmark_value)
+                        self.assertEqual(second_bookmark_value, first_bookmark_value)
                     else:
                         # For `users` stream it stores bookmark as 1 minute less than current time if `updated_at` of
                         # last records less than it. So, if there is no data change then second_bookmark_value will be
                         # 1 minute less than current time. Therefore second_bookmark_value will always be
                         # greater or equal to first_bookmark_value
-                        self.assertGreaterEqual(second_bookmark_value,
-                                        first_bookmark_value)
+                        self.assertGreaterEqual(second_bookmark_value, first_bookmark_value)
 
                     for record in first_sync_messages:
 
@@ -145,8 +143,7 @@ class ZendeskBookMark(ZendeskTest):
                         if stream == "tickets":
                             replication_key_value = datetime.utcfromtimestamp(replication_key_value).strftime('%Y-%m-%dT%H:%M:%SZ')
 
-                        self.assertLessEqual(
-                            replication_key_value, first_bookmark_value_utc,
+                        self.assertLessEqual(replication_key_value, first_bookmark_value_utc,
                             msg="First sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
                         )
 
@@ -161,8 +158,7 @@ class ZendeskBookMark(ZendeskTest):
                                                 msg="Second sync records do not repect the previous bookmark.")
 
                         # Verify the second sync bookmark value is the max replication key value for a given stream
-                        self.assertLessEqual(
-                            replication_key_value, second_bookmark_value_utc,
+                        self.assertLessEqual(replication_key_value, second_bookmark_value_utc,
                             msg="Second sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
                         )
 
