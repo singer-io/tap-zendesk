@@ -77,6 +77,10 @@ class Stream():
         else:
             self.request_timeout = REQUEST_TIMEOUT # If value is 0,"0","" or not passed then it set default to 300 seconds.
 
+        # To avoid infinite loop behavior we should not configure search window less than 2
+        if config.get('search_window_size') and int(config.get('search_window_size')) < 2:
+            raise ValueError('Search window size cannot be less than 2')
+
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
 
