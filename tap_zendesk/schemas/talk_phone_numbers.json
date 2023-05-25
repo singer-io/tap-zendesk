@@ -1,0 +1,180 @@
+{
+  "type": ["object"],
+  "properties": {
+    "capabilities": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "description": "Whether a phone number has mms, sms, or voice capability",
+      "properties": {
+        "sms": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        },
+        "mms": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        },
+        "voice": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        }
+      }
+    },
+    "categorised_greetings": {
+      "properties": { },
+      "type": [
+        "null",
+        "object"
+      ],
+      "description": "Greeting category ids and names"
+    },
+    "categorised_greetings_with_sub_settings": {
+      "properties": { },
+      "type": [
+        "null",
+        "object"
+      ],
+      "description": "The id and any settings associated with each greeting category. If the category has no settings, it defaults to the category name"
+    },
+    "country_code": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "description": "The ISO code of the country for this number"
+    },
+    "created_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time",
+      "description": "The date and time the phone number was created"
+    },
+    "default_greeting_ids": {
+      "type": ["null", "array"],
+      "items": {
+        "type": [
+          "string"
+        ]
+      },
+      "description": "The names of default system greetings associated with the phone number"
+    },
+    "default_group_id": {
+      "type": [
+        "null",
+        "integer"
+      ],
+      "description": "Default group id. *Writeable on most of the plans."
+    },
+    "display_number": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "description": "The formatted phone number"
+    },
+    "external": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "greeting_ids": {
+      "type": ["null", "array"],
+      "items": {
+        "type": [
+          "integer"
+        ]
+      },
+      "description": "The external caller id number"
+    },
+    "group_ids": {
+      "type": ["null", "array"],
+      "items": {
+        "type": [
+          "integer"
+        ]
+      },
+      "description": "An array of associated groups. *Writeable on most of plans."
+    },
+    "id": {
+      "type": [
+        "null",
+        "integer"
+      ],
+      "description": "Automatically assigned upon creation"
+    },
+    "location": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "description": "The number's geographical location. For example, \"CA\" or \"Leeds\""
+    },
+    "name": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "description": "The nickname if one is set. Otherwise the display_number"
+    },
+    "nickname": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "description": "The nickname of the number if one is set"
+    },
+    "number": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "description": "The phone number digits"
+    },
+    "recorded": {
+      "type": [
+        "null",
+        "boolean"
+      ],
+      "description": "Whether calls for the number are recorded or not"
+    },
+    "sms_group_id": {
+      "type": [
+        "null",
+        "integer"
+      ],
+      "description": "The group associated with this phone number"
+    },
+    "token": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "description": "A generated token, unique for each phone number and used when provisioning the number. *Writeable on create only."
+    },
+    "toll_free": {
+      "type": [
+        "null",
+        "boolean"
+      ],
+      "description": "Whether the number is toll-free or local"
+    },
+    "transcription": {
+      "type": [
+        "null",
+        "boolean"
+      ],
+      "description": "Whether calls for the number are transcribed or not"
+    }
+  }
+}

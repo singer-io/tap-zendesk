@@ -1,0 +1,187 @@
+{
+    "type": ["object"],
+    "properties": {
+        "agent_id": {
+            "type": ["integer", "null"],
+            "description": "The id of the first agent who picked up the call"
+        },
+        "call_charge": {
+            "type": ["string", "null"],
+            "description": "Total charge for the call. String representation of a decimal number with six decimal places. Example: \"1.230000\". Null if no charge was received from Twilio"
+        },
+        "call_group_id": {
+            "type": ["integer", "null"],
+            "description": "The id number of the group the call was last placed in before completion."
+        },
+        "call_recording_consent": {
+            "type": ["string", "null"],
+            "description": "Call recording consent value configured for the phone number",
+            "enum": ["always", "opt_in", "opt_out", "never"]
+        },
+        "call_recording_consent_action": {
+            "type": ["string", "null"],
+            "description": "Keypress the caller chose to give their call recording consent option.",
+            "enum": ["3"]
+        },
+        "callback": {
+            "type": ["boolean", "null"],
+            "description": "True if the call was initiated by a callback request from the customer"
+        },
+        "callback_source": {
+            "type": ["string", "null"],
+            "description": "The source of the callback request",
+            "enum": ["queue", "web widget"]
+        },
+        "completion_status": {
+            "type": ["string", "null"],
+            "description": "Status of the call",
+            "enum": ["completed", "abandoned_in_queue", "abandoned_in_ivr", "abandoned_in_voicemail", "abandoned_on_hold", "pending_voicemail"]
+        },
+        "consultation_time": {
+            "type": ["integer", "null"],
+            "description": "Sum of how long in seconds agents consulted with each other while the customer was on hold"
+        },
+        "created_at": {
+            "type": ["string", "null"],
+            "description": "When the call object was created",
+            "format": "date-time"
+        },
+        "customer_id": {
+            "type": ["integer", "null"],
+            "description": "!!! not documented field !!!"
+        },
+        "customer_requested_voicemail": {
+            "type": ["boolean"],
+            "description": "The customer requested to be directed to voicemail instead of waiting for an agent to answer"
+        },
+        "default_group": {
+            "type": ["boolean", "null"],
+            "description": "The call was answered by an agent who is a member of the call's default group, if group routing is used"
+        },
+        "direction": {
+            "type": ["string", "null"],
+            "description": "Inbound or outbound. The agent or customer who initialized the call",
+            "enum": ["inbound", "outbound"]
+        },
+        "duration": {
+            "type": ["integer", "null"],
+            "description": "Call duration in seconds"
+        },
+        "exceeded_queue_time": {
+            "type": ["boolean", "null"],
+            "description": "The customer exceeded the maximum queue wait time and did not speak with an agent"
+        },
+        "hold_time": {
+            "type": ["integer", "null"],
+            "description": "Sum of how long in seconds the customer was placed on hold by an agent(s)"
+        },
+        "id": {
+            "type": ["integer", "null"],
+            "description": "Call id"
+        },
+        "ivr_action": {
+            "type": ["string", "null"],
+            "description": "Menu action that was used by the caller in the IVR menu selection",
+            "enum": [
+                "null", "menu", "voicemail", "group", "phone_number", "textback", "invalid"
+            ]
+        },
+        "ivr_destination_group_name": {
+            "type": ["string", "null"],
+            "description": "Name of the group that received the call through IVR routing. null if IVR is disabled"
+        },
+        "ivr_hops": {
+            "type": ["integer", "null"],
+            "description": "How many menu options the customer went through in IVR before talking to an agent. null if IVR is disabled"
+        },
+        "ivr_routed_to": {
+            "type": ["string", "null"],
+            "description": "Phone number where call was routed to by IVR. Example: \"+1311123456789\". null if IVR is disabled"
+        },
+        "ivr_time_spent": {
+            "type": ["integer", "null"],
+            "description": "How long in seconds the customer spent in IVR. Null if IVR is disabled"
+        },
+        "minutes_billed": {
+            "type": ["integer", "null"],
+            "description": "Minutes billed"
+        },
+        "not_recording_time": {
+            "type": ["integer", "null"],
+            "description": "How long in seconds spent not recording on the call"
+        },
+        "outside_business_hours": {
+            "type": ["boolean", "null"],
+            "description": "The call was received outside business hours"
+        },
+        "overflowed": {
+            "type": ["boolean", "null"],
+            "description": "True if the call overflowed"
+        },
+        "overflowed_to": {
+            "type": ["string", "null"],
+            "description": "The phone number that the call overflowed to. null if overflowed is false"
+        },
+        "phone_number": {
+            "type": ["string", "null"],
+            "description": "Talk phone associated with the call. Example: \"+1311123456789\""
+        },
+        "phone_number_id": {
+            "type": ["integer", "null"],
+            "description": "Talk phone number id"
+        },
+        "quality_issues": {
+            "type": ["array", "null"],
+            "description": "A summary of the call's quality issues related to the call provided to Zendesk from Twilio. Until the information is made available by Twilio, the array contains \"information_not_available\". If there are no issues, the array contains \"none\". Other possible values: one or more of \"silence\", \"high_jitter\", \"high_packet_loss\", \"high_pdd\", \"high_latency\"",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "information_not_available",
+                    "none",
+                    "silence",
+                    "high_jitter",
+                    "high_packet_loss",
+                    "high_pdd",
+                    "high_latency"
+                ]
+            }
+        },
+        "recording_control_interactions": {
+            "type": ["integer", "null"],
+            "description": "The amount of times agents have paused or resumed a recording on the call."
+        },
+        "recording_time": {
+            "type": ["integer", "null"],
+            "description": "How long in seconds spent recording on the call"
+        },
+        "talk_time": {
+            "type": ["integer", "null"],
+            "description": "Sum of how long in seconds the customer was in conference with an agent(s). If a call is not accepted by an agent this will be 0"
+        },
+        "ticket_id": {
+            "type": ["integer", "null"],
+            "description": "The id of the ticket related to the call"
+        },
+        "time_to_answer": {
+            "type": ["integer", "null"],
+            "description": "How long in seconds the customer waited for an agent to answer after hearing the Available agents greeting"
+        },
+        "updated_at": {
+            "type": ["string", "null"],
+            "description": "When the call object was last created",
+            "format": "date-time"
+        },
+        "voicemail": {
+            "type": ["boolean", "null"],
+            "description": "If true, the call was a voicemail"
+        },
+        "wait_time": {
+            "type": ["integer", "null"],
+            "description": "How long in seconds the customer was in the call before an agent answered"
+        },
+        "wrap_up_time": {
+            "type": ["integer", "null"],
+            "description": "Sum of how long in seconds the agent(s) spent in wrap up"
+        }
+    }
+}

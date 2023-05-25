@@ -218,6 +218,7 @@ class Users(Stream):
     name = "users"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/users'
 
     def _add_custom_fields(self, schema):
         try:
@@ -577,6 +578,7 @@ class TicketForms(Stream):
     name = "ticket_forms"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/ticket_forms'
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
@@ -628,6 +630,7 @@ class GroupMemberships(CursorBasedStream):
 class SLAPolicies(Stream):
     name = "sla_policies"
     replication_method = "FULL_TABLE"
+    endpoint = 'https://{}.zendesk.com/api/v2/slas/policies'
 
     def sync(self, state): # pylint: disable=unused-argument
         for policy in self.client.sla_policies():
@@ -638,6 +641,49 @@ class SLAPolicies(Stream):
         Check whether the permission was given to access stream resources or not.
         '''
         self.client.sla_policies()
+
+class TalkPhoneNumbers(Stream):
+    name = 'talk_phone_numbers'
+    replication_method = "FULL_TABLE"
+    endpoint = 'https://{}.zendesk.com/api/v2/channels/voice/phone_numbers'
+
+    def sync(self, state): # pylint: disable=unused-argument
+        for phone_number in self.client.talk.phone_numbers():
+            yield (self.stream, phone_number)
+
+
+class TalkCalls(CursorBasedExportStream):
+    name = 'talk_calls'
+    replication_method = "INCREMENTAL"
+    replication_key = 'updated_at'
+    endpoint = 'https://{}.zendesk.com/api/v2/channels/voice/stats/incremental/calls'
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+
+        if not bookmark:
+            start_date = self.config.get('start_date')
+            if start_date:
+                bookmark = utils.strptime_with_tz(start_date)
+
+        LOGGER.info(f'Start date: {bookmark}')
+
+        for call in self.client.talk.calls.incremental(start_time=bookmark):
+            if utils.strptime_with_tz(call.updated_at) >= bookmark:
+                self.update_bookmark(state, call.updated_at)
+                yield (self.stream, call)
+
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        # Convert start_date parameter to timestamp to pass with request param
+        start_time = datetime.datetime.strptime(self.config['start_date'], START_DATE_FORMAT).timestamp()
+        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+
+        http.call_api(url, self.request_timeout, params={'start_time': f'{start_time:.0f}', 'per_page': 1}, headers=HEADERS)
+
 
 STREAMS = {
     "tickets": Tickets,
@@ -654,4 +700,6 @@ STREAMS = {
     "tags": Tags,
     "ticket_metrics": TicketMetrics,
     "sla_policies": SLAPolicies,
+    "talk_phone_numbers": TalkPhoneNumbers,
+    "talk_calls": TalkCalls
 }
