@@ -31,8 +31,6 @@ CUSTOM_TYPES = {
     'checkbox': 'boolean',
 }
 
-DEFAULT_SEARCH_WINDOW_SIZE = (60 * 60 * 24) * 30 # defined in seconds, default to a month (30 days)
-
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 
