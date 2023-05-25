@@ -77,6 +77,10 @@ class Stream():
         else:
             self.request_timeout = REQUEST_TIMEOUT # If value is 0,"0","" or not passed then it set default to 300 seconds.
 
+        # To avoid infinite loop behavior we should not configure search window less than 2
+        if config.get('search_window_size') and int(config.get('search_window_size')) < 2:
+            raise ValueError('Search window size cannot be less than 2')
+
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
 
@@ -244,20 +248,21 @@ class Users(Stream):
         while start < sync_end:
             parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
             parsed_end = min(singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ"), parsed_sync_end)
-            LOGGER.info("Querying for users between %s and %s", parsed_start, parsed_end)
+            LOGGER.info("Querying for users with window of exclusive boundaries between %s and %s", parsed_start, parsed_end)
             users = self.client.search("", updated_after=parsed_start, updated_before=parsed_end, type="user")
 
             # NB: Zendesk will return an error on the 1001st record, so we
             # need to check total response size before iterating
             # See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits
             if users.count > 1000:
-                if search_window_size > 1:
+                # To avoid infinite loop behavior we should reduce the window if it is greater than 2
+                if search_window_size > 2:
                     search_window_size = search_window_size // 2
                     end = start + datetime.timedelta(seconds=search_window_size)
                     LOGGER.info("users - Detected Search API response size too large. Cutting search window in half to %s seconds.", search_window_size)
                     continue
 
-                raise Exception("users - Unable to get all users within minimum window of a single second ({}), found {} users within this timestamp. Zendesk can only provide a maximum of 1000 users per request. See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits".format(parsed_start, users.count))
+                raise Exception("users - Unable to get all users within minimum window of a single second ({}), found {} users within this timestamp. Zendesk can only provide a maximum of 1000 users per request. See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits".format(datetime.datetime.strftime(datetime.datetime.strptime(parsed_start, "%Y-%m-%dT%H:%M:%SZ") + datetime.timedelta(seconds=1), "%Y-%m-%dT%H:%M:%SZ"), users.count))
 
             # Consume the records to account for dates lower than window start
             users = [user for user in users] # pylint: disable=unnecessary-comprehension
