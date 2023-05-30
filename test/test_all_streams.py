@@ -1,14 +1,19 @@
+import os
 import tap_tester.connections as connections
 import tap_tester.menagerie   as menagerie
 import tap_tester.runner      as runner
 
 from functools import reduce
-from singer import metadata
+# TODO fix setup.py? so zenpy module is availalble on dev_vm without manually running pip install
+from zenpy import Zenpy
+from zenpy.lib.api_objects import Group, Organization, Tag, User
+
 from base import ZendeskTest
 
 class ZendeskAllStreams(ZendeskTest):
     def name(self):
         return "tap_tester_zendesk_all_streams"
+
 
     def expected_sync_streams(self):
         return {
@@ -20,9 +25,11 @@ class ZendeskAllStreams(ZendeskTest):
             "ticket_fields",
             "group_memberships",
             "macros",
-            #"tags",
+            "satisfaction_ratings",
+            "tags",
             "ticket_metrics",
         }
+
 
     def expected_pks(self):
         return {
@@ -34,9 +41,77 @@ class ZendeskAllStreams(ZendeskTest):
             "ticket_fields": {"id"},
             "group_memberships": {"id"},
             "macros": {"id"},
-            #"tags": {"name"},
+            "satisfaction_ratings": {"id"},
+            "tags": {"name"},
             "ticket_metrics": {"id"},
         }
+
+
+    def refresh_tags(self, records):
+        # Zenpy client credentials to connect to API
+        creds = {
+            'email': 'dev@stitchdata.com',
+            'password': os.getenv('TAP_ZENDESK_API_PASSWORD'),
+            'subdomain': self.get_properties()['subdomain'],
+        }
+
+        test_tags = ['test_tag_1', 'test_tag_2', 'test_tag_3']
+        # filter out closed tickets since we cannot update them to refresh thier tags
+        unclosed_tickets = [t for t in records.get('tickets').get('messages') if t.get('data').get('status') != 'closed']
+        self.assertGreaterEqual(len(unclosed_tickets), 3)
+        last_3_unclosed_tickets = unclosed_tickets[-3:]
+
+        zenpy_client = Zenpy(**creds)
+
+        for i, tic in enumerate(last_3_unclosed_tickets):
+            # remove and re-add  existing tags to refresh
+            if tic.get('data').get('tags'):
+                tag_list = tic.get('data').get('tags')
+                zenpy_client.tickets.delete_tags(tic.get('data').get('id'), tag_list)
+                # replace old tags. adding the same tag does not create duplicates
+                zenpy_client.tickets.add_tags(tic.get('data').get('id'), tag_list)
+            # add / refresh test tags
+            zenpy_client.tickets.add_tags(tic.get('data').get('id'), test_tags[0:(i+1)])
+            # mark tags as refreshed as soon as we successfully get through one loop
+            self.tags_are_stale = False
+
+    def rate_tickets(self, records):
+        ''' WIP to collect and set satisfaction_ratings during test execution '''
+
+        # Zenpy client credentials to connect to API
+        creds = {
+            'email': 'dev@stitchdata.com',
+            'password': os.getenv('TAP_ZENDESK_API_PASSWORD'),
+            'subdomain': self.get_properties()['subdomain'],
+        }
+
+        ratings = ['bad', 'badwithcomment', 'good', 'goodwithcomment', 'offered']
+        closed_tickets = [t for t in records.get('tickets').get('messages') if t.get('data').get('status') == 'closed']
+        self.assertGreaterEqual(len(closed_tickets), 9)
+        last_9_closed_tickets = closed_tickets[-9:]
+        confirmed_rated_tickets = 0
+
+        zenpy_client = Zenpy(**creds)
+
+        for i, tic in enumerate(last_9_closed_tickets):
+            # if rating is not defaulted to unoffered then set it, otherwise skip
+            if tic.get('data').get('satisfaction_rating') != {'score': 'unoffered'}:
+                print(f"Skipping non-default rating! {tic.get('data').get('satisfaction_rating')}")
+                continue
+
+            # TODO move from client to curl or request as client generates the following errors?
+            # ipdb> zenpy_client.tickets.rate(2297, 'good')
+            # *** AttributeError: 'PrimaryEndpoint' object has no attribute 'satisfaction_ratings'
+            # ipdb> zenpy_client.tickets.rate(tic.get('data').get('id'), ratings[i%5])
+            # *** AttributeError: 'PrimaryEndpoint' object has no attribute 'satisfaction_ratings'
+            # ipdb> zenpy_client.tickets.rate(tic.get('data').get('id'), {'score': 'good'})
+            # *** AttributeError: 'PrimaryEndpoint' object has no attribute 'satisfaction_ratings'
+            # ipdb> zenpy_client.tickets.rate(2301, {"satisfaction_rating": {"score": "good", "comment": "Awesome support. Test 1"}})
+            # *** AttributeError: 'PrimaryEndpoint' object has no attribute 'satisfaction_ratings'
+
+            zenpy_client.tickets.rate(tic.get('data').get('id'), {'score': ratings[i%5]})
+            #zenpy_client.tickets.rate(id, rating) # example rating {'score': 'good'}
+
 
     def test_run(self):
         # Default test setup
@@ -62,33 +137,54 @@ class ZendeskAllStreams(ZendeskTest):
         our_catalogs = [c for c in self.found_catalogs if c.get('tap_stream_id') in self.expected_sync_streams()]
         for c in our_catalogs:
             c_annotated = menagerie.get_annotated_schema(conn_id, c['stream_id'])
-            c_metadata = metadata.to_map(c_annotated['metadata'])
+            c_metadata = self.to_map(c_annotated['metadata'])
             connections.select_catalog_and_fields_via_metadata(conn_id, c, c_annotated, [], [])
 
         # Clear state before our run
         menagerie.set_state(conn_id, {})
 
         # Run a sync job using orchestrator
-        sync_job_name = runner.run_sync_mode(self, conn_id)
-
-        # Verify tap and target exit codes
-        exit_status = menagerie.get_exit_status(conn_id, sync_job_name)
-        menagerie.verify_sync_exit_status(self, exit_status, sync_job_name)
-
-        # Verify actual rows were synced
-        record_count_by_stream = runner.examine_target_output_file(self, conn_id, self.expected_sync_streams(), self.expected_pks())
-        replicated_row_count =  reduce(lambda accum,c : accum + c, record_count_by_stream.values())
-        self.assertGreater(replicated_row_count, 0, msg="failed to replicate any data: {}".format(record_count_by_stream))
-        print("total replicated row count: {}".format(replicated_row_count))
+        # Verify exit status is 0 and verify rows were synced
+        _ = self.run_and_verify_sync(conn_id, state={})
 
         # Ensure all records have a value for PK(s)
         records = runner.get_records_from_target_output()
+
+        # Ensure tickets data have some ratings now that we have records to check
+        # self.rate_tickets(records)  # TODO tickets.rate(id, rating) fails with client.
+
+        # assume tags are stale since we cannot query tag age / date from synced records or the API
+        self.tags_are_stale = True
+
+        # If all tags have aged out then refresh them and run another sync, tags not used in over
+        # 60 days will automatically age out.  Removing and re-adding the tag will refresh it
+        if not records.get('tags').get('messages',[]):
+            self.refresh_tags(records)
+
+            # Run a second sync job to pick up new tags, should be faster since we haven't touched state
+            # Verify exit status is 0 and verify rows were synced
+            _ = self.run_and_verify_sync(conn_id)
+
+            # Ensure we replicated some tags records this time
+            tags_records = runner.get_records_from_target_output()
+            self.assertGreater(len(tags_records, 0))
+
+
         for stream in self.expected_sync_streams():
             messages = records.get(stream,{}).get('messages',[])
-            if stream in  ['tickets', 'groups', 'users']:
+
+            if stream == 'tags':
+                # check to see if tags were already refreshed or not
+                if self.tags_are_stale:
+                    # refresh has not been run yet, this means we already have some tags records
+                    self.refresh_tags(records)
+                else:
+                    # tags were already refreshed so records were missing from first sync
+                    messages = tags_records.get(stream).get('messages')
+
+            if stream in  ['groups', 'organizations', 'tickets', 'users']:
                 self.assertGreater(len(messages), 100, msg="Stream {} has fewer than 100 records synced".format(stream))
             for m in messages:
                 pk_set = self.expected_pks()[stream]
                 for pk in pk_set:
                     self.assertIsNotNone(m.get('data', {}).get(pk), msg="Missing primary-key for message {}".format(m))
-

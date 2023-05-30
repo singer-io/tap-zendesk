@@ -75,7 +75,7 @@ class ZendeskAllFields(ZendeskTest):
                 if stream == "ticket_fields":
                     expected_all_keys = expected_all_keys - {'system_field_options', 'sub_type_id'}
                 elif stream == "users":
-                    expected_all_keys = expected_all_keys - {'permanently_deleted'}
+                    expected_all_keys = expected_all_keys - {'chat_only'}
                 elif stream == "ticket_metrics":
                     expected_all_keys = expected_all_keys - {'status', 'instance_id', 'metric', 'type', 'time'}
                 elif stream == "ticket_metric_events":

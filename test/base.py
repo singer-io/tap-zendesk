@@ -1,12 +1,23 @@
 import unittest
 import os
-import tap_tester.connections as connections
-import tap_tester.menagerie as menagerie
-import tap_tester.runner as runner
+import backoff
 from datetime import datetime as dt
 from datetime import timedelta
 import dateutil.parser
 import pytz
+
+from tap_tester import connections
+from tap_tester import menagerie
+from tap_tester import runner
+from tap_tester import LOGGER
+
+# BUG https://jira.talendforge.org/browse/TDL-19985
+
+
+class RetryableTapError(Exception): # BUG_TDL-19985
+    def __init__(self, message):
+        super().__init__(message)
+
 
 class ZendeskTest(unittest.TestCase):
     start_date = ""
@@ -61,6 +72,9 @@ class ZendeskTest(unittest.TestCase):
         # Reassign start date
         return_value["start_date"] = self.start_date
         return return_value
+
+    def to_map(self, raw_metadata):
+        return {tuple(md['breadcrumb']): md['metadata'] for md in raw_metadata}
 
     def expected_metadata(self):
         return {
@@ -179,7 +193,7 @@ class ZendeskTest(unittest.TestCase):
     def expected_replication_method(self):
         return {table: properties.get(self.REPLICATION_METHOD, set()) for table, properties
                 in self.expected_metadata().items()}
-        
+
     def expected_automatic_fields(self):
         """return a dictionary with key of table name and set of value of automatic(primary key and bookmark field) fields"""
         auto_fields = {}
@@ -209,12 +223,46 @@ class ZendeskTest(unittest.TestCase):
 
         return found_catalogs
 
-    def run_and_verify_sync(self, conn_id):
+    def is_ssl_handshake_error(self, exit_status):
+        """
+        Return True if the exit_status matches our expectations for a known SSL error.
+        Otherwise return False
+        """
+        tap_error_message = exit_status["tap_error_message"]
+        if all([exit_status['tap_exit_status'] == 1,
+                "HTTPSConnectionPool" in tap_error_message,
+                "Caused by SSLError" in tap_error_message,
+                "handshake" in tap_error_message.lower(),
+                "failure" in tap_error_message.lower()]):
+
+            return True
+        return False
+
+    # BUG_TDL-19985
+    @backoff.on_exception(backoff.expo,
+                          RetryableTapError,
+                          max_tries=2,
+                          factor=30)
+    def run_and_verify_sync(self, conn_id, state=None):
+
         sync_job_name = runner.run_sync_mode(self, conn_id)
 
         # verify tap and target exit codes
         exit_status = menagerie.get_exit_status(conn_id, sync_job_name)
-        menagerie.verify_sync_exit_status(self, exit_status, sync_job_name)
+
+        # BUG_TDL-19985 WORKAROUND START
+        try:
+            menagerie.verify_sync_exit_status(self, exit_status, sync_job_name)
+        except AssertionError as err:
+            LOGGER.info("*******************ASSERTION ERROR*******************")
+            if self.is_ssl_handshake_error(exit_status):
+                LOGGER.info("*******************RETRYING SYNC DUE TO TIMEOUT ERROR*******************")
+                if state is not None:
+                    LOGGER.info("*******************RESETTING STATE*******************")
+                    menagerie.set_state(conn_id, state)
+                raise RetryableTapError(err)
+            raise
+        # BUG_TDL-19985 WORKAROUND END
 
         sync_record_count = runner.examine_target_output_file(self,
                                                               conn_id,
@@ -311,7 +359,8 @@ class ZendeskTest(unittest.TestCase):
             "%Y-%m-%dT%H:%M:%SZ",
             "%Y-%m-%dT%H:%M:%S.%f+00:00",
             "%Y-%m-%dT%H:%M:%S+00:00",
-            "%Y-%m-%d"
+            "%Y-%m-%d",
+            "%H%M%S%f"
         }
         for date_format in date_formats:
             try:
@@ -322,9 +371,9 @@ class ZendeskTest(unittest.TestCase):
 
         raise NotImplementedError(
             "Tests do not account for dates of this format: {}".format(date_value))
-        
+
     def calculated_states_by_stream(self, current_state):
-        timedelta_by_stream = {stream: [0,1,1]  # {stream_name: [days, hours, minutes], ...}
+        timedelta_by_stream = {stream: [0,2,1]  # {stream_name: [days, hours, minutes], ...}
                                for stream in self.expected_check_streams()}
 
         stream_to_calculated_state = {stream: "" for stream in current_state['bookmarks'].keys()}
@@ -341,7 +390,7 @@ class ZendeskTest(unittest.TestCase):
             stream_to_calculated_state[stream] = {state_key: calculated_state_formatted}
 
         return stream_to_calculated_state
-    
+
     def timedelta_formatted(self, dtime, days=0):
         try:
             date_stripped = dt.strptime(dtime, self.START_DATE_FORMAT)
@@ -361,3 +410,33 @@ class ZendeskTest(unittest.TestCase):
         date_object = dateutil.parser.parse(date_str)
         date_object_utc = date_object.astimezone(tz=pytz.UTC)
         return dt.strftime(date_object_utc, "%Y-%m-%dT%H:%M:%SZ")
+
+    def max_bookmarks_by_stream(self, sync_records):
+        """
+        Return the maximum value for the replication key for each stream
+        which is the bookmark expected value.
+
+        Comparisons are based on the class of the bookmark value. Dates will be
+        string compared which works for ISO date-time strings
+        """
+        max_bookmarks = {}
+        for stream, batch in sync_records.items():
+            Expected_replication_method = self.expected_replication_method().get(stream)
+            if Expected_replication_method == 'INCREMENTAL' :
+               upsert_messages = [m for m in batch.get('messages') if m['action'] == 'upsert']
+               stream_bookmark_key = self.expected_replication_keys().get(stream, set())
+               assert len(stream_bookmark_key) == 1  # There shouldn't be a compound replication key
+               stream_bookmark_key = stream_bookmark_key.pop()
+
+               bk_values = [message["data"].get(stream_bookmark_key) for message in upsert_messages]
+               max_bookmarks[stream] = {stream_bookmark_key: None}
+               for bk_value in bk_values:
+                   if bk_value is None:
+                       continue
+
+                   if max_bookmarks[stream][stream_bookmark_key] is None:
+                       max_bookmarks[stream][stream_bookmark_key] = bk_value
+
+                       if bk_value > max_bookmarks[stream][stream_bookmark_key]:
+                           max_bookmarks[stream][stream_bookmark_key] = bk_value
+        return max_bookmarks

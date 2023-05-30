@@ -74,17 +74,8 @@ class ZendeskBookmarks(ZendeskTest):
         menagerie.set_state(conn_id, {})
 
         # Run a sync job using orchestrator
-        sync_job_name = runner.run_sync_mode(self, conn_id)
-
-        # Verify tap and target exit codes
-        exit_status = menagerie.get_exit_status(conn_id, sync_job_name)
-        menagerie.verify_sync_exit_status(self, exit_status, sync_job_name)
-
-        # Verify actual rows were synced
-        record_count_by_stream = runner.examine_target_output_file(self, conn_id, self.expected_sync_streams(), self.expected_pks())
-        replicated_row_count =  reduce(lambda accum,c : accum + c, record_count_by_stream.values())
-        self.assertGreater(replicated_row_count, 0, msg="failed to replicate any data: {}".format(record_count_by_stream))
-        print("total replicated row count: {}".format(replicated_row_count))
+        # Verify exit status is 0 and verify rows were synced
+        _ = self.run_and_verify_sync(conn_id)
 
         # Ensure all records have a value for PK(s)
         records = runner.get_records_from_target_output()
@@ -128,10 +119,8 @@ class ZendeskBookmarks(ZendeskTest):
         print("sleeping for 60 seconds")
         time.sleep(60)
 
-        # Run another Sync
-        sync_job_name = runner.run_sync_mode(self, conn_id)
-        exit_status = menagerie.get_exit_status(conn_id, sync_job_name)
-        menagerie.verify_sync_exit_status(self, exit_status, sync_job_name)
+        # Run another Sync and verify it exits succesfully
+        _ = self.run_and_verify_sync(conn_id)
 
         # Check both sets of records and make sure we have our new rows
         records = runner.get_records_from_target_output()
