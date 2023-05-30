@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.7.6
+## 2.0.1
   * Dependabot update [#129](https://github.com/singer-io/tap-zendesk/pull/129)
 
 ## 1.7.5
