@@ -131,6 +131,8 @@ def should_retry_error(exception):
     if isinstance(exception, ZendeskConflictError):
         return True
     if isinstance(exception, Exception) and isinstance(exception.args[0][1], ConnectionResetError):
+        return True
+    if isinstance(exception, ConnectionResetError):
         LOGGER.info("Caught ConnectionResetError")
         return True
     return False
@@ -160,7 +162,7 @@ def raise_for_error(response):
 
 
 @backoff.on_exception(backoff.expo,
-                      (ZendeskConflictError, ConnectionResetError, ProtocolError),
+                      (ZendeskConflictError, ConnectionResetError),
                       max_tries=10,
                       giveup=lambda e: not should_retry_error(e))
 @backoff.on_exception(backoff.expo,
@@ -169,7 +171,7 @@ def raise_for_error(response):
                       max_tries=10,
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,
-                      (ConnectionError, Timeout, ChunkedEncodingError),
+                      (ConnectionError, Timeout, ChunkedEncodingError, ProtocolError),
                       # As ConnectionError error and timeout error does not have attribute status_code,
                       max_tries=5,  # here we added another backoff expression.
                       factor=2)
