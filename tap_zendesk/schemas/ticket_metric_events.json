@@ -1,8 +1,11 @@
 {
+  "type": [
+    "null",
+    "object"
+  ],
   "properties": {
     "id": {
       "type": [
-        "null",
         "integer"
       ]
     },
@@ -82,7 +85,6 @@
         }
       }
     },
-    "ola": {},
     "status": {
       "type": [
         "null",
@@ -109,9 +111,5 @@
         "boolean"
       ]
     }
-  },
-  "type": [
-    "null",
-    "object"
-  ]
+  }
 }
