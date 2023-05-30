@@ -406,6 +406,29 @@ class TicketMetrics(CursorBasedStream):
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
             pass
 
+class TicketMetricEvents(Stream):
+    name = "ticket_metric_events"
+    replication_method = "INCREMENTAL"
+    replication_key = "time"
+    count = 0
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+        start = bookmark - datetime.timedelta(seconds=1)
+
+        epoch_start = int(start.strftime('%s'))
+        parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
+        ticket_metric_events = self.client.tickets.metrics_incremental(start_time=epoch_start)
+        for event in ticket_metric_events:
+            self.count += 1
+            assert parsed_start <= event.time, "TicketMetricEvents - Record found out of time order. Details: start ({}) is not less than or equal to event.time ({})".format(parsed_start, satisfaction_rating.updated_at)
+            if bookmark < utils.strptime_with_tz(event.time):
+                self.update_bookmark(state, event.time)
+            if parsed_start <= event.time:
+                yield (self.stream, event)
+            # if self.count%5000 == 0:
+            #     LOGGER.info("Latest row at {time_at}".format(time_at=event.time))
+
 class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
@@ -608,5 +631,6 @@ STREAMS = {
     "satisfaction_ratings": SatisfactionRatings,
     "tags": Tags,
     "ticket_metrics": TicketMetrics,
+    "ticket_metric_events": TicketMetricEvents,
     "sla_policies": SLAPolicies,
 }
