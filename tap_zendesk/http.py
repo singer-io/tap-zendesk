@@ -3,6 +3,7 @@ import backoff
 import requests
 import singer
 from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError
+from urllib3.exceptions import ProtocolError
 
 LOGGER = singer.get_logger()
 
@@ -129,7 +130,8 @@ def should_retry_error(exception):
     """
     if isinstance(exception, ZendeskConflictError):
         return True
-    if isinstance(exception, ConnectionResetError):
+    if isinstance(exception, Exception) and isinstance(exception.args[0][1], ConnectionResetError):
+        LOGGER.info("Caught ConnectionResetError")
         return True
     return False
 
@@ -158,7 +160,7 @@ def raise_for_error(response):
 
 
 @backoff.on_exception(backoff.expo,
-                      (ZendeskConflictError),
+                      (ZendeskConflictError, ConnectionResetError, ProtocolError),
                       max_tries=10,
                       giveup=lambda e: not should_retry_error(e))
 @backoff.on_exception(backoff.expo,
