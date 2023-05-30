@@ -2,7 +2,7 @@ from time import sleep
 import backoff
 import requests
 import singer
-from requests.exceptions import Timeout, HTTPError, ConnectionError, ChunkedEncodingError
+from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError
 
 LOGGER = singer.get_logger()
 
