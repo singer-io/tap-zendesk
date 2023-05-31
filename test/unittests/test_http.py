@@ -2,6 +2,8 @@ import unittest
 from unittest.mock import MagicMock, Mock, patch
 from tap_zendesk import http, streams
 import requests
+from urllib3.exceptions import ProtocolError
+from requests.exceptions import ChunkedEncodingError
 
 import zenpy
 
@@ -479,3 +481,33 @@ class TestBackoff(unittest.TestCase):
 
         # Verify the request retry 10 times
         self.assertEqual(mock_get.call_count, 10)
+
+    @patch("requests.get")
+    def test_protocol_error(self, mock_get, mock_sleep):
+        mock_get.side_effect = ProtocolError
+
+        with self.assertRaises(ProtocolError) as _:
+            http.call_api(
+                url="some_url", request_timeout=300, params={}, headers={}
+            )
+        self.assertEqual(mock_get.call_count, 5)
+
+    @patch("requests.get")
+    def test_chunked_encoding_error(self, mock_get, mock_sleep):
+        mock_get.side_effect = ChunkedEncodingError
+
+        with self.assertRaises(ChunkedEncodingError) as _:
+            http.call_api(
+                url="some_url", request_timeout=300, params={}, headers={}
+            )
+        self.assertEqual(mock_get.call_count, 5)
+
+    @patch("requests.get")
+    def test_connection_reset_error(self, mock_get, mock_sleep):
+        mock_get.side_effect = ConnectionResetError
+
+        with self.assertRaises(ConnectionResetError) as _:
+            http.call_api(
+                url="some_url", request_timeout=300, params={}, headers={}
+            )
+        self.assertEqual(mock_get.call_count, 5)

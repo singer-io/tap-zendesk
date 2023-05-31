@@ -2,7 +2,8 @@ from time import sleep
 import backoff
 import requests
 import singer
-from requests.exceptions import Timeout, HTTPError
+from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError
+from urllib3.exceptions import ProtocolError
 
 
 
@@ -149,7 +150,7 @@ def raise_for_error(response):
                       max_tries=10,
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,
-                    (ConnectionError, Timeout),#As ConnectionError error and timeout error does not have attribute status_code,
+                    (ConnectionError, Timeout, ChunkedEncodingError, ProtocolError),#As ConnectionError error and timeout error does not have attribute status_code,
                     max_tries=5, # here we added another backoff expression.
                     factor=2)
 def call_api(url, request_timeout, params, headers):
