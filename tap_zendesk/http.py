@@ -132,9 +132,6 @@ def should_retry_error(exception):
         return True
     if isinstance(exception, Exception) and isinstance(exception.args[0][1], ConnectionResetError):
         return True
-    if isinstance(exception, ConnectionResetError):
-        LOGGER.info("Caught ConnectionResetError")
-        return True
     return False
 
 
@@ -162,7 +159,7 @@ def raise_for_error(response):
 
 
 @backoff.on_exception(backoff.expo,
-                      (ZendeskConflictError, ConnectionResetError),
+                      (ZendeskConflictError),
                       max_tries=10,
                       giveup=lambda e: not should_retry_error(e))
 @backoff.on_exception(backoff.expo,
