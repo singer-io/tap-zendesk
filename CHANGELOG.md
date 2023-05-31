@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.0
+## 2.0.1
   * Adds backoff/retry for `ProtocolError` and `ChunkedEncodingError` [#131](https://github.com/singer-io/tap-zendesk/pull/131)
 ## 2.0.0
   * Incremental Exports API implementation for User's stream [#127](https://github.com/singer-io/tap-zendesk/pull/127)
