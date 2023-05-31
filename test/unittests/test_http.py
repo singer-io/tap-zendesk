@@ -483,7 +483,9 @@ class TestBackoff(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 10)
 
     @patch("requests.get")
-    def test_protocol_error(self, mock_get, mock_sleep):
+    def test_call_api_handles_protocol_error(self, mock_get, mock_sleep):
+        """Check whether the request backoff properly for call_api method for 5 times in case of
+         Protocol error"""
         mock_get.side_effect = ProtocolError
 
         with self.assertRaises(ProtocolError) as _:
@@ -493,7 +495,9 @@ class TestBackoff(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 5)
 
     @patch("requests.get")
-    def test_chunked_encoding_error(self, mock_get, mock_sleep):
+    def test_call_api_handles_chunked_encoding_error(self, mock_get, mock_sleep):
+        """Check whether the request backoff properly for call_api method for 5 times in case of
+        ChunkedEncoding error"""
         mock_get.side_effect = ChunkedEncodingError
 
         with self.assertRaises(ChunkedEncodingError) as _:
@@ -503,7 +507,9 @@ class TestBackoff(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 5)
 
     @patch("requests.get")
-    def test_connection_reset_error(self, mock_get, mock_sleep):
+    def test_call_api_handles_connection_reset_error(self, mock_get, mock_sleep):
+        """Check whether the request backoff properly for call_api method for 5 times in case of
+        ConnectionResetError error"""
         mock_get.side_effect = ConnectionResetError
 
         with self.assertRaises(ConnectionResetError) as _:
