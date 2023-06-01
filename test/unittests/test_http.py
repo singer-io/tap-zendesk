@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, patch
 from tap_zendesk import http, streams
 import requests
 from urllib3.exceptions import ProtocolError
-from requests.exceptions import ChunkedEncodingError
+from requests.exceptions import ChunkedEncodingError, ConnectionError
 
 import zenpy
 
