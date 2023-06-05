@@ -2,8 +2,9 @@ from time import sleep
 import backoff
 import requests
 import singer
-from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError
-from urllib3.exceptions import ProtocolError
+from requests.exceptions import Timeout, HTTPError
+
+
 
 LOGGER = singer.get_logger()
 
@@ -14,54 +15,41 @@ class ZendeskError(Exception):
         self.message = message
         self.response = response
 
-
 class ZendeskBackoffError(ZendeskError):
     pass
-
 
 class ZendeskBadRequestError(ZendeskError):
     pass
 
-
 class ZendeskUnauthorizedError(ZendeskError):
     pass
-
 
 class ZendeskForbiddenError(ZendeskError):
     pass
 
-
 class ZendeskNotFoundError(ZendeskError):
     pass
-
 
 class ZendeskConflictError(ZendeskError):
     pass
 
-
 class ZendeskUnprocessableEntityError(ZendeskError):
     pass
-
 
 class ZendeskRateLimitError(ZendeskBackoffError):
     pass
 
-
 class ZendeskInternalServerError(ZendeskBackoffError):
     pass
-
 
 class ZendeskNotImplementedError(ZendeskBackoffError):
     pass
 
-
 class ZendeskBadGatewayError(ZendeskBackoffError):
     pass
 
-
 class ZendeskServiceUnavailableError(ZendeskBackoffError):
     pass
-
 
 ERROR_CODE_EXCEPTION_MAPPING = {
     400: {
@@ -110,8 +98,6 @@ ERROR_CODE_EXCEPTION_MAPPING = {
         "message": "API service is currently unavailable."
     }
 }
-
-
 def is_fatal(exception):
     status_code = exception.response.status_code
 
@@ -123,7 +109,6 @@ def is_fatal(exception):
 
     return 400 <= status_code < 500
 
-
 def should_retry_error(exception):
     """
         Return true if exception is required to retry otherwise return false
@@ -133,7 +118,6 @@ def should_retry_error(exception):
     if isinstance(exception, Exception) and isinstance(exception.args[0][1], ConnectionResetError):
         return True
     return False
-
 
 def raise_for_error(response):
     """ Error handling method which throws custom error. Class for each error defined above which extends `ZendeskError`.
@@ -146,8 +130,7 @@ def raise_for_error(response):
         response_json = {}
     if response.status_code != 200:
         if response_json.get('error'):
-            message = "HTTP-error-code: {}, Error: {}".format(response.status_code,
-                                                              response_json.get('error'))
+            message = "HTTP-error-code: {}, Error: {}".format(response.status_code, response_json.get('error'))
         else:
             message = "HTTP-error-code: {}, Error: {}".format(
                 response.status_code,
@@ -157,27 +140,22 @@ def raise_for_error(response):
             response.status_code, {}).get("raise_exception", ZendeskError)
         raise exc(message, response) from None
 
-
 @backoff.on_exception(backoff.expo,
                       (ZendeskConflictError),
                       max_tries=10,
                       giveup=lambda e: not should_retry_error(e))
 @backoff.on_exception(backoff.expo,
-                      (HTTPError, ZendeskError),
-                      # Added support of backoff for all unhandled status codes.
+                      (HTTPError, ZendeskError), # Added support of backoff for all unhandled status codes.
                       max_tries=10,
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,
-                      (ConnectionError, Timeout, ChunkedEncodingError, ProtocolError),
-                      # As ConnectionError error and timeout error does not have attribute status_code,
+                      (ConnectionError, Timeout), #As ConnectionError error and timeout error does not have attribute status_code,
                       max_tries=5,  # here we added another backoff expression.
                       factor=2)
 def call_api(url, request_timeout, params, headers):
-    response = requests.get(url, params=params, headers=headers,
-                            timeout=request_timeout)  # Pass request timeout
+    response = requests.get(url, params=params, headers=headers, timeout=request_timeout)  # Pass request timeout
     raise_for_error(response)
     return response
-
 
 def get_cursor_based(url, access_token, request_timeout, cursor=None, **kwargs):
     headers = {
@@ -211,7 +189,6 @@ def get_cursor_based(url, access_token, request_timeout, cursor=None, **kwargs):
         yield response_json
         has_more = response_json['meta']['has_more']
 
-
 def get_offset_based(url, access_token, request_timeout, **kwargs):
     headers = {
         'Content-Type': 'application/json',
@@ -238,7 +215,6 @@ def get_offset_based(url, access_token, request_timeout, **kwargs):
 
         yield response_json
         next_url = response_json.get('next_page')
-
 
 def get_incremental_export(url, access_token, request_timeout, start_time):
     headers = {

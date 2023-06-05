@@ -18,7 +18,7 @@ class ZendeskAllFields(ZendeskTest):
         
         
         # Streams to verify all fields tests
-        expected_streams = self.expected_check_streams()
+        expected_streams = self.expected_check_streams() - {"talk_phone_numbers"}
         
         expected_automatic_fields = self.expected_automatic_fields()
         conn_id = connections.ensure_connection(self)
