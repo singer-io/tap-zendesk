@@ -83,7 +83,7 @@ ERROR_CODE_EXCEPTION_MAPPING = {
     500: {
         "raise_exception": ZendeskInternalServerError,
         "message": "The server encountered an unexpected condition which prevented" \
-                   " it from fulfilling the request."
+            " it from fulfilling the request."
     },
     501: {
         "raise_exception": ZendeskNotImplementedError,
@@ -107,7 +107,7 @@ def is_fatal(exception):
         sleep(sleep_time)
         return False
 
-    return 400 <= status_code < 500
+    return 400 <=status_code < 500
 
 def should_retry_error(exception):
     """
@@ -115,7 +115,7 @@ def should_retry_error(exception):
     """
     if isinstance(exception, ZendeskConflictError):
         return True
-    if isinstance(exception, Exception) and isinstance(exception.args[0][1], ConnectionResetError):
+    if isinstance(exception,Exception) and isinstance(exception.args[0][1],ConnectionResetError):
         return True
     return False
 
@@ -126,7 +126,7 @@ def raise_for_error(response):
     """
     try:
         response_json = response.json()
-    except Exception:  # pylint: disable=broad-except
+    except Exception: # pylint: disable=broad-except
         response_json = {}
     if response.status_code != 200:
         if response_json.get('error'):
@@ -149,11 +149,11 @@ def raise_for_error(response):
                       max_tries=10,
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,
-                      (ConnectionError, Timeout), #As ConnectionError error and timeout error does not have attribute status_code,
-                      max_tries=5,  # here we added another backoff expression.
-                      factor=2)
+                    (ConnectionError, Timeout), #As ConnectionError error and timeout error does not have attribute status_code,
+                    max_tries=5,  # here we added another backoff expression.
+                    factor=2)
 def call_api(url, request_timeout, params, headers):
-    response = requests.get(url, params=params, headers=headers, timeout=request_timeout)  # Pass request timeout
+    response = requests.get(url, params=params, headers=headers, timeout=request_timeout) # Pass request timeout
     raise_for_error(response)
     return response
 
