@@ -6,8 +6,8 @@ from zenpy import Zenpy
 import requests
 from requests import Session
 from requests.adapters import HTTPAdapter
-from urllib3.exceptions import ProtocolError
 from requests.exceptions import Timeout, ChunkedEncodingError
+from urllib3.exceptions import ProtocolError
 import singer
 from singer import metadata, metrics as singer_metrics
 import backoff
