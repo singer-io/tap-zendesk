@@ -6,8 +6,11 @@ from zenpy import Zenpy
 import requests
 from requests import Session
 from requests.adapters import HTTPAdapter
+from urllib3.exceptions import ProtocolError
+from requests.exceptions import Timeout, ChunkedEncodingError
 import singer
 from singer import metadata, metrics as singer_metrics
+import backoff
 from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk.discover import discover_streams
 from tap_zendesk.streams import STREAMS
@@ -36,6 +39,11 @@ API_TOKEN_CONFIG_KEYS = [
 # patch Session.request to record HTTP request metrics
 request = Session.request
 
+@backoff.on_exception(backoff.expo,
+                      (ConnectionError, ConnectionResetError, Timeout, ChunkedEncodingError,
+                       ProtocolError),
+                      max_tries=5,
+                      factor=2)
 def request_metrics_patch(self, method, url, **kwargs):
     with singer_metrics.http_request_timer(None):
         response = request(self, method, url, **kwargs)

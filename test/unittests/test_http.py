@@ -2,6 +2,8 @@ import unittest
 from unittest.mock import MagicMock, Mock, patch
 from tap_zendesk import http, streams
 import requests
+from urllib3.exceptions import ProtocolError
+from requests.exceptions import ChunkedEncodingError, ConnectionError
 
 import zenpy
 
@@ -479,3 +481,39 @@ class TestBackoff(unittest.TestCase):
 
         # Verify the request retry 10 times
         self.assertEqual(mock_get.call_count, 10)
+
+    @patch("requests.get")
+    def test_call_api_handles_protocol_error(self, mock_get, mock_sleep):
+        """Check whether the request backoff properly for call_api method for 5 times in case of
+         Protocol error"""
+        mock_get.side_effect = ProtocolError
+
+        with self.assertRaises(ProtocolError) as _:
+            http.call_api(
+                url="some_url", request_timeout=300, params={}, headers={}
+            )
+        self.assertEqual(mock_get.call_count, 5)
+
+    @patch("requests.get")
+    def test_call_api_handles_chunked_encoding_error(self, mock_get, mock_sleep):
+        """Check whether the request backoff properly for call_api method for 5 times in case of
+        ChunkedEncoding error"""
+        mock_get.side_effect = ChunkedEncodingError
+
+        with self.assertRaises(ChunkedEncodingError) as _:
+            http.call_api(
+                url="some_url", request_timeout=300, params={}, headers={}
+            )
+        self.assertEqual(mock_get.call_count, 5)
+
+    @patch("requests.get")
+    def test_call_api_handles_connection_reset_error(self, mock_get, mock_sleep):
+        """Check whether the request backoff properly for call_api method for 5 times in case of
+        ConnectionResetError error"""
+        mock_get.side_effect = ConnectionResetError
+
+        with self.assertRaises(ConnectionResetError) as _:
+            http.call_api(
+                url="some_url", request_timeout=300, params={}, headers={}
+            )
+        self.assertEqual(mock_get.call_count, 5)
