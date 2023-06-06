@@ -2,7 +2,7 @@ from time import sleep
 import backoff
 import requests
 import singer
-from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError, ConnectionError
+from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError
 from urllib3.exceptions import ProtocolError
 
 
