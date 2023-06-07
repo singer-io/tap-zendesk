@@ -355,7 +355,9 @@ class ZendeskTest(unittest.TestCase):
             try:
                 date_stripped = dt.strptime(date_value, date_format)
                 return date_stripped
-            except ValueError:
+            except ValueError as e:
+                if str(e) == "second must be in 0..59" and date_format == '%H%M%S%f':
+                    return dt.fromtimestamp(int(date_value))
                 continue
 
         raise NotImplementedError(
