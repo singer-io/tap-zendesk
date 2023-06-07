@@ -32,7 +32,7 @@ class ZendeskStartDate(ZendeskTest):
         self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=days)
         self.start_date = self.start_date_1
 
-        expected_streams = expected_streams
+        expected_streams= expected_streams
 
         ##########################################################################
         # First Sync
@@ -102,15 +102,15 @@ class ZendeskStartDate(ZendeskTest):
                                           for expected_pk in expected_primary_keys)
                                           for message in synced_records_2.get(stream, {}).get('messages', [])
                                           if message.get('action') == 'upsert' and
-                                          self.parse_date(str(message.get('data').get(expected_rk))) <=
-                                          self.parse_date(str(last_record_date.get(stream).get(expected_rk)))]
+                                          self.parseunix_date(message.get('data').get(expected_rk)) <=
+                                             self.parseunix_date(last_record_date.get(stream).get(expected_rk))]
                    else:
                        primary_keys_list_2 = [tuple(message.get('data').get(expected_pk)
                                             for expected_pk in expected_primary_keys)
                                                for message in synced_records_2.get(stream, {}).get('messages', [])
                                                if message.get('action') == 'upsert' and
-                                               self.parse_date(message.get('data').get(expected_rk)) <=
-                                               self.parse_date(last_record_date.get(stream).get(expected_rk))]
+                                              self.parse_date(message.get('data').get(expected_rk)) <=
+                                              self.parse_date(last_record_date.get(stream).get(expected_rk))]
                 else:
                    primary_keys_list_2 = [tuple(message.get('data').get(expected_pk)
                                          for expected_pk in expected_primary_keys)
@@ -135,7 +135,7 @@ class ZendeskStartDate(ZendeskTest):
                     # Verify replication key is greater or equal to start_date for sync 1
                     for replication_date in replication_dates_1:
                         if stream == "tickets":
-                            replication_date = datetime.utcfromtimestamp(replication_date).strftime('%Y-%m-%dT%H:%M:%SZ')
+                            replication_date = self.parseunix_date(replication_date)
 
                         self.assertGreaterEqual(
                             self.parse_date(replication_date), self.parse_date(
@@ -148,7 +148,7 @@ class ZendeskStartDate(ZendeskTest):
                     # Verify replication key is greater or equal to start_date for sync 2
                     for replication_date in replication_dates_2:
                         if stream == "tickets":
-                            replication_date = datetime.utcfromtimestamp(replication_date).strftime('%Y-%m-%dT%H:%M:%SZ')
+                            replication_date = self.parseunix_date(replication_date)
 
                         self.assertGreaterEqual(
                             self.parse_date(replication_date), self.parse_date(
