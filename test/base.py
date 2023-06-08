@@ -362,7 +362,7 @@ class ZendeskTest(unittest.TestCase):
         try:
             return dt.utcfromtimestamp(int(date_value))
         except ValueError:
-            LOGGER.warning(f"cannot convert {date_value} to int ")
+            pass
 
         raise NotImplementedError(
             "Tests do not account for dates of this format: {}".format(date_value))
