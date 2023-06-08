@@ -1,5 +1,7 @@
 # Changelog
 
+## 1.7.7
+  * Adds backoff/retry for ProtocolError and ChunkedEncodingError [#132](https://github.com/singer-io/tap-zendesk/pull/132)
 ## 1.7.6
   * Fix Infinite Loop for Users [#103](https://github.com/singer-io/tap-zendesk/pull/103)
 ## 1.7.5
