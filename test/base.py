@@ -348,8 +348,7 @@ class ZendeskTest(unittest.TestCase):
             "%Y-%m-%dT%H:%M:%SZ",
             "%Y-%m-%dT%H:%M:%S.%f+00:00",
             "%Y-%m-%dT%H:%M:%S+00:00",
-            "%Y-%m-%d",
-            "%H%M%S%f"
+            "%Y-%m-%d"
         }
         for date_format in date_formats:
             try:
@@ -357,6 +356,13 @@ class ZendeskTest(unittest.TestCase):
                 return date_stripped
             except ValueError:
                 continue
+
+        # Below try-catch block is used to convert the epoch to datetime value
+        # if the date_value doesn't fall under any of date formats mentioned above.
+        try:
+            return dt.utcfromtimestamp(int(date_value))
+        except ValueError:
+            pass
 
         raise NotImplementedError(
             "Tests do not account for dates of this format: {}".format(date_value))
