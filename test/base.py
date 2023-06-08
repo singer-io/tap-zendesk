@@ -348,17 +348,21 @@ class ZendeskTest(unittest.TestCase):
             "%Y-%m-%dT%H:%M:%SZ",
             "%Y-%m-%dT%H:%M:%S.%f+00:00",
             "%Y-%m-%dT%H:%M:%S+00:00",
-            "%Y-%m-%d",
-            "%H%M%S%f"
+            "%Y-%m-%d"
         }
         for date_format in date_formats:
             try:
                 date_stripped = dt.strptime(date_value, date_format)
                 return date_stripped
-            except ValueError as e:
-                if str(e) == "second must be in 0..59" and date_format == '%H%M%S%f':
-                    return dt.fromtimestamp(int(date_value))
+            except ValueError:
                 continue
+
+        # Below try-catch block is used to convert the epoch to datetime value
+        # if the date_value doesn't fall under any of date formats mentioned above.
+        try:
+            return dt.utcfromtimestamp(int(date_value))
+        except ValueError:
+            LOGGER.warning(f"cannot convert {date_value} to int ")
 
         raise NotImplementedError(
             "Tests do not account for dates of this format: {}".format(date_value))
