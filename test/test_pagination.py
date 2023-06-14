@@ -27,7 +27,6 @@ class ZendeskPagination(ZendeskTest):
         expected_streams = expected_streams - {
             "satisfaction_ratings", # skip as only end user of tickets can create data
             "tags", #  Test Stability Issue: TDL-17980
-            "talk_phone_numbers"
         }
 
         conn_id = connections.ensure_connection(self)
