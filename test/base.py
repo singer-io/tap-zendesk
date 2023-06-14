@@ -339,11 +339,6 @@ class ZendeskTest(unittest.TestCase):
             connections.select_catalog_and_fields_via_metadata(
                 conn_id, catalog, schema, [], non_selected_properties)
 
-    def parseunix_date(self, date_value):
-        """ For tickets stream the replication date value is in Unix date format """
-        date_value = dt.utcfromtimestamp(date_value).strftime('%Y-%m-%dT%H:%M:%SZ')
-        return date_value
-
     def parse_date(self, date_value):
         """
         Pass in string-formatted-datetime, parse the value, and return it as an unformatted datetime object.
