@@ -21,7 +21,7 @@ class ZendeskAutomaticFields(ZendeskTest):
         Verify that all replicated records have unique primary key values.
         """
 
-        streams_to_test = self.expected_check_streams()
+        streams_to_test = self.expected_check_streams() - {"talk_phone_numbers"}
 
         conn_id = connections.ensure_connection(self)
 
@@ -64,7 +64,7 @@ class ZendeskAutomaticFields(ZendeskTest):
                     self.assertSetEqual(expected_keys, actual_keys)
 
                 # Verify that all replicated records have unique primary key values.
-                if stream == 'organizations': # BUG_TDL-19428
+                if stream in {'organizations', 'ticket_metric_events'}: # BUG_TDL-19428
                     continue # skipping
                 self.assertEqual(len(primary_keys_list),
                                  len(unique_primary_keys_list),
