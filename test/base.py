@@ -146,6 +146,12 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: False
             },
+            "ticket_metric_events": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"time"},
+                self.OBEYS_START_DATE: True
+            },
             "tickets": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
@@ -162,6 +168,11 @@ class ZendeskTest(unittest.TestCase):
                 # ticket_audits is child stream of tickets, and tickets is incremental stream.
                 # But it does not save its own bookmark. It fetches records based on the record of the parent stream.
                 # That's why make it FULL_TABLE
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
+            },
+            "talk_phone_numbers": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: False
