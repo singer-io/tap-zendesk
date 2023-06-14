@@ -406,6 +406,34 @@ class TicketMetrics(CursorBasedStream):
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
             pass
 
+class TicketMetricEvents(Stream):
+    name = "ticket_metric_events"
+    replication_method = "INCREMENTAL"
+    replication_key = "time"
+    count = 0
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+        start = bookmark - datetime.timedelta(seconds=1)
+
+        epoch_start = int(start.strftime('%s'))
+        parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
+        ticket_metric_events = self.client.tickets.metrics_incremental(start_time=epoch_start)
+        for event in ticket_metric_events:
+            self.count += 1
+            if bookmark < utils.strptime_with_tz(event.time):
+                self.update_bookmark(state, event.time)
+            if parsed_start <= event.time:
+                yield (self.stream, event)
+
+    def check_access(self):
+        try:
+            epoch_start = int(utils.now().strftime('%s'))
+            self.client.tickets.metrics_incremental(start_time=epoch_start)
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
+            pass
+
 class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
@@ -436,6 +464,21 @@ class TicketComments(Stream):
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
         try:
             http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
+            pass
+
+class TalkPhoneNumbers(Stream):
+    name = 'talk_phone_numbers'
+    replication_method = "FULL_TABLE"
+
+    def sync(self, state): # pylint: disable=unused-argument
+        for phone_number in self.client.talk.phone_numbers():
+            yield (self.stream, phone_number)
+
+    def check_access(self):
+        try:
+            self.client.talk.phone_numbers()
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
             pass
@@ -608,5 +651,7 @@ STREAMS = {
     "satisfaction_ratings": SatisfactionRatings,
     "tags": Tags,
     "ticket_metrics": TicketMetrics,
+    "ticket_metric_events": TicketMetricEvents,
     "sla_policies": SLAPolicies,
+    "talk_phone_numbers": TalkPhoneNumbers,
 }
