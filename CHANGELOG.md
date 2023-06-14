@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0
+  * Adds new streams `talk_phone_numbers` and `ticket_metric_events` [#111](https://github.com/singer-io/tap-zendesk/pull/111)
+## 2.0.1
+  * Adds backoff/retry for `ProtocolError` and `ChunkedEncodingError` [#131](https://github.com/singer-io/tap-zendesk/pull/131)
+## 2.0.0
+  * Incremental Exports API implementation for User's stream [#127](https://github.com/singer-io/tap-zendesk/pull/127)
+## 1.7.6
+  * Fix Infinite Loop for Users [#103](https://github.com/singer-io/tap-zendesk/pull/103)
 ## 1.7.5
   * Added support for backoff and retry for error 409 [#107](https://github.com/singer-io/tap-zendesk/pull/107)
   * Code Formatting [#107](https://github.com/singer-io/tap-zendesk/pull/107)

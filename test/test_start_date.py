@@ -32,7 +32,7 @@ class ZendeskStartDate(ZendeskTest):
         self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=days)
         self.start_date = self.start_date_1
 
-        expected_streams= expected_streams
+        expected_streams = expected_streams
 
         ##########################################################################
         # First Sync
@@ -109,8 +109,8 @@ class ZendeskStartDate(ZendeskTest):
                                             for expected_pk in expected_primary_keys)
                                                for message in synced_records_2.get(stream, {}).get('messages', [])
                                                if message.get('action') == 'upsert' and
-                                              self.parse_date(message.get('data').get(expected_rk)) <=
-                                              self.parse_date(last_record_date.get(stream).get(expected_rk))]
+                                               self.parse_date(message.get('data').get(expected_rk)) <=
+                                               self.parse_date(last_record_date.get(stream).get(expected_rk))]
                 else:
                    primary_keys_list_2 = [tuple(message.get('data').get(expected_pk)
                                          for expected_pk in expected_primary_keys)
@@ -163,8 +163,7 @@ class ZendeskStartDate(ZendeskTest):
                     self.assertGreater(record_count_sync_1, record_count_sync_2)
 
                     # Verify the records replicated in sync 2 were also replicated in sync 1
-                    self.assertTrue(
-                        primary_keys_sync_2.issubset(primary_keys_sync_1))
+                    self.assertTrue(primary_keys_sync_2.issubset(primary_keys_sync_1))
 
                 else:
                     # Given below streams are child stremas of parent stream `tickets` and tickets is incremental streams
