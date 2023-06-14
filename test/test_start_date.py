@@ -32,7 +32,7 @@ class ZendeskStartDate(ZendeskTest):
         self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=days)
         self.start_date = self.start_date_1
 
-        expected_streams = expected_streams
+        expected_streams= expected_streams
 
         ##########################################################################
         # First Sync
