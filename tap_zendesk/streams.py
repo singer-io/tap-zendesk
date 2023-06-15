@@ -9,6 +9,7 @@ from singer import utils
 from singer.metrics import Point
 from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk import http
+import base64
 
 
 LOGGER = singer.get_logger()
@@ -30,6 +31,16 @@ CUSTOM_TYPES = {
     'decimal': 'number',
     'checkbox': 'boolean',
 }
+
+def update_authorization_headers(config, headers={}):
+    if "access_token" in config:
+        headers['Authorization'] = 'Bearer {}'.format(config["access_token"])
+    else:
+        basic_auth_string = '{}/token:{}'.format(config["email"], config["api_token"])
+        encoded_basic_auth = base64.b64encode(basic_auth_string.encode("utf-8")).decode("utf-8")
+        headers['Authorization'] = 'Basic {}'.format(encoded_basic_auth)
+    return headers
+
 
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
@@ -122,9 +133,9 @@ class Stream():
         Check whether the permission was given to access stream resources or not.
         '''
         url = self.endpoint.format(self.config['subdomain'])
-        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+        headers = update_authorization_headers(self.config, HEADERS)
 
-        http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+        http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=headers)
 
 class CursorBasedStream(Stream):
     item_key = None
@@ -135,8 +146,14 @@ class CursorBasedStream(Stream):
         Cursor based object retrieval
         '''
         url = self.endpoint.format(self.config['subdomain'])
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            **kwargs.get('headers', {})
+        }
+        headers = update_authorization_headers(self.config, headers)
         # Pass `request_timeout` parameter
-        for page in http.get_cursor_based(url, self.config['access_token'], self.request_timeout, **kwargs):
+        for page in http.get_cursor_based(url, headers, self.request_timeout, **kwargs):
             yield from page[self.item_key]
 
 class CursorBasedExportStream(Stream):
@@ -148,8 +165,9 @@ class CursorBasedExportStream(Stream):
         Retrieve objects from the incremental exports endpoint using cursor based pagination
         '''
         url = self.endpoint.format(self.config['subdomain'])
+        headers = update_authorization_headers(self.config, HEADERS)
         # Pass `request_timeout` parameter
-        for page in http.get_incremental_export(url, self.config['access_token'], self.request_timeout, start_time):
+        for page in http.get_incremental_export(url, headers, self.request_timeout, start_time):
             yield from page[self.item_key]
 
 
@@ -338,9 +356,9 @@ class Tickets(CursorBasedExportStream):
         url = self.endpoint.format(self.config['subdomain'])
         # Convert start_date parameter to timestamp to pass with request param
         start_time = datetime.datetime.strptime(self.config['start_date'], START_DATE_FORMAT).timestamp()
-        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+        headers = update_authorization_headers(self.config, HEADERS)
 
-        http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=HEADERS)
+        http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=headers)
 
 
 class TicketAudits(Stream):
@@ -352,8 +370,9 @@ class TicketAudits(Stream):
 
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        headers = update_authorization_headers(self.config, HEADERS)
         # Pass `request_timeout` parameter
-        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+        pages = http.get_offset_based(url, headers, self.request_timeout)
         for page in pages:
             yield from page[self.item_key]
 
@@ -370,9 +389,9 @@ class TicketAudits(Stream):
         '''
 
         url = self.endpoint.format(self.config['subdomain'], '1')
-        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+        headers = update_authorization_headers(self.config, HEADERS)
         try:
-            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=headers)
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
             pass
@@ -387,8 +406,9 @@ class TicketMetrics(CursorBasedStream):
     def sync(self, ticket_id):
         # Only 1 ticket metric per ticket
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        headers = update_authorization_headers(self.config, HEADERS)
         # Pass `request_timeout`
-        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+        pages = http.get_offset_based(url, headers, self.request_timeout)
         for page in pages:
             zendesk_metrics.capture('ticket_metric')
             self.count += 1
@@ -399,9 +419,9 @@ class TicketMetrics(CursorBasedStream):
         Check whether the permission was given to access stream resources or not.
         '''
         url = self.endpoint.format(self.config['subdomain'], '1')
-        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+        headers = update_authorization_headers(self.config, HEADERS)
         try:
-            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=headers)
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
             pass
@@ -443,8 +463,9 @@ class TicketComments(Stream):
 
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        headers = update_authorization_headers(self.config, HEADERS)
         # Pass `request_timeout` parameter
-        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+        pages = http.get_offset_based(url, headers, self.request_timeout)
 
         for page in pages:
             yield from page[self.item_key]
@@ -461,9 +482,9 @@ class TicketComments(Stream):
         Check whether the permission was given to access stream resources or not.
         '''
         url = self.endpoint.format(self.config['subdomain'], '1')
-        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+        headers = update_authorization_headers(self.config, HEADERS)
         try:
-            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=headers)
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
             pass

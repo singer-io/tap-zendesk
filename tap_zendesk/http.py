@@ -149,14 +149,7 @@ def call_api(url, request_timeout, params, headers):
     raise_for_error(response)
     return response
 
-def get_cursor_based(url, access_token, request_timeout, cursor=None, **kwargs):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-        **kwargs.get('headers', {})
-    }
-
+def get_cursor_based(url, headers, request_timeout, cursor=None, **kwargs):
     params = {
         'page[size]': 100,
         **kwargs.get('params', {})
@@ -181,14 +174,7 @@ def get_cursor_based(url, access_token, request_timeout, cursor=None, **kwargs):
         yield response_json
         has_more = response_json['meta']['has_more']
 
-def get_offset_based(url, access_token, request_timeout, **kwargs):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-        **kwargs.get('headers', {})
-    }
-
+def get_offset_based(url, headers, request_timeout, **kwargs):
     params = {
         'per_page': 100,
         **kwargs.get('params', {})
@@ -208,13 +194,7 @@ def get_offset_based(url, access_token, request_timeout, **kwargs):
         yield response_json
         next_url = response_json.get('next_page')
 
-def get_incremental_export(url, access_token, request_timeout, start_time):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-    }
-
+def get_incremental_export(url, headers, request_timeout, start_time):
     params = {'start_time': start_time}
 
     if not isinstance(start_time, int):
