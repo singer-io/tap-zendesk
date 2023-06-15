@@ -1,6 +1,7 @@
 import os
 import json
 import datetime
+import base64
 import pytz
 import zenpy
 import singer
@@ -9,7 +10,6 @@ from singer import utils
 from singer.metrics import Point
 from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk import http
-import base64
 
 
 LOGGER = singer.get_logger()
@@ -32,7 +32,7 @@ CUSTOM_TYPES = {
     'checkbox': 'boolean',
 }
 
-def update_authorization_headers(config, headers={}):
+def update_authorization_headers(config, headers):
     if "access_token" in config:
         headers['Authorization'] = 'Bearer {}'.format(config["access_token"])
     else:
