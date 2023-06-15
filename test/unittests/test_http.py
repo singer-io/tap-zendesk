@@ -74,11 +74,12 @@ class TestBackoff(unittest.TestCase):
         "requests.get", side_effect=[mocked_get(status_code=200, json=SINGLE_RESPONSE)]
     )
     def test_get_cursor_based_gets_one_page(self, mock_get, mock_sleep):
+        headers = {}
         responses = [
             response
             for response in http.get_cursor_based(
                 url="some_url",
-                access_token="some_token",
+                headers=headers,
                 request_timeout=REQUEST_TIMEOUT,
             )
         ]
@@ -97,11 +98,12 @@ class TestBackoff(unittest.TestCase):
         ],
     )
     def test_get_cursor_based_can_paginate(self, mock_get, mock_sleep):
+        headers={}
         responses = [
             response
             for response in http.get_cursor_based(
                 url="some_url",
-                access_token="some_token",
+                headers=headers,
                 request_timeout=REQUEST_TIMEOUT,
             )
         ]
@@ -135,11 +137,12 @@ class TestBackoff(unittest.TestCase):
         - requests uses a case insensitive dict for the `headers`
         - can handle either a string or an integer for the retry header
         """
+        headers={}
         responses = [
             response
             for response in http.get_cursor_based(
                 url="some_url",
-                access_token="some_token",
+                headers=headers,
                 request_timeout=REQUEST_TIMEOUT,
             )
         ]
@@ -155,10 +158,11 @@ class TestBackoff(unittest.TestCase):
     )
     def test_get_cursor_based_handles_400(self, mock_get, mock_sleep):
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
 
@@ -180,10 +184,11 @@ class TestBackoff(unittest.TestCase):
     )
     def test_get_cursor_based_handles_400_api_error_message(self, mock_get, mock_sleep):
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
 
@@ -202,10 +207,11 @@ class TestBackoff(unittest.TestCase):
     )
     def test_get_cursor_based_handles_401(self, mock_get, mock_sleep):
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
         except http.ZendeskUnauthorizedError as e:
@@ -224,10 +230,11 @@ class TestBackoff(unittest.TestCase):
     )
     def test_get_cursor_based_handles_404(self, mock_get, mock_sleep):
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
         except http.ZendeskNotFoundError as e:
@@ -245,10 +252,11 @@ class TestBackoff(unittest.TestCase):
         """
 
         with self.assertRaises(http.ZendeskConflictError) as e:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
             expected_error_message = "HTTP-error-code: 409, Error: The API request cannot be completed because the requested operation would conflict with an existing item."
@@ -262,10 +270,11 @@ class TestBackoff(unittest.TestCase):
     )
     def test_get_cursor_based_handles_422(self, mock_get, mock_sleep):
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
         except http.ZendeskUnprocessableEntityError as e:
@@ -285,10 +294,11 @@ class TestBackoff(unittest.TestCase):
         Test that the tap can handle 500 error and retry it 10 times
         """
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
         except http.ZendeskInternalServerError as e:
@@ -311,10 +321,11 @@ class TestBackoff(unittest.TestCase):
         Test that the tap can handle 501 error and retry it 10 times
         """
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
         except http.ZendeskNotImplementedError as e:
@@ -334,10 +345,11 @@ class TestBackoff(unittest.TestCase):
         Test that the tap can handle 502 error and retry it 10 times
         """
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
         except http.ZendeskBadGatewayError as e:
@@ -357,10 +369,11 @@ class TestBackoff(unittest.TestCase):
 
         mock_get.side_effect = [fake_response]
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
         except http.ZendeskError as e:
@@ -420,10 +433,11 @@ class TestBackoff(unittest.TestCase):
         Test that the tap can handle 524 error and retry it 10 times
         """
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
         except http.ZendeskError as e:
@@ -443,10 +457,11 @@ class TestBackoff(unittest.TestCase):
         Test that the tap can handle 520 error and retry it 10 times
         """
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
         except http.ZendeskError as e:
@@ -466,10 +481,11 @@ class TestBackoff(unittest.TestCase):
         Test that the tap can handle 503 error and retry it 10 times
         """
         try:
+            headers={}
             responses = [
                 response
                 for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
+                    url="some_url", headers=headers, request_timeout=300
                 )
             ]
         except http.ZendeskServiceUnavailableError as e:
