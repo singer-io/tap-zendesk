@@ -1,6 +1,6 @@
 from time import sleep
-import backoff
 import base64
+import backoff
 import requests
 import singer
 from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError, ConnectionError
