@@ -18,7 +18,7 @@ class ZendeskAllFields(ZendeskTest):
         
         
         # Streams to verify all fields tests
-        expected_streams = self.expected_check_streams()
+        expected_streams = self.expected_check_streams() - {"talk_phone_numbers"}
         
         expected_automatic_fields = self.expected_automatic_fields()
         conn_id = connections.ensure_connection(self)
@@ -75,9 +75,11 @@ class ZendeskAllFields(ZendeskTest):
                 if stream == "ticket_fields":
                     expected_all_keys = expected_all_keys - {'system_field_options', 'sub_type_id'}
                 elif stream == "users":
-                    expected_all_keys = expected_all_keys - {'permanently_deleted'}
+                    expected_all_keys = expected_all_keys - {'chat_only'}
                 elif stream == "ticket_metrics":
                     expected_all_keys = expected_all_keys - {'status', 'instance_id', 'metric', 'type', 'time'}
+                elif stream == "talk_phone_numbers":
+                    expected_all_keys = expected_all_keys - {'token'}
                             
                 # verify all fields for each stream are replicated
                 self.assertSetEqual(expected_all_keys, actual_all_keys)

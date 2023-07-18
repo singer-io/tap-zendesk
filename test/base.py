@@ -146,6 +146,12 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: False
             },
+            "ticket_metric_events": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"time"},
+                self.OBEYS_START_DATE: True
+            },
             "tickets": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
@@ -162,6 +168,11 @@ class ZendeskTest(unittest.TestCase):
                 # ticket_audits is child stream of tickets, and tickets is incremental stream.
                 # But it does not save its own bookmark. It fetches records based on the record of the parent stream.
                 # That's why make it FULL_TABLE
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
+            },
+            "talk_phone_numbers": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: False
@@ -339,6 +350,11 @@ class ZendeskTest(unittest.TestCase):
             connections.select_catalog_and_fields_via_metadata(
                 conn_id, catalog, schema, [], non_selected_properties)
 
+    def parse_unix_date(self, date_value):
+        """ For tickets stream the replication date value is in Unix date format """
+        date_value = dt.utcfromtimestamp(date_value).strftime('%Y-%m-%dT%H:%M:%SZ')
+        return date_value
+
     def parse_date(self, date_value):
         """
         Pass in string-formatted-datetime, parse the value, and return it as an unformatted datetime object.
@@ -348,7 +364,8 @@ class ZendeskTest(unittest.TestCase):
             "%Y-%m-%dT%H:%M:%SZ",
             "%Y-%m-%dT%H:%M:%S.%f+00:00",
             "%Y-%m-%dT%H:%M:%S+00:00",
-            "%Y-%m-%d"
+            "%Y-%m-%d",
+            "%H%M%S%f"
         }
         for date_format in date_formats:
             try:
@@ -398,3 +415,33 @@ class ZendeskTest(unittest.TestCase):
         date_object = dateutil.parser.parse(date_str)
         date_object_utc = date_object.astimezone(tz=pytz.UTC)
         return dt.strftime(date_object_utc, "%Y-%m-%dT%H:%M:%SZ")
+
+    def max_bookmarks_by_stream(self, sync_records):
+        """
+        Return the maximum value for the replication key for each stream
+        which is the bookmark expected value.
+
+        Comparisons are based on the class of the bookmark value. Dates will be
+        string compared which works for ISO date-time strings
+        """
+        max_bookmarks = {}
+        for stream, batch in sync_records.items():
+            Expected_replication_method = self.expected_replication_method().get(stream)
+            if Expected_replication_method == 'INCREMENTAL' :
+               upsert_messages = [m for m in batch.get('messages') if m['action'] == 'upsert']
+               stream_bookmark_key = self.expected_replication_keys().get(stream, set())
+               assert len(stream_bookmark_key) == 1  # There shouldn't be a compound replication key
+               stream_bookmark_key = stream_bookmark_key.pop()
+
+               bk_values = [message["data"].get(stream_bookmark_key) for message in upsert_messages]
+               max_bookmarks[stream] = {stream_bookmark_key: None}
+               for bk_value in bk_values:
+                   if bk_value is None:
+                       continue
+
+                   if max_bookmarks[stream][stream_bookmark_key] is None:
+                       max_bookmarks[stream][stream_bookmark_key] = bk_value
+
+                       if bk_value > max_bookmarks[stream][stream_bookmark_key]:
+                           max_bookmarks[stream][stream_bookmark_key] = bk_value
+        return max_bookmarks
