@@ -1,11 +1,7 @@
+import base
+
 from base import ZendeskTest
 from tap_tester import connections, menagerie, runner
-
-from tap_tester.base_case import BaseCase as base
-from tap_tester.jira_client import JiraClient as jira_client
-from tap_tester.jira_client import CONFIGURATION_ENVIRONMENT as jira_config
-
-JIRA_CLIENT = jira_client({ **jira_config })
 
 
 class ZendeskPagination(ZendeskTest):
@@ -16,7 +12,7 @@ class ZendeskPagination(ZendeskTest):
     def name(self):
         return "zendesk_pagination_test"
 
-    @base.skipUnless(JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
+    @base.tt_base.skipUnless(base.JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
     def test_run(self):
         """
         • Verify that for each stream you can get multiple pages of data.
