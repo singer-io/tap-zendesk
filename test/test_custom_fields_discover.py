@@ -1,11 +1,18 @@
-from tap_tester import menagerie, connections, runner
-
 from base import ZendeskTest
+from tap_tester import connections, menagerie, runner
+
+from tap_tester.base_case import BaseCase as base
+from tap_tester.jira_client import JiraClient as jira_client
+from tap_tester.jira_client import CONFIGURATION_ENVIRONMENT as jira_config
+
+JIRA_CLIENT = jira_client({ **jira_config })
+
 
 class ZendeskCustomFieldsDiscover(ZendeskTest):
     def name(self):
         return "tap_tester_zendesk_custom_fields_discover"
 
+    @base.skipUnless(JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
     def test_run(self):
         # Default test setup
         # Create the connection for Zendesk
@@ -40,4 +47,3 @@ class ZendeskCustomFieldsDiscover(ZendeskTest):
             # with their own set of properties
             self.assertIsNotNone(properties.get('{}_fields'.format(schema[0]), {}).get('properties'),
                                  msg='{}_fields not present in schema!'.format(schema[0]))
-

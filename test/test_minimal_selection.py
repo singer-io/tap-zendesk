@@ -1,10 +1,14 @@
-import tap_tester.connections as connections
-import tap_tester.menagerie   as menagerie
-import tap_tester.runner      as runner
-from base import ZendeskTest
 import unittest
 from functools import reduce
-from singer import metadata
+
+from base import ZendeskTest
+from tap_tester import connections, menagerie, runner
+
+from tap_tester.base_case import BaseCase as base
+from tap_tester.jira_client import JiraClient as jira_client
+from tap_tester.jira_client import CONFIGURATION_ENVIRONMENT as jira_config
+
+JIRA_CLIENT = jira_client({ **jira_config })
 
 
 class ZendeskMinimalSelection(ZendeskTest):
@@ -21,6 +25,7 @@ class ZendeskMinimalSelection(ZendeskTest):
             'users': {'id'}
         }
 
+    @base.skipUnless(JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
     def test_run(self):
         # Default test setup
         # Create the connection for Zendesk
@@ -45,7 +50,7 @@ class ZendeskMinimalSelection(ZendeskTest):
         our_catalogs = [c for c in self.found_catalogs if c.get('tap_stream_id') in self.expected_sync_streams()]
         for c in our_catalogs:
             c_annotated = menagerie.get_annotated_schema(conn_id, c['stream_id'])
-            c_metadata = metadata.to_map(c_annotated['metadata'])
+            c_metadata = self.to_map(c_annotated['metadata'])
             # Tags table only has name and count columns; don't select count
             connections.select_catalog_and_fields_via_metadata(conn_id, c, c_annotated, [], ['name'])
 
@@ -64,4 +69,3 @@ class ZendeskMinimalSelection(ZendeskTest):
                 pk_set = self.expected_pks()[stream]
                 for pk in pk_set:
                     self.assertIsNotNone(m.get('data', {}).get(pk), msg="Missing primary-key for message {}".format(m))
-

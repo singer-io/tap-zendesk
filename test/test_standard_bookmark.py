@@ -1,11 +1,14 @@
-import tap_tester.connections as connections
-import tap_tester.runner as runner
-from base import ZendeskTest
-from tap_tester import menagerie
 from datetime import datetime
-import uuid
-import os
-import time
+
+from base import ZendeskTest
+from tap_tester import connections, menagerie, runner
+
+from tap_tester.base_case import BaseCase as base
+from tap_tester.jira_client import JiraClient as jira_client
+from tap_tester.jira_client import CONFIGURATION_ENVIRONMENT as jira_config
+
+JIRA_CLIENT = jira_client({ **jira_config })
+
 
 class ZendeskBookMark(ZendeskTest):
     """Test tap sets a bookmark and respects it for the next sync of a stream"""
@@ -13,6 +16,7 @@ class ZendeskBookMark(ZendeskTest):
     def name(self):
         return "zendesk_bookmark_test"
 
+    @base.skipUnless(JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
     def test_run(self):
         """
         Verify that for each stream you can do a sync which records bookmarks.

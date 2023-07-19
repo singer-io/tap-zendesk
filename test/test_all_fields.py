@@ -1,25 +1,31 @@
-import tap_tester.connections as connections
-import tap_tester.runner as runner
-import tap_tester.menagerie as menagerie
 from base import ZendeskTest
+from tap_tester import connections, menagerie, runner
+
+from tap_tester.base_case import BaseCase as base
+from tap_tester.jira_client import JiraClient as jira_client
+from tap_tester.jira_client import CONFIGURATION_ENVIRONMENT as jira_config
+
+JIRA_CLIENT = jira_client({ **jira_config })
+
 
 class ZendeskAllFields(ZendeskTest):
     """Ensure running the tap with all streams and fields selected results in the replication of all fields."""
-     
+
     def name(self):
         return "zendesk_all_fields"
 
+    @base.skipUnless(JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
     def test_run(self):
         """
         • Verify no unexpected streams were replicated
-        • Verify that more than just the automatic fields are replicated for each stream. 
+        • Verify that more than just the automatic fields are replicated for each stream.
         • verify all fields for each stream are replicated
         """
-        
-        
+
+
         # Streams to verify all fields tests
         expected_streams = self.expected_check_streams() - {"talk_phone_numbers"}
-        
+
         expected_automatic_fields = self.expected_automatic_fields()
         conn_id = connections.ensure_connection(self)
 
@@ -51,7 +57,7 @@ class ZendeskAllFields(ZendeskTest):
         # Verify no unexpected streams were replicated
         synced_stream_names = set(synced_records.keys())
         self.assertSetEqual(expected_streams, synced_stream_names)
-        
+
         for stream in expected_streams:
             with self.subTest(stream=stream):
 
@@ -80,6 +86,6 @@ class ZendeskAllFields(ZendeskTest):
                     expected_all_keys = expected_all_keys - {'status', 'instance_id', 'metric', 'type', 'time'}
                 elif stream == "talk_phone_numbers":
                     expected_all_keys = expected_all_keys - {'token'}
-                            
+
                 # verify all fields for each stream are replicated
                 self.assertSetEqual(expected_all_keys, actual_all_keys)

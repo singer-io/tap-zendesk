@@ -1,14 +1,18 @@
 import os
-import tap_tester.connections as connections
-import tap_tester.menagerie   as menagerie
-import tap_tester.runner      as runner
-
 from functools import reduce
 # TODO fix setup.py? so zenpy module is availalble on dev_vm without manually running pip install
 from zenpy import Zenpy
 from zenpy.lib.api_objects import Group, Organization, Tag, User
 
 from base import ZendeskTest
+from tap_tester import connections, menagerie, runner
+
+from tap_tester.base_case import BaseCase as base
+from tap_tester.jira_client import JiraClient as jira_client
+from tap_tester.jira_client import CONFIGURATION_ENVIRONMENT as jira_config
+
+JIRA_CLIENT = jira_client({ **jira_config })
+
 
 class ZendeskAllStreams(ZendeskTest):
     def name(self):
@@ -113,6 +117,7 @@ class ZendeskAllStreams(ZendeskTest):
             #zenpy_client.tickets.rate(id, rating) # example rating {'score': 'good'}
 
 
+    @base.skipUnless(JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
     def test_run(self):
         # Default test setup
         # Create the connection for Zendesk
