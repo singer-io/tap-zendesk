@@ -1,4 +1,3 @@
-import base
 import unittest
 from functools import reduce
 
@@ -20,7 +19,7 @@ class ZendeskMinimalSelection(ZendeskTest):
             'users': {'id'}
         }
 
-    @base.tt_base.skipUnless(base.JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
+    @ZendeskTest.skipUntilDone("TDL-20862")
     def test_run(self):
         # Default test setup
         # Create the connection for Zendesk

@@ -1,5 +1,3 @@
-import base
-
 from base import ZendeskTest
 from tap_tester import connections, runner
 
@@ -16,7 +14,7 @@ class ZendeskAutomaticFields(ZendeskTest):
     def name(self):
         return "zendesk_automatic_fields"
 
-    @base.tt_base.skipUnless(base.JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
+    @ZendeskTest.skipUntilDone("TDL-20862")
     def test_run(self):
         """
         Verify we can deselect all fields except when inclusion=automatic, which is handled by base.py methods

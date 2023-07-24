@@ -1,5 +1,3 @@
-import base
-
 from base import ZendeskTest
 from tap_tester import connections, menagerie, runner
 
@@ -8,7 +6,7 @@ class ZendeskCustomFieldsDiscover(ZendeskTest):
     def name(self):
         return "tap_tester_zendesk_custom_fields_discover"
 
-    @base.tt_base.skipUnless(base.JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
+    @ZendeskTest.skipUntilDone("TDL-20862")
     def test_run(self):
         # Default test setup
         # Create the connection for Zendesk

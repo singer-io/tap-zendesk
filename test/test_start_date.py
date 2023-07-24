@@ -1,5 +1,3 @@
-import base
-
 from datetime import datetime
 
 from base import ZendeskTest
@@ -18,7 +16,7 @@ class ZendeskStartDate(ZendeskTest):
     def name(self):
         return "zendesk_start_date_test"
 
-    @base.tt_base.skipUnless(base.JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
+    @ZendeskTest.skipUntilDone("TDL-20862")
     def test_run(self):
         """
         Test that the start_date configuration is respected

@@ -1,23 +1,20 @@
-import base
-
 from base import ZendeskTest
 from tap_tester import connections, menagerie, runner
 
 
 class ZendeskAllFields(ZendeskTest):
-    """Ensure running the tap with all streams and fields selected results in the replication of all fields."""
+    """Ensure that when all streams and fields are selected, all fields are replicated."""
 
     def name(self):
         return "zendesk_all_fields"
 
-    @base.tt_base.skipUnless(base.JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
+    @ZendeskTest.skipUntilDone("TDL-20862")
     def test_run(self):
         """
         • Verify no unexpected streams were replicated
         • Verify that more than just the automatic fields are replicated for each stream.
         • verify all fields for each stream are replicated
         """
-
 
         # Streams to verify all fields tests
         expected_streams = self.expected_check_streams() - {"talk_phone_numbers"}

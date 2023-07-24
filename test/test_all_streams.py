@@ -1,4 +1,3 @@
-import base
 import os
 from functools import reduce
 # TODO fix setup.py? so zenpy module is availalble on dev_vm without manually running pip install
@@ -112,7 +111,7 @@ class ZendeskAllStreams(ZendeskTest):
             #zenpy_client.tickets.rate(id, rating) # example rating {'score': 'good'}
 
 
-    @base.tt_base.skipUnless(base.JIRA_CLIENT.get_jira_issue_status("TDL-20862") == "Done", "TDL-20862")
+    @ZendeskTest.skipUntilDone("TDL-20862")
     def test_run(self):
         # Default test setup
         # Create the connection for Zendesk
