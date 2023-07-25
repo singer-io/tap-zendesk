@@ -3,17 +3,23 @@ import json
 import datetime
 import pytz
 import zenpy
-from zenpy.lib.exception import RecordNotFoundException
 import singer
 from singer import metadata
 from singer import utils
 from singer.metrics import Point
 from tap_zendesk import metrics as zendesk_metrics
+from tap_zendesk import http
 
 
 LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
 
+REQUEST_TIMEOUT = 300
+START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+HEADERS = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+}
 CUSTOM_TYPES = {
     'text': 'string',
     'textarea': 'string',
@@ -45,7 +51,7 @@ def process_custom_field(field):
     if zendesk_type == 'date':
         field_schema['format'] = 'datetime'
     if zendesk_type == 'dropdown':
-        field_schema['enum'] = [o['value'] for o in field.custom_field_options]
+        field_schema['enum'] = [o.value for o in field.custom_field_options]
 
     return field_schema
 
@@ -55,9 +61,22 @@ class Stream():
     replication_key = None
     key_properties = KEY_PROPERTIES
     stream = None
+    endpoint = None
+    request_timeout = None
 
-    def __init__(self, client=None):
+    def __init__(self, client=None, config=None):
         self.client = client
+        self.config = config
+        # Set and pass request timeout to config param `request_timeout` value.
+        config_request_timeout = self.config.get('request_timeout')
+        if config_request_timeout and float(config_request_timeout):
+            self.request_timeout = float(config_request_timeout)
+        else:
+            self.request_timeout = REQUEST_TIMEOUT # If value is 0,"0","" or not passed then it set default to 300 seconds.
+
+        # To avoid infinite loop behavior we should not configure search window less than 2
+        if config.get('search_window_size') and int(config.get('search_window_size')) < 2:
+            raise ValueError('Search window size cannot be less than 2')
 
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
@@ -98,6 +117,42 @@ class Stream():
     def is_selected(self):
         return self.stream is not None
 
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+
+        http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+
+class CursorBasedStream(Stream):
+    item_key = None
+    endpoint = None
+
+    def get_objects(self, **kwargs):
+        '''
+        Cursor based object retrieval
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        # Pass `request_timeout` parameter
+        for page in http.get_cursor_based(url, self.config['access_token'], self.request_timeout, **kwargs):
+            yield from page[self.item_key]
+
+class CursorBasedExportStream(Stream):
+    endpoint = None
+    item_key = None
+
+    def get_objects(self, start_time):
+        '''
+        Retrieve objects from the incremental exports endpoint using cursor based pagination
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        # Pass `request_timeout` parameter
+        for page in http.get_incremental_export(url, self.config['access_token'], self.request_timeout, start_time):
+            yield from page[self.item_key]
+
+
 def raise_or_log_zenpy_apiexception(schema, stream, e):
     # There are multiple tiers of Zendesk accounts. Some of them have
     # access to `custom_fields` and some do not. This is the specific
@@ -105,7 +160,16 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
     # it doesn't have access.
     if not isinstance(e, zenpy.lib.exception.APIException):
         raise ValueError("Called with a bad exception type") from e
-    if json.loads(e.args[0])['error']['message'] == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
+
+    #If read permission is not available in OAuth access_token, then it returns the below error.
+    if json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read":
+        LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
+                       stream)
+        return schema
+    error = json.loads(e.args[0]).get('error')
+    # check if the error is of type dictionary and the message retrieved from the dictionary
+    # is the expected message. If so, only then print the logger message and return the schema
+    if isinstance(error, dict) and error.get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
         LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
                        stream)
         return schema
@@ -117,6 +181,8 @@ class Organizations(Stream):
     name = "organizations"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/organizations'
+    item_key = 'organizations'
 
     def _add_custom_fields(self, schema):
         endpoint = self.client.organizations.endpoint
@@ -140,10 +206,21 @@ class Organizations(Stream):
             self.update_bookmark(state, organization.updated_at)
             yield (self.stream, organization)
 
-class Users(Stream):
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        # Convert datetime object to standard format with timezone. Used utcnow to reduce API call burden at discovery time.
+        # Because API will return records from now which will be very less
+        start_time = datetime.datetime.utcnow().strftime(START_DATE_FORMAT)
+        self.client.organizations.incremental(start_time=start_time)
+
+class Users(CursorBasedExportStream):
     name = "users"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    item_key = "users"
+    endpoint = "https://{}.zendesk.com/api/v2/incremental/users/cursor.json"
 
     def _add_custom_fields(self, schema):
         try:
@@ -158,47 +235,41 @@ class Users(Stream):
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        users = self.client.users.incremental(start_time=bookmark)
+        epoch_bookmark = int(bookmark.timestamp())
+        users = self.get_objects(epoch_bookmark)
+
         for user in users:
-            self.update_bookmark(state, user.updated_at)
+            self.update_bookmark(state, user["updated_at"])
             yield (self.stream, user)
 
-class Tickets(Stream):
+        singer.write_state(state)
+
+
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        # Convert datetime object to standard format with timezone. Used utcnow to reduce API call burden at discovery time.
+        # Because API will return records from now which will be very less
+        start_time = datetime.datetime.utcnow().strftime(START_DATE_FORMAT)
+        self.client.search("", updated_after=start_time, updated_before='2000-01-02T00:00:00Z', type="user")
+
+class Tickets(CursorBasedExportStream):
     name = "tickets"
     replication_method = "INCREMENTAL"
     replication_key = "generated_timestamp"
+    item_key = "tickets"
+    endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
 
-    last_record_emit = {}
-    buf = {}
-    buf_time = 60
-    def _buffer_record(self, record):
-        stream_name = record[0].tap_stream_id
-        if self.last_record_emit.get(stream_name) is None:
-            self.last_record_emit[stream_name] = utils.now()
+    def sync(self, state): #pylint: disable=too-many-statements
 
-        if self.buf.get(stream_name) is None:
-            self.buf[stream_name] = []
-        self.buf[stream_name].append(record)
-
-        if (utils.now() - self.last_record_emit[stream_name]).total_seconds() > self.buf_time:
-            self.last_record_emit[stream_name] = utils.now()
-            return True
-
-        return False
-
-    def _empty_buffer(self):
-        for stream_name, stream_buf in self.buf.items():
-            for rec in stream_buf:
-                yield rec
-            self.buf[stream_name] = []
-
-    def sync(self, state):
         bookmark = self.get_bookmark(state)
-        tickets = self.client.tickets.incremental(start_time=bookmark)
 
-        audits_stream = TicketAudits(self.client)
-        metrics_stream = TicketMetrics(self.client)
-        comments_stream = TicketComments(self.client)
+        tickets = self.get_objects(bookmark)
+
+        audits_stream = TicketAudits(self.client, self.config)
+        metrics_stream = TicketMetrics(self.client, self.config)
+        comments_stream = TicketComments(self.client, self.config)
 
         def emit_sub_stream_metrics(sub_stream):
             if sub_stream.is_selected():
@@ -213,168 +284,291 @@ class Tickets(Stream):
 
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
-            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.generated_timestamp).replace(tzinfo=pytz.UTC)
+
+            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
+
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
-            ticket_dict = ticket.to_dict()
-            ticket_dict.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
-            should_yield = self._buffer_record((self.stream, ticket_dict))
+            ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+            # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
+            yield (self.stream, ticket)
 
             if audits_stream.is_selected():
                 try:
-                    for audit in audits_stream.sync(ticket_dict["id"]):
-                        zendesk_metrics.capture('ticket_audit')
-                        self._buffer_record(audit)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve audits for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                    for audit in audits_stream.sync(ticket["id"]):
+                        yield audit
+                except http.ZendeskNotFoundError:
+                    # Skip stream if ticket_audit does not found for particular ticekt_id. Earlier it throwing HTTPError
+                    # but now as error handling updated, it throws ZendeskNotFoundError.
+                    message = "Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id'])
+                    LOGGER.warning(message)
 
             if metrics_stream.is_selected():
                 try:
-                    for metric in metrics_stream.sync(ticket_dict["id"]):
-                        zendesk_metrics.capture('ticket_metric')
-                        self._buffer_record(metric)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                    for metric in metrics_stream.sync(ticket["id"]):
+                        yield metric
+                except http.ZendeskNotFoundError:
+                    # Skip stream if ticket_metric does not found for particular ticekt_id. Earlier it throwing HTTPError
+                    # but now as error handling updated, it throws ZendeskNotFoundError.
+                    message = "Unable to retrieve metrics for ticket (ID: {}), record not found".format(ticket['id'])
+                    LOGGER.warning(message)
 
             if comments_stream.is_selected():
                 try:
                     # add ticket_id to ticket_comment so the comment can
                     # be linked back to it's corresponding ticket
-                    for comment in comments_stream.sync(ticket_dict["id"]):
-                        zendesk_metrics.capture('ticket_comment')
-                        comment[1].ticket_id = ticket_dict["id"]
-                        self._buffer_record(comment)
-                except RecordNotFoundException:
-                    LOGGER.warning("Unable to retrieve comments for ticket (ID: %s), " \
-                    "the Zendesk API returned a RecordNotFound error", ticket_dict["id"])
+                    for comment in comments_stream.sync(ticket["id"]):
+                        yield comment
+                except http.ZendeskNotFoundError:
+                    # Skip stream if ticket_comment does not found for particular ticekt_id. Earlier it throwing HTTPError
+                    # but now as error handling updated, it throws ZendeskNotFoundError.
+                    message = "Unable to retrieve comments for ticket (ID: {}), record not found".format(ticket['id'])
+                    LOGGER.warning(message)
 
-            if should_yield:
-                for rec in self._empty_buffer():
-                    yield rec
-                emit_sub_stream_metrics(audits_stream)
-                emit_sub_stream_metrics(metrics_stream)
-                emit_sub_stream_metrics(comments_stream)
-                singer.write_state(state)
-
-        for rec in self._empty_buffer():
-            yield rec
+            singer.write_state(state)
         emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
         emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
 
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        # Convert start_date parameter to timestamp to pass with request param
+        start_time = datetime.datetime.strptime(self.config['start_date'], START_DATE_FORMAT).timestamp()
+        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+
+        http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=HEADERS)
+
+
 class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
     count = 0
+    endpoint='https://{}.zendesk.com/api/v2/tickets/{}/audits.json'
+    item_key='audits'
+
+    def get_objects(self, ticket_id):
+        url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        # Pass `request_timeout` parameter
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+        for page in pages:
+            yield from page[self.item_key]
 
     def sync(self, ticket_id):
-        ticket_audits = self.client.tickets.audits(ticket=ticket_id)
+        ticket_audits = self.get_objects(ticket_id)
         for ticket_audit in ticket_audits:
+            zendesk_metrics.capture('ticket_audit')
             self.count += 1
             yield (self.stream, ticket_audit)
 
-class TicketMetrics(Stream):
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+
+        url = self.endpoint.format(self.config['subdomain'], '1')
+        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+        try:
+            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
+            pass
+
+class TicketMetrics(CursorBasedStream):
     name = "ticket_metrics"
     replication_method = "INCREMENTAL"
     count = 0
+    endpoint = 'https://{}.zendesk.com/api/v2/tickets/{}/metrics'
+    item_key = 'ticket_metric'
 
     def sync(self, ticket_id):
-        ticket_metric = self.client.tickets.metrics(ticket=ticket_id)
-        self.count += 1
-        yield (self.stream, ticket_metric)
+        # Only 1 ticket metric per ticket
+        url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        # Pass `request_timeout`
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+        for page in pages:
+            zendesk_metrics.capture('ticket_metric')
+            self.count += 1
+            yield (self.stream, page[self.item_key])
+
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = self.endpoint.format(self.config['subdomain'], '1')
+        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+        try:
+            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
+            pass
+
+class TicketMetricEvents(Stream):
+    name = "ticket_metric_events"
+    replication_method = "INCREMENTAL"
+    replication_key = "time"
+    count = 0
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+        start = bookmark - datetime.timedelta(seconds=1)
+
+        epoch_start = int(start.strftime('%s'))
+        parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
+        ticket_metric_events = self.client.tickets.metrics_incremental(start_time=epoch_start)
+        for event in ticket_metric_events:
+            self.count += 1
+            if bookmark < utils.strptime_with_tz(event.time):
+                self.update_bookmark(state, event.time)
+            if parsed_start <= event.time:
+                yield (self.stream, event)
+
+    def check_access(self):
+        try:
+            epoch_start = int(utils.now().strftime('%s'))
+            self.client.tickets.metrics_incremental(start_time=epoch_start)
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
+            pass
 
 class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
     count = 0
+    endpoint = "https://{}.zendesk.com/api/v2/tickets/{}/comments.json"
+    item_key='comments'
+
+    def get_objects(self, ticket_id):
+        url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        # Pass `request_timeout` parameter
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+
+        for page in pages:
+            yield from page[self.item_key]
 
     def sync(self, ticket_id):
-        ticket_comments = self.client.tickets.comments(ticket=ticket_id)
-        for ticket_comment in ticket_comments:
+        for ticket_comment in self.get_objects(ticket_id):
             self.count += 1
+            zendesk_metrics.capture('ticket_comment')
+            ticket_comment['ticket_id'] = ticket_id
             yield (self.stream, ticket_comment)
 
-class SatisfactionRatings(Stream):
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = self.endpoint.format(self.config['subdomain'], '1')
+        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+        try:
+            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
+            pass
+
+class TalkPhoneNumbers(Stream):
+    name = 'talk_phone_numbers'
+    replication_method = "FULL_TABLE"
+
+    def sync(self, state): # pylint: disable=unused-argument
+        for phone_number in self.client.talk.phone_numbers():
+            yield (self.stream, phone_number)
+
+    def check_access(self):
+        try:
+            self.client.talk.phone_numbers()
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
+            pass
+
+class SatisfactionRatings(CursorBasedStream):
     name = "satisfaction_ratings"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/satisfaction_ratings'
+    item_key = 'satisfaction_ratings'
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
+        epoch_bookmark = int(bookmark.timestamp())
+        params = {'start_time': epoch_bookmark}
+        ratings = self.get_objects(params=params)
+        for rating in ratings:
+            if utils.strptime_with_tz(rating['updated_at']) >= bookmark:
+                self.update_bookmark(state, rating['updated_at'])
+                yield (self.stream, rating)
 
-        satisfaction_ratings = self.client.satisfaction_ratings()
-        for satisfaction_rating in satisfaction_ratings:
-            if utils.strptime_with_tz(satisfaction_rating.updated_at) >= bookmark:
-                # NB: We don't trust that the records come back ordered by
-                # updated_at (we've observed out-of-order records),
-                # so we can't save state until we've seen all records
-                self.update_bookmark(state, satisfaction_rating.updated_at)
-                yield (self.stream, satisfaction_rating)
 
-class Groups(Stream):
+class Groups(CursorBasedStream):
     name = "groups"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/groups'
+    item_key = 'groups'
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
-        groups = self.client.groups()
+        groups = self.get_objects()
         for group in groups:
-            if utils.strptime_with_tz(group.updated_at) >= bookmark:
+            if utils.strptime_with_tz(group['updated_at']) >= bookmark:
                 # NB: We don't trust that the records come back ordered by
                 # updated_at (we've observed out-of-order records),
                 # so we can't save state until we've seen all records
-                self.update_bookmark(state, group.updated_at)
+                self.update_bookmark(state, group['updated_at'])
                 yield (self.stream, group)
 
-class Macros(Stream):
+class Macros(CursorBasedStream):
     name = "macros"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/macros'
+    item_key = 'macros'
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
-        macros = self.client.macros()
+        macros = self.get_objects()
         for macro in macros:
-            if utils.strptime_with_tz(macro.updated_at) >= bookmark:
+            if utils.strptime_with_tz(macro['updated_at']) >= bookmark:
                 # NB: We don't trust that the records come back ordered by
                 # updated_at (we've observed out-of-order records),
                 # so we can't save state until we've seen all records
-                self.update_bookmark(state, macro.updated_at)
+                self.update_bookmark(state, macro['updated_at'])
                 yield (self.stream, macro)
 
-class Tags(Stream):
+class Tags(CursorBasedStream):
     name = "tags"
     replication_method = "FULL_TABLE"
     key_properties = ["name"]
+    endpoint = 'https://{}.zendesk.com/api/v2/tags'
+    item_key = 'tags'
 
     def sync(self, state): # pylint: disable=unused-argument
-        # NB: Setting page to force it to paginate all tags, instead of just the
-        #     top 100 popular tags
-        tags = self.client.tags(page=1)
+        tags = self.get_objects()
+
         for tag in tags:
             yield (self.stream, tag)
 
-class TicketFields(Stream):
+class TicketFields(CursorBasedStream):
     name = "ticket_fields"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/ticket_fields'
+    item_key = 'ticket_fields'
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
 
-        fields = self.client.ticket_fields()
+        fields = self.get_objects()
         for field in fields:
-            if utils.strptime_with_tz(field.updated_at) >= bookmark:
+            if utils.strptime_with_tz(field['updated_at']) >= bookmark:
                 # NB: We don't trust that the records come back ordered by
                 # updated_at (we've observed out-of-order records),
                 # so we can't save state until we've seen all records
-                self.update_bookmark(state, field.updated_at)
+                self.update_bookmark(state, field['updated_at'])
                 yield (self.stream, field)
 
 class TicketForms(Stream):
@@ -394,27 +588,36 @@ class TicketForms(Stream):
                 self.update_bookmark(state, form.updated_at)
                 yield (self.stream, form)
 
-class GroupMemberships(Stream):
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        self.client.ticket_forms()
+
+class GroupMemberships(CursorBasedStream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/group_memberships'
+    item_key = 'group_memberships'
+
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
+        memberships = self.get_objects()
 
-        memberships = self.client.group_memberships()
         for membership in memberships:
             # some group memberships come back without an updated_at
-            if membership.updated_at:
-                if utils.strptime_with_tz(membership.updated_at) >= bookmark:
+            if membership['updated_at']:
+                if utils.strptime_with_tz(membership['updated_at']) >= bookmark:
                     # NB: We don't trust that the records come back ordered by
                     # updated_at (we've observed out-of-order records),
                     # so we can't save state until we've seen all records
-                    self.update_bookmark(state, membership.updated_at)
+                    self.update_bookmark(state, membership['updated_at'])
                     yield (self.stream, membership)
             else:
-                if membership.id:
-                    LOGGER.info('group_membership record with id: ' + str(membership.id) +
+                if membership['id']:
+                    LOGGER.info('group_membership record with id: ' + str(membership['id']) +
                                 ' does not have an updated_at field so it will be syncd...')
                     yield (self.stream, membership)
                 else:
@@ -427,6 +630,12 @@ class SLAPolicies(Stream):
     def sync(self, state): # pylint: disable=unused-argument
         for policy in self.client.sla_policies():
             yield (self.stream, policy)
+
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        self.client.sla_policies()
 
 STREAMS = {
     "tickets": Tickets,
@@ -442,5 +651,7 @@ STREAMS = {
     "satisfaction_ratings": SatisfactionRatings,
     "tags": Tags,
     "ticket_metrics": TicketMetrics,
+    "ticket_metric_events": TicketMetricEvents,
     "sla_policies": SLAPolicies,
+    "talk_phone_numbers": TalkPhoneNumbers,
 }
