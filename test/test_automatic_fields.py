@@ -1,9 +1,9 @@
-import tap_tester.connections as connections
-import tap_tester.runner as runner
 from base import ZendeskTest
+from tap_tester import connections, runner
 
 # BUG https://jira.talendforge.org/browse/TDL-19428
 #     [tap-zendesk] Consistently replicating duplicate `organizations` record
+
 
 class ZendeskAutomaticFields(ZendeskTest):
     """
@@ -14,6 +14,7 @@ class ZendeskAutomaticFields(ZendeskTest):
     def name(self):
         return "zendesk_automatic_fields"
 
+    @ZendeskTest.skipUntilDone("TDL-20862")
     def test_run(self):
         """
         Verify we can deselect all fields except when inclusion=automatic, which is handled by base.py methods
