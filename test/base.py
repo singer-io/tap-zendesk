@@ -6,14 +6,15 @@ from datetime import timedelta
 import dateutil.parser
 import pytz
 
-from tap_tester import connections
-from tap_tester import menagerie
-from tap_tester import runner
-from tap_tester import LOGGER
+from tap_tester import connections, menagerie, runner, LOGGER
+from tap_tester.base_case import BaseCase as tt_base
+from tap_tester.jira_client import JiraClient as jira_client
+from tap_tester.jira_client import CONFIGURATION_ENVIRONMENT as jira_config
+
+JIRA_CLIENT = jira_client({ **jira_config })
+
 
 # BUG https://jira.talendforge.org/browse/TDL-19985
-
-
 class RetryableTapError(Exception): # BUG_TDL-19985
     def __init__(self, message):
         super().__init__(message)
@@ -445,3 +446,11 @@ class ZendeskTest(unittest.TestCase):
                        if bk_value > max_bookmarks[stream][stream_bookmark_key]:
                            max_bookmarks[stream][stream_bookmark_key] = bk_value
         return max_bookmarks
+
+    def skipUntilDone(jira_ticket):
+
+        def wrap(test_method):
+            is_done = JIRA_CLIENT.get_jira_issue_status(jira_ticket) == "Done"
+            return tt_base.skipUnless(is_done, jira_ticket)(test_method)
+
+        return wrap
