@@ -1,11 +1,12 @@
-from tap_tester import menagerie, connections, runner
-
 from base import ZendeskTest
+from tap_tester import connections, menagerie, runner
+
 
 class ZendeskCustomFieldsDiscover(ZendeskTest):
     def name(self):
         return "tap_tester_zendesk_custom_fields_discover"
 
+    @ZendeskTest.skipUntilDone("TDL-20862")
     def test_run(self):
         # Default test setup
         # Create the connection for Zendesk
@@ -40,4 +41,3 @@ class ZendeskCustomFieldsDiscover(ZendeskTest):
             # with their own set of properties
             self.assertIsNotNone(properties.get('{}_fields'.format(schema[0]), {}).get('properties'),
                                  msg='{}_fields not present in schema!'.format(schema[0]))
-

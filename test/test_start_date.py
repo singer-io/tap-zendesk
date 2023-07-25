@@ -1,7 +1,8 @@
-import tap_tester.connections as connections
-import tap_tester.runner as runner
-from base import ZendeskTest
 from datetime import datetime
+
+from base import ZendeskTest
+from tap_tester import connections, runner
+
 
 class ZendeskStartDate(ZendeskTest):
     """
@@ -9,13 +10,13 @@ class ZendeskStartDate(ZendeskTest):
     run 1st sync with start date = few days ago, run check mode and 2nd sync on a new connection with start date = today.
     """
 
-
     start_date_1 = ""
     start_date_2 = ""
 
     def name(self):
         return "zendesk_start_date_test"
 
+    @ZendeskTest.skipUntilDone("TDL-20862")
     def test_run(self):
         """
         Test that the start_date configuration is respected

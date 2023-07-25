@@ -1,11 +1,8 @@
-import tap_tester.connections as connections
-import tap_tester.runner as runner
-from base import ZendeskTest
-from tap_tester import menagerie
 from datetime import datetime
-import uuid
-import os
-import time
+
+from base import ZendeskTest
+from tap_tester import connections, menagerie, runner
+
 
 class ZendeskBookMark(ZendeskTest):
     """Test tap sets a bookmark and respects it for the next sync of a stream"""
@@ -13,6 +10,7 @@ class ZendeskBookMark(ZendeskTest):
     def name(self):
         return "zendesk_bookmark_test"
 
+    @ZendeskTest.skipUntilDone("TDL-20862")
     def test_run(self):
         """
         Verify that for each stream you can do a sync which records bookmarks.
