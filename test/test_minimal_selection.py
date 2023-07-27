@@ -19,7 +19,7 @@ class ZendeskMinimalSelection(ZendeskTest):
             'users': {'id'}
         }
 
-    @ZendeskTest.skipUntilDone("TDL-20862")
+
     def test_run(self):
         # Default test setup
         # Create the connection for Zendesk

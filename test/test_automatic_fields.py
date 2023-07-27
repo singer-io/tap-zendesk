@@ -14,7 +14,7 @@ class ZendeskAutomaticFields(ZendeskTest):
     def name(self):
         return "zendesk_automatic_fields"
 
-    @ZendeskTest.skipUntilDone("TDL-20862")
+
     def test_run(self):
         """
         Verify we can deselect all fields except when inclusion=automatic, which is handled by base.py methods

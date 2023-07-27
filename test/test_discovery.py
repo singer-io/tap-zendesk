@@ -23,7 +23,7 @@ class ZendeskDiscover(ZendeskTest):
     def name(self):
         return "zendesk_discover_test"
 
-    @ZendeskTest.skipUntilDone("TDL-20862")
+
     def test_run(self):
         streams_to_test = self.expected_check_streams()
 

@@ -10,7 +10,7 @@ class ZendeskPagination(ZendeskTest):
     def name(self):
         return "zendesk_pagination_test"
 
-    @ZendeskTest.skipUntilDone("TDL-20862")
+
     def test_run(self):
         """
         • Verify that for each stream you can get multiple pages of data.

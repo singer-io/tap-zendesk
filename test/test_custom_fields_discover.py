@@ -6,7 +6,7 @@ class ZendeskCustomFieldsDiscover(ZendeskTest):
     def name(self):
         return "tap_tester_zendesk_custom_fields_discover"
 
-    @ZendeskTest.skipUntilDone("TDL-20862")
+
     def test_run(self):
         # Default test setup
         # Create the connection for Zendesk
