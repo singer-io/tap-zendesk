@@ -40,10 +40,9 @@ def process_custom_field(field):
     zendesk_type = field.type
     json_type = CUSTOM_TYPES.get(zendesk_type)
     if json_type is None:
-        raise Exception("Discovered unsupported type for custom field {} (key: {}): {}"
-                        .format(field.title,
-                                field.key,
-                                zendesk_type))
+        json_type = "string"
+        LOGGER.critical("Discovered unsupported type for custom field %s (key: %s): %s",
+                    field.title, field.key, zendesk_type)
     field_schema = {'type': [
         json_type,
         'null'
