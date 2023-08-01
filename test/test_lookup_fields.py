@@ -76,7 +76,7 @@ class ZendeskAllFields(ZendeskTest):
                         for key in message['data']["organization_fields"].keys():
                             if key in lookup_fields_map[stream]:
                                 actual_all_keys.add(key)
-                    if stream == "organizations":
+                    if stream == "users":
                         for key in message['data']["user_fields"].keys():
                             if key in lookup_fields_map[stream]:
                                 actual_all_keys.add(key)
