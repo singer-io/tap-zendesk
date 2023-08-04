@@ -15,62 +15,62 @@ class TestCustomFieldSchemaDiscovery(unittest.TestCase):
         return field
 
     def test_return_field_type_lookup(self):
-        expected_json_val = {"type" : ["integer", "null"]}
+        expected_singer_type = {"type" : ["integer", "null"]}
         z_field = self.get_z_field_obj("test_lookup_type","user_lookup_1","lookup")
-        actual_json_val = process_custom_field(z_field)
-        self.assertEqual(actual_json_val, expected_json_val)
+        actual_singer_type = process_custom_field(z_field)
+        self.assertEqual(actual_singer_type, expected_singer_type)
 
     def test_return_field_type_text(self):
-        expected_json_val = {"type" : ["string", "null"]}
+        expected_singer_type = {"type" : ["string", "null"]}
         z_field = self.get_z_field_obj("user_name","name_field","text")
-        actual_json_val = process_custom_field(z_field)
-        self.assertEqual(actual_json_val, expected_json_val)
+        actual_singer_type = process_custom_field(z_field)
+        self.assertEqual(actual_singer_type, expected_singer_type)
 
     def test_return_field_type_textarea(self):
-        expected_json_val = {"type" : ["string", "null"]}
+        expected_singer_type = {"type" : ["string", "null"]}
         z_field = self.get_z_field_obj("field_title_textarea","field_key_textarea","textarea")
-        actual_json_val = process_custom_field(z_field)
-        self.assertEqual(actual_json_val, expected_json_val)
+        actual_singer_type = process_custom_field(z_field)
+        self.assertEqual(actual_singer_type, expected_singer_type)
 
     def test_return_field_type_regexp(self):
-        expected_json_val = {"type" : ["string", "null"]}
+        expected_singer_type = {"type" : ["string", "null"]}
         z_field = self.get_z_field_obj("field_title_regexp","field_key_regexp","regexp")
-        actual_json_val = process_custom_field(z_field)
-        self.assertEqual(actual_json_val, expected_json_val)
+        actual_singer_type = process_custom_field(z_field)
+        self.assertEqual(actual_singer_type, expected_singer_type)
 
     def test_return_field_type_dropdown(self):
-        expected_json_val = {"type" : ["string", "null"]}
+        expected_singer_type = {"type" : ["string", "null"]}
         z_field = self.get_z_field_obj("field_title_dropdown","field_key_dropdown","regexp")
-        actual_json_val = process_custom_field(z_field)
-        self.assertEqual(actual_json_val, expected_json_val)
+        actual_singer_type = process_custom_field(z_field)
+        self.assertEqual(actual_singer_type, expected_singer_type)
 
     def test_return_field_type_decimal(self):
-        expected_json_val = {"type" : ["number", "null"]}
+        expected_singer_type = {"type" : ["number", "null"]}
         z_field = self.get_z_field_obj("field_title_decimal","field_key_decimal","decimal")
-        actual_json_val = process_custom_field(z_field)
-        self.assertEqual(actual_json_val, expected_json_val)
+        actual_singer_type = process_custom_field(z_field)
+        self.assertEqual(actual_singer_type, expected_singer_type)
 
     def test_return_field_type_integer(self):
-        expected_json_val = {"type" : ["integer", "null"]}
+        expected_singer_type = {"type" : ["integer", "null"]}
         z_field = self.get_z_field_obj("field_title_integer","field_key_integer","integer")
-        actual_json_val = process_custom_field(z_field)
-        self.assertEqual(actual_json_val, expected_json_val)
+        actual_singer_type = process_custom_field(z_field)
+        self.assertEqual(actual_singer_type, expected_singer_type)
 
     def test_return_field_type_checkbox(self):
-        expected_json_val = {"type" : ["boolean", "null"]}
+        expected_singer_type = {"type" : ["boolean", "null"]}
         z_field = self.get_z_field_obj("field_title_checkbox","field_key_checkbox","checkbox")
-        actual_json_val = process_custom_field(z_field)
-        self.assertEqual(actual_json_val, expected_json_val)
+        actual_singer_type = process_custom_field(z_field)
+        self.assertEqual(actual_singer_type, expected_singer_type)
 
 
     def test_return_field_type_date(self):
-        expected_json_val = {"type" : ["string", "null"], 'format': 'datetime'}
+        expected_singer_type = {"type" : ["string", "null"], 'format': 'datetime'}
         z_field = self.get_z_field_obj("field_title_date","field_key_date","date")
-        actual_json_val = process_custom_field(z_field)
-        self.assertEqual(actual_json_val, expected_json_val)
+        actual_singer_type = process_custom_field(z_field)
+        self.assertEqual(actual_singer_type, expected_singer_type)
 
     def test_return_field_type_unidentified(self):
-        expected_json_val = {"type" : ["string", "null"]}
+        expected_singer_type = {"type" : ["string", "null"]}
         z_field = self.get_z_field_obj("test_UNINDETIFIED_TYPE","UNINDETIFIED_TYPE","UNINDETIFIED_TYPE")
-        actual_json_val = process_custom_field(z_field)
-        self.assertEqual(actual_json_val, expected_json_val)
+        actual_singer_type = process_custom_field(z_field)
+        self.assertEqual(actual_singer_type, expected_singer_type)
