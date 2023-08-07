@@ -16,7 +16,7 @@ class TestCustomFieldSchemaDiscovery(unittest.TestCase):
 
     def test_return_field_type_lookup(self):
         expected_singer_type = {"type" : ["integer", "null"]}
-        z_field = self.get_z_field_obj("test_lookup_type","user_lookup_1","lookup")
+        z_field = self.get_z_field_obj("test_lookup_type", "user_lookup_1", "lookup")
         actual_singer_type = process_custom_field(z_field)
         self.assertEqual(actual_singer_type, expected_singer_type)
 
