@@ -37,20 +37,20 @@ def get_abs_path(path):
 
 def process_custom_field(field):
     """ Take a custom field description and return a schema for it. """
-    zendesk_type = field.type
-    json_type = CUSTOM_TYPES.get(zendesk_type)
-    if json_type is None:
-        json_type = "string"
+   if field.type not in CUSTOM_TYPES:
         LOGGER.critical("Discovered unsupported type for custom field %s (key: %s): %s",
-                    field.title, field.key, zendesk_type)
+                        field.title, field.key, field.type)
+
+    json_type = CUSTOM_TYPES.get(field.type, "string")
+
     field_schema = {'type': [
         json_type,
         'null'
     ]}
 
-    if zendesk_type == 'date':
+    if field.type == 'date':
         field_schema['format'] = 'datetime'
-    if zendesk_type == 'dropdown':
+    if field.type == 'dropdown':
         field_schema['enum'] = [o.value for o in field.custom_field_options]
 
     return field_schema
