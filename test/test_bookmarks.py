@@ -41,7 +41,6 @@ class ZendeskBookmarks(ZendeskTest):
             self.client.users.delete(self.created_user)
 
 
-    @ZendeskTest.skipUntilDone("TDL-20862")
     def test_run(self):
         # Default test setup
         # Create the connection for Zendesk

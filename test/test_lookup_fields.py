@@ -6,17 +6,22 @@ class ZendeskAllFields(ZendeskTest):
     """Ensure that when all streams and fields are selected, all fields are replicated."""
 
     def name(self):
-        return "zendesk_all_fields"
+        return "zendesk_lookup_fields"
+
 
     def test_run(self):
         """
         • Verify no unexpected streams were replicated
-        • Verify that more than just the automatic fields are replicated for each stream.
-        • verify all fields for each stream are replicated
+        • Verify that data for configured lookup_fields is replicated
         """
 
         # Streams to verify all fields tests
-        expected_streams = self.expected_check_streams() - {"talk_phone_numbers"}
+        expected_streams = {"organizations", "users"}
+
+        lookup_fields_map = {
+            "organizations":["lookup_org_1", "lookup_org_2", "lookup_org_3", "test_new_ref"],
+            "users": ["lookup1", "lookup2", "lookup3", "manager_user"]
+        }
 
         expected_automatic_fields = self.expected_automatic_fields()
         conn_id = connections.ensure_connection(self)
@@ -39,8 +44,10 @@ class ZendeskAllFields(ZendeskTest):
             fields_from_field_level_md = [md_entry['breadcrumb'][1]
                                           for md_entry in catalog_entry['metadata']
                                           if md_entry['breadcrumb'] != []]
-            stream_to_all_catalog_fields[stream_name] = set(
-                fields_from_field_level_md)
+            fields_from_field_level_md += lookup_fields_map[stream_name]
+            if stream_name == "users":
+                fields_from_field_level_md.remove("chat_only")
+            stream_to_all_catalog_fields[stream_name] = set(fields_from_field_level_md)
 
         self.run_and_verify_sync(conn_id)
 
@@ -68,16 +75,13 @@ class ZendeskAllFields(ZendeskTest):
                 for message in messages['messages']:
                     if message['action'] == 'upsert':
                         actual_all_keys.update(message['data'].keys())
-
-                # As we can't generate following fields by zendesk APIs now so expected.
-                if stream == "ticket_fields":
-                    expected_all_keys = expected_all_keys - {'system_field_options', 'sub_type_id'}
-                elif stream == "users":
-                    expected_all_keys = expected_all_keys - {'chat_only'}
-                elif stream == "ticket_metrics":
-                    expected_all_keys = expected_all_keys - {'status', 'instance_id', 'metric', 'type', 'time'}
-                elif stream == "talk_phone_numbers":
-                    expected_all_keys = expected_all_keys - {'token'}
-
+                    if stream == "organizations":
+                        for key in message['data']["organization_fields"].keys():
+                            if key in lookup_fields_map[stream]:
+                                actual_all_keys.add(key)
+                    if stream == "users":
+                        for key in message['data']["user_fields"].keys():
+                            if key in lookup_fields_map[stream]:
+                                actual_all_keys.add(key)
                 # verify all fields for each stream are replicated
                 self.assertSetEqual(expected_all_keys, actual_all_keys)

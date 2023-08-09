@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from base import ZendeskTest
-from tap_tester import connections, runner
+from tap_tester import connections, runner, LOGGER
 
 
 class ZendeskStartDate(ZendeskTest):
@@ -16,7 +16,7 @@ class ZendeskStartDate(ZendeskTest):
     def name(self):
         return "zendesk_start_date_test"
 
-    @ZendeskTest.skipUntilDone("TDL-20862")
+
     def test_run(self):
         """
         Test that the start_date configuration is respected

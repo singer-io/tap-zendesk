@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.0
+  * Adds Support for lookup fields [#124](https://github.com/singer-io/tap-zendesk/pull/124)
+
 ## 2.1.0
   * Adds new streams `talk_phone_numbers` and `ticket_metric_events` [#111](https://github.com/singer-io/tap-zendesk/pull/111)
 ## 2.0.1

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from base import ZendeskTest
-from tap_tester import connections, menagerie, runner
+from tap_tester import connections, menagerie, runner, LOGGER
 
 
 class ZendeskBookMark(ZendeskTest):
@@ -10,7 +10,7 @@ class ZendeskBookMark(ZendeskTest):
     def name(self):
         return "zendesk_bookmark_test"
 
-    @ZendeskTest.skipUntilDone("TDL-20862")
+
     def test_run(self):
         """
         Verify that for each stream you can do a sync which records bookmarks.
