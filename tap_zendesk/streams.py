@@ -42,7 +42,6 @@ def process_custom_field(field):
                         field.title, field.key, field.type)
 
     json_type = CUSTOM_TYPES.get(field.type, "string")
-   
     field_schema = {'type': [json_type, 'null']}
     if field.type == 'date':
         field_schema['format'] = 'datetime'
