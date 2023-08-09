@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from base import ZendeskTest
-from tap_tester import connections, menagerie, runner
+from tap_tester import connections, menagerie, runner, LOGGER
 
 
 class ZendeskBookMark(ZendeskTest):

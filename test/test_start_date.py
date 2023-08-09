@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from base import ZendeskTest
-from tap_tester import connections, runner
+from tap_tester import connections, runner, LOGGER
 
 
 class ZendeskStartDate(ZendeskTest):

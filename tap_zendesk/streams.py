@@ -37,12 +37,12 @@ def get_abs_path(path):
 
 def process_custom_field(field):
     """ Take a custom field description and return a schema for it. """
-   if field.type not in CUSTOM_TYPES:
+    if field.type not in CUSTOM_TYPES:
         LOGGER.critical("Discovered unsupported type for custom field %s (key: %s): %s",
                         field.title, field.key, field.type)
 
     json_type = CUSTOM_TYPES.get(field.type, "string")
-    
+   
     field_schema = {'type': [json_type, 'null']}
     if field.type == 'date':
         field_schema['format'] = 'datetime'

@@ -8,6 +8,7 @@ class ZendeskAllFields(ZendeskTest):
     def name(self):
         return "zendesk_lookup_fields"
 
+
     def test_run(self):
         """
         • Verify no unexpected streams were replicated
