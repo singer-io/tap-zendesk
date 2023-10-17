@@ -14,6 +14,7 @@ PAGINATE_RESPONSE = {
 REQUEST_TIMEOUT = 300
 REQUEST_TIMEOUT_STR = "300"
 REQUEST_TIMEOUT_FLOAT = 300.05
+PAGE_SIZE = 100
 
 SINGLE_RESPONSE = {
     'meta': {'has_more': False}
@@ -58,7 +59,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         try:
             responses = [response for response in http.get_cursor_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=REQUEST_TIMEOUT)]
+                                                                        access_token='some_token',
+                                                                        request_timeout=REQUEST_TIMEOUT,
+                                                                        page_size=PAGE_SIZE)]
         except requests.exceptions.Timeout as e:
             pass
 
@@ -74,7 +77,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         try:
             responses = [response for response in http.get_cursor_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=REQUEST_TIMEOUT)]
+                                                                        access_token='some_token',
+                                                                        request_timeout=REQUEST_TIMEOUT,
+                                                                        page_size=PAGE_SIZE)]
         except requests.exceptions.Timeout as e:
             pass
 
@@ -88,7 +93,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         
         try:
             responses = [response for response in http.get_offset_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=REQUEST_TIMEOUT)]
+                                                                        access_token='some_token',
+                                                                        request_timeout=REQUEST_TIMEOUT,
+                                                                        page_size=PAGE_SIZE)]
         except requests.exceptions.Timeout as e:
             pass
 
@@ -104,7 +111,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         try:
             responses = [response for response in http.get_offset_based(url='some_url',
-                                                                    access_token='some_token', request_timeout=REQUEST_TIMEOUT)]
+                                                                        access_token='some_token',
+                                                                        request_timeout=REQUEST_TIMEOUT,
+                                                                        page_size=PAGE_SIZE)]
         except requests.exceptions.Timeout as e:
             pass
 
