@@ -1,5 +1,7 @@
 # Changelog
 
+## 2.3.0
+  * Adds configurable page size for requests [#141](https://github.com/singer-io/tap-zendesk/pull/141)
 ## 2.2.0
   * Adds Support for lookup fields [#124](https://github.com/singer-io/tap-zendesk/pull/124)
 

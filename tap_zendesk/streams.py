@@ -14,6 +14,7 @@ from tap_zendesk import http
 LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
 
+DEFAULT_PAGE_SIZE = 100
 REQUEST_TIMEOUT = 300
 START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 HEADERS = {
@@ -58,6 +59,7 @@ class Stream():
     stream = None
     endpoint = None
     request_timeout = None
+    page_size = None
 
     def __init__(self, client=None, config=None):
         self.client = client
@@ -72,6 +74,12 @@ class Stream():
         # To avoid infinite loop behavior we should not configure search window less than 2
         if config.get('search_window_size') and int(config.get('search_window_size')) < 2:
             raise ValueError('Search window size cannot be less than 2')
+
+        config_page_size = self.config.get('page_size')
+        if config_page_size and 1 <= int(config_page_size) <= 1000: # Zendesk's max page size
+            self.page_size = int(config_page_size)
+        else:
+            self.page_size = DEFAULT_PAGE_SIZE
 
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
@@ -131,7 +139,7 @@ class CursorBasedStream(Stream):
         '''
         url = self.endpoint.format(self.config['subdomain'])
         # Pass `request_timeout` parameter
-        for page in http.get_cursor_based(url, self.config['access_token'], self.request_timeout, **kwargs):
+        for page in http.get_cursor_based(url, self.config['access_token'], self.request_timeout, self.page_size, **kwargs):
             yield from page[self.item_key]
 
 class CursorBasedExportStream(Stream):
@@ -348,7 +356,7 @@ class TicketAudits(Stream):
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
         # Pass `request_timeout` parameter
-        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout, self.page_size)
         for page in pages:
             yield from page[self.item_key]
 
@@ -383,7 +391,7 @@ class TicketMetrics(CursorBasedStream):
         # Only 1 ticket metric per ticket
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
         # Pass `request_timeout`
-        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout, self.page_size)
         for page in pages:
             zendesk_metrics.capture('ticket_metric')
             self.count += 1
@@ -439,7 +447,7 @@ class TicketComments(Stream):
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
         # Pass `request_timeout` parameter
-        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout, self.page_size)
 
         for page in pages:
             yield from page[self.item_key]

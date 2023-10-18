@@ -149,7 +149,7 @@ def call_api(url, request_timeout, params, headers):
     raise_for_error(response)
     return response
 
-def get_cursor_based(url, access_token, request_timeout, cursor=None, **kwargs):
+def get_cursor_based(url, access_token, request_timeout, page_size, cursor=None, **kwargs):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -158,7 +158,7 @@ def get_cursor_based(url, access_token, request_timeout, cursor=None, **kwargs):
     }
 
     params = {
-        'page[size]': 100,
+        'page[size]': page_size,
         **kwargs.get('params', {})
     }
 
@@ -181,7 +181,7 @@ def get_cursor_based(url, access_token, request_timeout, cursor=None, **kwargs):
         yield response_json
         has_more = response_json['meta']['has_more']
 
-def get_offset_based(url, access_token, request_timeout, **kwargs):
+def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -190,7 +190,7 @@ def get_offset_based(url, access_token, request_timeout, **kwargs):
     }
 
     params = {
-        'per_page': 100,
+        'per_page': page_size,
         **kwargs.get('params', {})
     }
 
