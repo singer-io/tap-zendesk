@@ -1,8 +1,8 @@
 import re
 
-import tap_tester.connections as connections
 from base import ZendeskTest
-from tap_tester import menagerie
+from tap_tester import connections, menagerie
+
 
 class ZendeskDiscover(ZendeskTest):
     """
@@ -19,13 +19,14 @@ class ZendeskDiscover(ZendeskTest):
         • verify that primary, replication keys are given the inclusion of automatic.
         • verify that all other fields have inclusion of available metadata.
     """
-    
+
     def name(self):
         return "zendesk_discover_test"
 
+
     def test_run(self):
         streams_to_test = self.expected_check_streams()
-        
+
         conn_id = connections.ensure_connection(self, payload_hook=None)
 
         # Verify that there are catalogs found
@@ -37,7 +38,7 @@ class ZendeskDiscover(ZendeskTest):
         found_catalog_names = {c['tap_stream_id'] for c in found_catalogs}
         self.assertTrue(all([re.fullmatch(r"[a-z_]+",  name) for name in found_catalog_names]),
                         msg="One or more streams don't follow standard naming")
-        
+
         for stream in streams_to_test:
             with self.subTest(stream=stream):
 
@@ -74,7 +75,7 @@ class ZendeskDiscover(ZendeskTest):
                     item.get("breadcrumb", ["properties", None])[1] for item in metadata
                     if item.get("metadata").get("inclusion") == "automatic"
                 )
-                
+
                 ##########################################################################
                 # metadata assertions
                 ##########################################################################
@@ -108,7 +109,7 @@ class ZendeskDiscover(ZendeskTest):
                 # Given below streams are child stremas of parent stream `tickets` and tickets is incremental streams
                 # so, child streams also behave as incremental streams but does not save it's own state. So, skipping it.
                 if not stream in ["ticket_comments", "ticket_audits", "ticket_metrics"]:
-                
+
                     if actual_replication_keys:
                         self.assertTrue(actual_replication_method == self.INCREMENTAL,
                                         msg="Expected INCREMENTAL replication "
@@ -117,7 +118,7 @@ class ZendeskDiscover(ZendeskTest):
                         self.assertTrue(actual_replication_method == self.FULL_TABLE,
                                         msg="Expected FULL replication "
                                         "since there is no replication key")
-                    
+
                     # verify the actual replication matches our expected replication method
                     self.assertEqual(expected_replication_method, actual_replication_method,
                                         msg="The actual replication method {} doesn't match the expected {}".format(

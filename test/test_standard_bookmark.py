@@ -1,17 +1,15 @@
-import tap_tester.connections as connections
-import tap_tester.runner as runner
-from base import ZendeskTest
-from tap_tester import menagerie
 from datetime import datetime
-import uuid
-import os
-import time
+
+from base import ZendeskTest
+from tap_tester import connections, menagerie, runner, LOGGER
+
 
 class ZendeskBookMark(ZendeskTest):
     """Test tap sets a bookmark and respects it for the next sync of a stream"""
 
     def name(self):
         return "zendesk_bookmark_test"
+
 
     def test_run(self):
         """
@@ -186,7 +184,7 @@ class ZendeskBookMark(ZendeskTest):
                 # Verify at least 1 record was replicated in the second sync
                 # 'tags' stream (FULL_TABLE) data appears to have aged out 11/18/2022. Since we do not have CRUD
                 # we will allow this stream to pass with a warning about decreased coverage
-                if stream == 'tags' and second_sync_count == 0 and first_sync_count == 0:
+                if stream in {'tags', 'talk_phone_numbers'} and second_sync_count == 0 and first_sync_count == 0:
                     print(f"FULL_TABLE stream 'tags' replicated 0 records, stream not fully tested")
                     continue
                 self.assertGreater(

@@ -6,14 +6,11 @@ from datetime import timedelta
 import dateutil.parser
 import pytz
 
-from tap_tester import connections
-from tap_tester import menagerie
-from tap_tester import runner
-from tap_tester import LOGGER
+from tap_tester import connections, menagerie, runner, LOGGER
+from tap_tester.base_case import BaseCase as tt_base
+
 
 # BUG https://jira.talendforge.org/browse/TDL-19985
-
-
 class RetryableTapError(Exception): # BUG_TDL-19985
     def __init__(self, message):
         super().__init__(message)
@@ -146,6 +143,12 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: False
             },
+            "ticket_metric_events": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"time"},
+                self.OBEYS_START_DATE: True
+            },
             "tickets": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
@@ -162,6 +165,11 @@ class ZendeskTest(unittest.TestCase):
                 # ticket_audits is child stream of tickets, and tickets is incremental stream.
                 # But it does not save its own bookmark. It fetches records based on the record of the parent stream.
                 # That's why make it FULL_TABLE
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
+            },
+            "talk_phone_numbers": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: False
@@ -338,6 +346,11 @@ class ZendeskTest(unittest.TestCase):
 
             connections.select_catalog_and_fields_via_metadata(
                 conn_id, catalog, schema, [], non_selected_properties)
+
+    def parse_unix_date(self, date_value):
+        """ For tickets stream the replication date value is in Unix date format """
+        date_value = dt.utcfromtimestamp(date_value).strftime('%Y-%m-%dT%H:%M:%SZ')
+        return date_value
 
     def parse_date(self, date_value):
         """

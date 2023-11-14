@@ -2,6 +2,8 @@ import unittest
 from unittest.mock import MagicMock, Mock, patch
 from tap_zendesk import http, streams
 import requests
+from urllib3.exceptions import ProtocolError
+from requests.exceptions import ChunkedEncodingError, ConnectionError
 
 import zenpy
 
@@ -41,6 +43,7 @@ SINGLE_RESPONSE = {"meta": {"has_more": False}}
 
 PAGINATE_RESPONSE = {"meta": {"has_more": True, "after_cursor": "some_cursor"}}
 
+PAGE_SIZE = 100
 REQUEST_TIMEOUT = 300
 
 
@@ -74,11 +77,10 @@ class TestBackoff(unittest.TestCase):
     def test_get_cursor_based_gets_one_page(self, mock_get, mock_sleep):
         responses = [
             response
-            for response in http.get_cursor_based(
-                url="some_url",
-                access_token="some_token",
-                request_timeout=REQUEST_TIMEOUT,
-            )
+            for response in http.get_cursor_based(url="some_url",
+                                                  access_token="some_token",
+                                                  request_timeout=REQUEST_TIMEOUT,
+                                                  page_size=PAGE_SIZE)
         ]
         actual_response = responses[0]
         self.assertDictEqual(SINGLE_RESPONSE, actual_response)
@@ -97,11 +99,10 @@ class TestBackoff(unittest.TestCase):
     def test_get_cursor_based_can_paginate(self, mock_get, mock_sleep):
         responses = [
             response
-            for response in http.get_cursor_based(
-                url="some_url",
-                access_token="some_token",
-                request_timeout=REQUEST_TIMEOUT,
-            )
+            for response in http.get_cursor_based(url="some_url",
+                                                  access_token="some_token",
+                                                  request_timeout=REQUEST_TIMEOUT,
+                                                  page_size=PAGE_SIZE)
         ]
 
         self.assertDictEqual({"key1": "val1", **PAGINATE_RESPONSE}, responses[0])
@@ -135,11 +136,10 @@ class TestBackoff(unittest.TestCase):
         """
         responses = [
             response
-            for response in http.get_cursor_based(
-                url="some_url",
-                access_token="some_token",
-                request_timeout=REQUEST_TIMEOUT,
-            )
+            for response in http.get_cursor_based(url="some_url",
+                                                  access_token="some_token",
+                                                  request_timeout=REQUEST_TIMEOUT,
+                                                  page_size=PAGE_SIZE)
         ]
         actual_response = responses[0]
         self.assertDictEqual({"key1": "val1", **SINGLE_RESPONSE}, actual_response)
@@ -155,9 +155,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
 
         except http.ZendeskBadRequestError as e:
@@ -180,9 +181,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
 
         except http.ZendeskBadRequestError as e:
@@ -202,9 +204,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
         except http.ZendeskUnauthorizedError as e:
             expected_error_message = (
@@ -224,9 +227,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
         except http.ZendeskNotFoundError as e:
             expected_error_message = "HTTP-error-code: 404, Error: The resource you have specified cannot be found."
@@ -245,9 +249,10 @@ class TestBackoff(unittest.TestCase):
         with self.assertRaises(http.ZendeskConflictError) as e:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
             expected_error_message = "HTTP-error-code: 409, Error: The API request cannot be completed because the requested operation would conflict with an existing item."
             self.assertEqual(str(e), expected_error_message)
@@ -262,9 +267,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
         except http.ZendeskUnprocessableEntityError as e:
             expected_error_message = "HTTP-error-code: 422, Error: The request content itself is not processable by the server."
@@ -285,9 +291,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
         except http.ZendeskInternalServerError as e:
             expected_error_message = (
@@ -311,9 +318,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
         except http.ZendeskNotImplementedError as e:
             expected_error_message = "HTTP-error-code: 501, Error: The server does not support the functionality required to fulfill the request."
@@ -334,9 +342,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
         except http.ZendeskBadGatewayError as e:
             expected_error_message = (
@@ -357,9 +366,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
         except http.ZendeskError as e:
             expected_error_message = "HTTP-error-code: 444, Error: Unknown Error"
@@ -420,9 +430,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
         except http.ZendeskError as e:
             expected_error_message = "HTTP-error-code: 524, Error: Unknown Error"
@@ -443,9 +454,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
         except http.ZendeskError as e:
             expected_error_message = "HTTP-error-code: 520, Error: Unknown Error"
@@ -466,9 +478,10 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(
-                    url="some_url", access_token="some_token", request_timeout=300
-                )
+                for response in http.get_cursor_based(url="some_url",
+                                                      access_token="some_token",
+                                                      request_timeout=300,
+                                                      page_size=PAGE_SIZE)
             ]
         except http.ZendeskServiceUnavailableError as e:
             expected_error_message = (
@@ -479,3 +492,39 @@ class TestBackoff(unittest.TestCase):
 
         # Verify the request retry 10 times
         self.assertEqual(mock_get.call_count, 10)
+
+    @patch("requests.get")
+    def test_call_api_handles_protocol_error(self, mock_get, mock_sleep):
+        """Check whether the request backoff properly for call_api method for 5 times in case of
+         Protocol error"""
+        mock_get.side_effect = ProtocolError
+
+        with self.assertRaises(ProtocolError) as _:
+            http.call_api(
+                url="some_url", request_timeout=300, params={}, headers={}
+            )
+        self.assertEqual(mock_get.call_count, 5)
+
+    @patch("requests.get")
+    def test_call_api_handles_chunked_encoding_error(self, mock_get, mock_sleep):
+        """Check whether the request backoff properly for call_api method for 5 times in case of
+        ChunkedEncoding error"""
+        mock_get.side_effect = ChunkedEncodingError
+
+        with self.assertRaises(ChunkedEncodingError) as _:
+            http.call_api(
+                url="some_url", request_timeout=300, params={}, headers={}
+            )
+        self.assertEqual(mock_get.call_count, 5)
+
+    @patch("requests.get")
+    def test_call_api_handles_connection_reset_error(self, mock_get, mock_sleep):
+        """Check whether the request backoff properly for call_api method for 5 times in case of
+        ConnectionResetError error"""
+        mock_get.side_effect = ConnectionResetError
+
+        with self.assertRaises(ConnectionResetError) as _:
+            http.call_api(
+                url="some_url", request_timeout=300, params={}, headers={}
+            )
+        self.assertEqual(mock_get.call_count, 5)

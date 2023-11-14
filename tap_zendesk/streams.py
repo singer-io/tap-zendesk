@@ -1,7 +1,6 @@
 import os
 import json
 import datetime
-import time
 import pytz
 import zenpy
 import singer
@@ -15,6 +14,7 @@ from tap_zendesk import http
 LOGGER = singer.get_logger()
 KEY_PROPERTIES = ['id']
 
+DEFAULT_PAGE_SIZE = 100
 REQUEST_TIMEOUT = 300
 START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 HEADERS = {
@@ -30,30 +30,23 @@ CUSTOM_TYPES = {
     'integer': 'integer',
     'decimal': 'number',
     'checkbox': 'boolean',
+    'lookup': 'integer',
 }
-
-DEFAULT_SEARCH_WINDOW_SIZE = (60 * 60 * 24) * 30 # defined in seconds, default to a month (30 days)
 
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 
 def process_custom_field(field):
     """ Take a custom field description and return a schema for it. """
-    zendesk_type = field.type
-    json_type = CUSTOM_TYPES.get(zendesk_type)
-    if json_type is None:
-        raise Exception("Discovered unsupported type for custom field {} (key: {}): {}"
-                        .format(field.title,
-                                field.key,
-                                zendesk_type))
-    field_schema = {'type': [
-        json_type,
-        'null'
-    ]}
+    if field.type not in CUSTOM_TYPES:
+        LOGGER.critical("Discovered unsupported type for custom field %s (key: %s): %s",
+                        field.title, field.key, field.type)
 
-    if zendesk_type == 'date':
+    json_type = CUSTOM_TYPES.get(field.type, "string")
+    field_schema = {'type': [json_type, 'null']}
+    if field.type == 'date':
         field_schema['format'] = 'datetime'
-    if zendesk_type == 'dropdown':
+    if field.type == 'dropdown':
         field_schema['enum'] = [o.value for o in field.custom_field_options]
 
     return field_schema
@@ -66,6 +59,7 @@ class Stream():
     stream = None
     endpoint = None
     request_timeout = None
+    page_size = None
 
     def __init__(self, client=None, config=None):
         self.client = client
@@ -76,6 +70,16 @@ class Stream():
             self.request_timeout = float(config_request_timeout)
         else:
             self.request_timeout = REQUEST_TIMEOUT # If value is 0,"0","" or not passed then it set default to 300 seconds.
+
+        # To avoid infinite loop behavior we should not configure search window less than 2
+        if config.get('search_window_size') and int(config.get('search_window_size')) < 2:
+            raise ValueError('Search window size cannot be less than 2')
+
+        config_page_size = self.config.get('page_size')
+        if config_page_size and 1 <= int(config_page_size) <= 1000: # Zendesk's max page size
+            self.page_size = int(config_page_size)
+        else:
+            self.page_size = DEFAULT_PAGE_SIZE
 
     def get_bookmark(self, state):
         return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
@@ -135,7 +139,7 @@ class CursorBasedStream(Stream):
         '''
         url = self.endpoint.format(self.config['subdomain'])
         # Pass `request_timeout` parameter
-        for page in http.get_cursor_based(url, self.config['access_token'], self.request_timeout, **kwargs):
+        for page in http.get_cursor_based(url, self.config['access_token'], self.request_timeout, self.page_size, **kwargs):
             yield from page[self.item_key]
 
 class CursorBasedExportStream(Stream):
@@ -214,10 +218,12 @@ class Organizations(Stream):
         start_time = datetime.datetime.utcnow().strftime(START_DATE_FORMAT)
         self.client.organizations.incremental(start_time=start_time)
 
-class Users(Stream):
+class Users(CursorBasedExportStream):
     name = "users"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    item_key = "users"
+    endpoint = "https://{}.zendesk.com/api/v2/incremental/users/cursor.json"
 
     def _add_custom_fields(self, schema):
         try:
@@ -231,64 +237,16 @@ class Users(Stream):
         return schema
 
     def sync(self, state):
-        original_search_window_size = int(self.config.get('search_window_size', DEFAULT_SEARCH_WINDOW_SIZE))
-        search_window_size = original_search_window_size
         bookmark = self.get_bookmark(state)
-        start = bookmark - datetime.timedelta(seconds=1)
-        end = start + datetime.timedelta(seconds=search_window_size)
-        sync_end = singer.utils.now() - datetime.timedelta(minutes=1)
-        parsed_sync_end = singer.strftime(sync_end, "%Y-%m-%dT%H:%M:%SZ")
+        epoch_bookmark = int(bookmark.timestamp())
+        users = self.get_objects(epoch_bookmark)
 
-        # ASSUMPTION: updated_at value always comes back in utc
-        num_retries = 0
-        while start < sync_end:
-            parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
-            parsed_end = min(singer.strftime(end, "%Y-%m-%dT%H:%M:%SZ"), parsed_sync_end)
-            LOGGER.info("Querying for users between %s and %s", parsed_start, parsed_end)
-            users = self.client.search("", updated_after=parsed_start, updated_before=parsed_end, type="user")
+        for user in users:
+            self.update_bookmark(state, user["updated_at"])
+            yield (self.stream, user)
 
-            # NB: Zendesk will return an error on the 1001st record, so we
-            # need to check total response size before iterating
-            # See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits
-            if users.count > 1000:
-                if search_window_size > 1:
-                    search_window_size = search_window_size // 2
-                    end = start + datetime.timedelta(seconds=search_window_size)
-                    LOGGER.info("users - Detected Search API response size too large. Cutting search window in half to %s seconds.", search_window_size)
-                    continue
+        singer.write_state(state)
 
-                raise Exception("users - Unable to get all users within minimum window of a single second ({}), found {} users within this timestamp. Zendesk can only provide a maximum of 1000 users per request. See: https://develop.zendesk.com/hc/en-us/articles/360022563994--BREAKING-New-Search-API-Result-Limits".format(parsed_start, users.count))
-
-            # Consume the records to account for dates lower than window start
-            users = [user for user in users] # pylint: disable=unnecessary-comprehension
-
-            if not all(parsed_start <= user.updated_at for user in users):
-                # Only retry up to 30 minutes (60 attempts at 30 seconds each)
-                if num_retries < 60:
-                    LOGGER.info("users - Record found before date window start. Waiting 30 seconds, then retrying window for consistency. (Retry #%s)", num_retries + 1)
-                    time.sleep(30)
-                    num_retries += 1
-                    continue
-                bad_users = [user for user in users if user.updated_at < parsed_start]
-                raise AssertionError("users - Record (user-id: {}) found before date window start and did not resolve after 30 minutes of retrying. Details: window start ({}) is not less than or equal to updated_at value(s) {}".format(
-                    [user.id for user in bad_users],
-                    parsed_start,
-                    [str(user.updated_at) for user in bad_users]))
-
-            # If we make it here, all quality checks have passed. Reset retry count.
-            num_retries = 0
-            for user in users:
-                if parsed_start <= user.updated_at <= parsed_end:
-                    yield (self.stream, user)
-            self.update_bookmark(state, parsed_end)
-
-            # Assumes that the for loop got everything
-            singer.write_state(state)
-            if search_window_size <= original_search_window_size // 2:
-                search_window_size = search_window_size * 2
-                LOGGER.info("Successfully requested records. Doubling search window to %s seconds", search_window_size)
-            start = end - datetime.timedelta(seconds=1)
-            end = start + datetime.timedelta(seconds=search_window_size)
 
     def check_access(self):
         '''
@@ -398,7 +356,7 @@ class TicketAudits(Stream):
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
         # Pass `request_timeout` parameter
-        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout, self.page_size)
         for page in pages:
             yield from page[self.item_key]
 
@@ -433,7 +391,7 @@ class TicketMetrics(CursorBasedStream):
         # Only 1 ticket metric per ticket
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
         # Pass `request_timeout`
-        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout, self.page_size)
         for page in pages:
             zendesk_metrics.capture('ticket_metric')
             self.count += 1
@@ -451,6 +409,34 @@ class TicketMetrics(CursorBasedStream):
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
             pass
 
+class TicketMetricEvents(Stream):
+    name = "ticket_metric_events"
+    replication_method = "INCREMENTAL"
+    replication_key = "time"
+    count = 0
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+        start = bookmark - datetime.timedelta(seconds=1)
+
+        epoch_start = int(start.strftime('%s'))
+        parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
+        ticket_metric_events = self.client.tickets.metrics_incremental(start_time=epoch_start)
+        for event in ticket_metric_events:
+            self.count += 1
+            if bookmark < utils.strptime_with_tz(event.time):
+                self.update_bookmark(state, event.time)
+            if parsed_start <= event.time:
+                yield (self.stream, event)
+
+    def check_access(self):
+        try:
+            epoch_start = int(utils.now().strftime('%s'))
+            self.client.tickets.metrics_incremental(start_time=epoch_start)
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
+            pass
+
 class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
@@ -461,7 +447,7 @@ class TicketComments(Stream):
     def get_objects(self, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
         # Pass `request_timeout` parameter
-        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout)
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout, self.page_size)
 
         for page in pages:
             yield from page[self.item_key]
@@ -481,6 +467,21 @@ class TicketComments(Stream):
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
         try:
             http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+        except http.ZendeskNotFoundError:
+            #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
+            pass
+
+class TalkPhoneNumbers(Stream):
+    name = 'talk_phone_numbers'
+    replication_method = "FULL_TABLE"
+
+    def sync(self, state): # pylint: disable=unused-argument
+        for phone_number in self.client.talk.phone_numbers():
+            yield (self.stream, phone_number)
+
+    def check_access(self):
+        try:
+            self.client.talk.phone_numbers()
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
             pass
@@ -653,5 +654,7 @@ STREAMS = {
     "satisfaction_ratings": SatisfactionRatings,
     "tags": Tags,
     "ticket_metrics": TicketMetrics,
+    "ticket_metric_events": TicketMetricEvents,
     "sla_policies": SLAPolicies,
+    "talk_phone_numbers": TalkPhoneNumbers,
 }

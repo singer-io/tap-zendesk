@@ -1,14 +1,12 @@
 import os
-import tap_tester.connections as connections
-import tap_tester.menagerie   as menagerie
-import tap_tester.runner      as runner
-
 from functools import reduce
 # TODO fix setup.py? so zenpy module is availalble on dev_vm without manually running pip install
 from zenpy import Zenpy
 from zenpy.lib.api_objects import Group, Organization, Tag, User
 
 from base import ZendeskTest
+from tap_tester import connections, menagerie, runner
+
 
 class ZendeskAllStreams(ZendeskTest):
     def name(self):

@@ -1,16 +1,13 @@
 import os
 import uuid
 import time
-from datetime import timedelta
 
-import tap_tester.connections as connections
-import tap_tester.menagerie   as menagerie
-import tap_tester.runner      as runner
-from base import ZendeskTest
-import unittest
-from functools import reduce
 from zenpy import Zenpy
 from zenpy.lib.api_objects import Group, Organization, User
+
+from base import ZendeskTest
+from tap_tester import connections, menagerie, runner
+
 
 class ZendeskBookmarks(ZendeskTest):
     def name(self):
