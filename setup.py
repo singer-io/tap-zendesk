@@ -13,7 +13,7 @@ setup(name='tap-zendesk',
           'singer-python==5.12.2',
           'zenpy==2.0.24',
           'backoff==1.8.0',
-          'requests==2.25.1',
+          'requests==2.31.0',
       ],
       extras_require={
           'dev': [

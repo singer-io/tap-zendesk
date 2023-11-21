@@ -1,5 +1,7 @@
 # Changelog
 
+## 2.3.1
+  * Dependabot update [#129](https://github.com/singer-io/tap-zendesk/pull/129)
 ## 2.3.0
   * Adds configurable page size for requests [#141](https://github.com/singer-io/tap-zendesk/pull/141)
 ## 2.2.0
