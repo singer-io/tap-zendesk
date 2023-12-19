@@ -45,8 +45,8 @@ class ZendeskAllFields(ZendeskTest):
                                           for md_entry in catalog_entry['metadata']
                                           if md_entry['breadcrumb'] != []]
             fields_from_field_level_md += lookup_fields_map[stream_name]
-            # if stream_name == "users":  # field started appearing in syncd records Nov 1, 2023
-            #     fields_from_field_level_md.remove("chat_only")
+            if stream_name == "users":  # field appeared in syncd records Nov 1 - Dec 18, 2023
+                fields_from_field_level_md.remove("chat_only")
             stream_to_all_catalog_fields[stream_name] = set(fields_from_field_level_md)
 
         self.run_and_verify_sync(conn_id)

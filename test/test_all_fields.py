@@ -72,8 +72,8 @@ class ZendeskAllFields(ZendeskTest):
                 # As we can't generate following fields by zendesk APIs now so expected.
                 if stream == "ticket_fields":
                     expected_all_keys = expected_all_keys - {'system_field_options', 'sub_type_id'}
-                # elif stream == "users":  # field started appearing in syncd records Nov 1, 2023
-                #     expected_all_keys = expected_all_keys - {'chat_only'}
+                elif stream == "users":  # field appeared in syncd records Nov 1 - Dec 18, 2023
+                    expected_all_keys = expected_all_keys - {'chat_only'}
                 elif stream == "ticket_metrics":
                     expected_all_keys = expected_all_keys - {'status', 'instance_id', 'metric', 'type', 'time'}
                 elif stream == "talk_phone_numbers":
