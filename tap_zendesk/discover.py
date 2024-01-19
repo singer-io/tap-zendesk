@@ -19,7 +19,7 @@ def load_shared_schema_refs():
 
     shared_schema_refs = {}
     for shared_file in shared_file_names:
-        with open(os.path.join(shared_schemas_path, shared_file)) as data_file:
+        with open(os.path.join(shared_schemas_path, shared_file), encoding='UTF-8') as data_file:
             shared_schema_refs[ref_sub_path + '/' + shared_file] = json.load(data_file)
 
     return shared_schema_refs
@@ -39,7 +39,7 @@ def discover_streams(client, config):
             # If stream does not have read permission then append that stream name to list and at the end of all streams
             # raise forbidden error with proper message containing stream names.
             stream.check_access()
-        except ZendeskForbiddenError as e:
+        except ZendeskForbiddenError:
             error_list.append(stream.name) # Append stream name to the error_list
         except zenpy.lib.exception.APIException as e:
             args0 = json.loads(e.args[0])

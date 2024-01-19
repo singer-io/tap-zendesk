@@ -20,7 +20,7 @@ setup(name='tap-zendesk',
               'ipdb',
           ],
           'test': [
-              'pylint==2.8.3',
+              'pylint==3.0.3',
               'nose2',
               'pytest'
           ]
