@@ -3,7 +3,7 @@ from zenpy.lib.api_objects import BaseObject
 from zenpy.lib.proxy import ProxyList
 
 import singer
-import singer.metrics as metrics
+from singer import metrics
 from singer import metadata
 from singer import Transformer
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.0
+  * Upgrades to run on python 3.11.7 [#146](https://github.com/singer-io/tap-zendesk/pull/146)
+
 ## 2.3.1
   * Dependabot update [#129](https://github.com/singer-io/tap-zendesk/pull/129)
 ## 2.3.0

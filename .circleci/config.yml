@@ -33,14 +33,14 @@ jobs:
           name: 'pylint'
           command: |
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
-            pylint tap_zendesk -d missing-docstring,invalid-name,line-too-long,too-many-locals,too-few-public-methods,fixme,stop-iteration-return,too-many-branches,useless-import-alias,no-else-return,logging-not-lazy,redefined-builtin
+            pylint tap_zendesk -d missing-docstring,invalid-name,line-too-long,too-many-locals,too-few-public-methods,fixme,stop-iteration-return,too-many-branches,useless-import-alias,no-else-return,logging-not-lazy,redefined-builtin,consider-using-f-string,consider-using-dict-items,arguments-renamed
       - run:
           name: 'unittests'
           when: always
           command: |
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
-            nosetests --with-coverage --cover-erase --cover-package=tap_zendesk --cover-html-dir=htmlcov test/unittests
-            coverage html
+            pip install nose2 parameterized nose2[coverage_plugin]>=0.6.5
+            nose2 --with-coverage -v -s test/unittests
       - store_test_results:
           path: test_output/report.xml
       - store_artifacts:
