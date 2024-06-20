@@ -3,7 +3,7 @@ from zenpy.lib.api_objects import BaseObject
 from zenpy.lib.proxy import ProxyList
 
 import singer
-import singer.metrics as metrics
+from singer import metrics
 from singer import metadata
 from singer import Transformer
 
@@ -30,18 +30,15 @@ def sync_stream(state, instance):
                               start_date)
 
     parent_stream = stream
-    with metrics.record_counter(stream.tap_stream_id) as counter:
-        to_process = instance.sync(state) if instance.name != 'ticket_audits' \
-            else instance.sync(state, lookback_minutes)
-        for (stream, record) in to_process:
+    with metrics.record_counter(stream.tap_stream_id) as counter, Transformer() as transformer:
+        for (stream, record) in instance.sync(state):
             # NB: Only count parent records in the case of sub-streams
             if stream.tap_stream_id == parent_stream.tap_stream_id:
                 counter.increment()
 
             rec = process_record(record)
             # SCHEMA_GEN: Comment out transform
-            with Transformer() as transformer:
-                rec = transformer.transform(rec, stream.schema.to_dict(), metadata.to_map(stream.metadata))
+            rec = transformer.transform(rec, stream.schema.to_dict(), metadata.to_map(stream.metadata))
 
             singer.write_record(stream.tap_stream_id, rec)
             # NB: We will only write state at the end of a stream's sync:

@@ -1,8 +1,11 @@
 {
+  "type": [
+    "null",
+    "object"
+  ],
   "properties": {
     "id": {
       "type": [
-        "null",
         "integer"
       ]
     },
@@ -45,21 +48,25 @@
       "properties": {
         "target": {
           "type": [
+            "null",
             "integer"
           ]
         },
         "business_hours": {
           "type": [
+            "null",
             "boolean"
           ]
         },
         "policy": {
           "type": [
+            "null",
             "object"
           ],
           "properties": {
             "id": {
               "type": [
+                "null",
                 "integer"
               ]
             },
@@ -84,8 +91,20 @@
         "null",
         "object"
       ],
-      "additionalProperties": true,
-      "properties": {}
+      "properties": {
+        "calendar": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "business": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        }
+      }
     },
     "deleted": {
       "type": [
@@ -93,9 +112,5 @@
         "boolean"
       ]
     }
-  },
-  "type": [
-    "null",
-    "object"
-  ]
+  }
 }
