@@ -296,6 +296,10 @@ class Tickets(CursorBasedExportStream):
             # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
             yield (self.stream, ticket)
 
+            # Skip the child record extraction for deleted tickets
+            if ticket.get('status', '') == 'deleted':
+                continue
+
             if audits_stream.is_selected():
                 try:
                     for audit in audits_stream.sync(ticket["id"]):

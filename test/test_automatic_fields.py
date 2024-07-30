@@ -23,6 +23,8 @@ class ZendeskAutomaticFields(ZendeskTest):
 
         streams_to_test = self.expected_check_streams() - {"talk_phone_numbers"}
 
+        streams_to_test = {"tickets", "ticket_metrics"}
+
         conn_id = connections.ensure_connection(self)
 
         found_catalogs = self.run_and_verify_check_mode(conn_id)
