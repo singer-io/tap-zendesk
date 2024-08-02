@@ -296,39 +296,42 @@ class Tickets(CursorBasedExportStream):
             # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
             yield (self.stream, ticket)
 
-            if audits_stream.is_selected():
-                try:
-                    for audit in audits_stream.sync(ticket["id"]):
-                        yield audit
-                except http.ZendeskNotFoundError:
-                    # Skip stream if ticket_audit does not found for particular ticekt_id. Earlier it throwing HTTPError
-                    # but now as error handling updated, it throws ZendeskNotFoundError.
-                    message = "Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id'])
-                    LOGGER.warning(message)
+            # Deleting a ticket will also delete audits, metrics or comments associated with that ticket.
+            # Therefore skip the child record extraction for deleted tickets
+            if ticket.get('status', '') != 'deleted':
+                if audits_stream.is_selected():
+                    try:
+                        for audit in audits_stream.sync(ticket["id"]):
+                            yield audit
+                    except http.ZendeskNotFoundError:
+                        # Skip stream if ticket_audit does not found for particular ticekt_id. Earlier it throwing HTTPError
+                        # but now as error handling updated, it throws ZendeskNotFoundError.
+                        message = "Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id'])
+                        LOGGER.warning(message)
 
-            if metrics_stream.is_selected():
-                try:
-                    for metric in metrics_stream.sync(ticket["id"]):
-                        yield metric
-                except http.ZendeskNotFoundError:
-                    # Skip stream if ticket_metric does not found for particular ticekt_id. Earlier it throwing HTTPError
-                    # but now as error handling updated, it throws ZendeskNotFoundError.
-                    message = "Unable to retrieve metrics for ticket (ID: {}), record not found".format(ticket['id'])
-                    LOGGER.warning(message)
+                if metrics_stream.is_selected():
+                    try:
+                        for metric in metrics_stream.sync(ticket["id"]):
+                            yield metric
+                    except http.ZendeskNotFoundError:
+                        # Skip stream if ticket_metric does not found for particular ticekt_id. Earlier it throwing HTTPError
+                        # but now as error handling updated, it throws ZendeskNotFoundError.
+                        message = "Unable to retrieve metrics for ticket (ID: {}), record not found".format(ticket['id'])
+                        LOGGER.warning(message)
 
-            if comments_stream.is_selected():
-                try:
-                    # add ticket_id to ticket_comment so the comment can
-                    # be linked back to it's corresponding ticket
-                    for comment in comments_stream.sync(ticket["id"]):
-                        yield comment
-                except http.ZendeskNotFoundError:
-                    # Skip stream if ticket_comment does not found for particular ticekt_id. Earlier it throwing HTTPError
-                    # but now as error handling updated, it throws ZendeskNotFoundError.
-                    message = "Unable to retrieve comments for ticket (ID: {}), record not found".format(ticket['id'])
-                    LOGGER.warning(message)
+                if comments_stream.is_selected():
+                    try:
+                        # add ticket_id to ticket_comment so the comment can
+                        # be linked back to it's corresponding ticket
+                        for comment in comments_stream.sync(ticket["id"]):
+                            yield comment
+                    except http.ZendeskNotFoundError:
+                        # Skip stream if ticket_comment does not found for particular ticekt_id. Earlier it throwing HTTPError
+                        # but now as error handling updated, it throws ZendeskNotFoundError.
+                        message = "Unable to retrieve comments for ticket (ID: {}), record not found".format(ticket['id'])
+                        LOGGER.warning(message)
 
-            singer.write_state(state)
+                singer.write_state(state)
         emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
         emit_sub_stream_metrics(comments_stream)
