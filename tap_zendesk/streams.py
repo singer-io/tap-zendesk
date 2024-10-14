@@ -2,10 +2,14 @@ import os
 import json
 import datetime
 import pytz
+from zenpy import Zenpy
+import asyncio
+import logging
 import zenpy
 import singer
 from singer import metadata
 from singer import utils
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from singer.metrics import Point
 from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk import http
@@ -61,7 +65,7 @@ class Stream():
     request_timeout = None
     page_size = None
 
-    def __init__(self, client=None, config=None):
+    def __init__(self, client:Zenpy=None, config=None):
         self.client = client
         self.config = config
         # Set and pass request timeout to config param `request_timeout` value.
@@ -146,13 +150,13 @@ class CursorBasedExportStream(Stream):
     endpoint = None
     item_key = None
 
-    def get_objects(self, start_time):
+    def get_objects(self, start_time, side_load=None):
         '''
         Retrieve objects from the incremental exports endpoint using cursor based pagination
         '''
         url = self.endpoint.format(self.config['subdomain'])
         # Pass `request_timeout` parameter
-        for page in http.get_incremental_export(url, self.config['access_token'], self.request_timeout, start_time):
+        for page in http.get_incremental_export(url, self.config['access_token'], self.request_timeout, start_time, side_load):
             yield from page[self.item_key]
 
 
@@ -264,11 +268,38 @@ class Tickets(CursorBasedExportStream):
     item_key = "tickets"
     endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
 
+    def process_ticket(self, ticket, audits_stream, metrics_stream, comments_stream):
+        zendesk_metrics.capture('ticket')
+
+        generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
+        
+        ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+        # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
+        yield (self.stream, ticket)
+        
+        if metrics_stream.is_selected() and ticket.get('metric_set'):
+            zendesk_metrics.capture('ticket_metric')
+            metrics_stream.count+=1
+            yield (metrics_stream.stream, ticket["metric_set"])
+
+        if comments_stream.is_selected() or audits_stream.is_selected():
+            try:
+                for record in audits_stream.sync(ticket["id"], comments_stream):
+                    yield record
+            except http.ZendeskNotFoundError:
+                # Skip stream if ticket_audit does not found for particular ticekt_id. Earlier it throwing HTTPError
+                # but now as error handling updated, it throws ZendeskNotFoundError.
+                message = "Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id'])
+                LOGGER.warning(message)
+        
+        return generated_timestamp_dt
+
+
     def sync(self, state): #pylint: disable=too-many-statements
 
         bookmark = self.get_bookmark(state)
 
-        tickets = self.get_objects(bookmark)
+        tickets = self.get_objects(bookmark, side_load='metric_sets')
 
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
@@ -285,50 +316,54 @@ class Tickets(CursorBasedExportStream):
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
 
-        for ticket in tickets:
-            zendesk_metrics.capture('ticket')
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {executor.submit(self.process_ticket, ticket, audits_stream, metrics_stream, comments_stream) for ticket in tickets}
+            
+            for future in as_completed(futures):
+                results = future.result()
+                for record in results:
+                    yield record
+                
+                # for timestamp_ in future.result():
+                #     LOGGER.info("Updating bookmark  --------------- to %s", timestamp_)
+                # generated_timestamp_dt = future.result()
 
-            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
+                # self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
-            self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
+        # singer.write_state(state)
+        # tickets_ids = []
+        # for ticket in tickets:
+        #     zendesk_metrics.capture('ticket')
 
-            ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
-            # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
-            yield (self.stream, ticket)
+        #     generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
 
-            if audits_stream.is_selected():
-                try:
-                    for audit in audits_stream.sync(ticket["id"]):
-                        yield audit
-                except http.ZendeskNotFoundError:
-                    # Skip stream if ticket_audit does not found for particular ticekt_id. Earlier it throwing HTTPError
-                    # but now as error handling updated, it throws ZendeskNotFoundError.
-                    message = "Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id'])
-                    LOGGER.warning(message)
+        #     self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
-            if metrics_stream.is_selected():
-                try:
-                    for metric in metrics_stream.sync(ticket["id"]):
-                        yield metric
-                except http.ZendeskNotFoundError:
-                    # Skip stream if ticket_metric does not found for particular ticekt_id. Earlier it throwing HTTPError
-                    # but now as error handling updated, it throws ZendeskNotFoundError.
-                    message = "Unable to retrieve metrics for ticket (ID: {}), record not found".format(ticket['id'])
-                    LOGGER.warning(message)
+        #     ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+        #     # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
+        #     yield (self.stream, ticket)
 
-            if comments_stream.is_selected():
-                try:
-                    # add ticket_id to ticket_comment so the comment can
-                    # be linked back to it's corresponding ticket
-                    for comment in comments_stream.sync(ticket["id"]):
-                        yield comment
-                except http.ZendeskNotFoundError:
-                    # Skip stream if ticket_comment does not found for particular ticekt_id. Earlier it throwing HTTPError
-                    # but now as error handling updated, it throws ZendeskNotFoundError.
-                    message = "Unable to retrieve comments for ticket (ID: {}), record not found".format(ticket['id'])
-                    LOGGER.warning(message)
 
-            singer.write_state(state)
+        #     if metrics_stream.is_selected() and ticket.get('metric_set'):
+        #         zendesk_metrics.capture('ticket_metric')
+        #         metrics_stream.count+=1
+        #         yield (metrics_stream.stream, ticket["metric_set"])
+
+        #     tickets_ids.append(ticket["id"])
+        
+        
+        #     if comments_stream.is_selected() or audits_stream.is_selected():
+        #         try:
+        #             for record in audits_stream.sync(ticket["id"], comments_stream):
+        #                 yield record
+        #         except http.ZendeskNotFoundError:
+        #             # Skip stream if ticket_audit does not found for particular ticekt_id. Earlier it throwing HTTPError
+        #             # but now as error handling updated, it throws ZendeskNotFoundError.
+        #             message = "Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id'])
+        #             LOGGER.warning(message)
+
+        #     singer.write_state(state)
+        
         emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
         emit_sub_stream_metrics(comments_stream)
@@ -360,12 +395,26 @@ class TicketAudits(Stream):
         for page in pages:
             yield from page[self.item_key]
 
-    def sync(self, ticket_id):
+    def sync(self, ticket_id, comments_stream):
         ticket_audits = self.get_objects(ticket_id)
         for ticket_audit in ticket_audits:
-            zendesk_metrics.capture('ticket_audit')
-            self.count += 1
-            yield (self.stream, ticket_audit)
+            if self.is_selected():
+                zendesk_metrics.capture('ticket_audit')
+                self.count += 1
+                yield (self.stream, ticket_audit)
+            
+            if comments_stream.is_selected():
+                ticket_comments = (event for event in ticket_audit['events'] if event['type'] == 'Comment')
+                zendesk_metrics.capture('ticket_audit')
+                for ticket_comment in ticket_comments:
+                    ticket_comment.update({
+                        'created_at': ticket_audit['created_at'],
+                        'via': ticket_audit['via'],
+                        'metadata': ticket_audit['metadata']
+                    })
+
+                    comments_stream.count += 1
+                    yield (comments_stream.stream, ticket_comment)
 
     def check_access(self):
         '''
