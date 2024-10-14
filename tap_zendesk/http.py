@@ -208,7 +208,7 @@ def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
         yield response_json
         next_url = response_json.get('next_page')
 
-def get_incremental_export(url, access_token, request_timeout, start_time):
+def get_incremental_export(url, access_token, request_timeout, start_time, side_load):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -219,6 +219,7 @@ def get_incremental_export(url, access_token, request_timeout, start_time):
 
     if not isinstance(start_time, int):
         params = {'start_time': start_time.timestamp()}
+    params['include'] = side_load
 
     response = call_api(url, request_timeout, params=params, headers=headers)
     response_json = response.json()
@@ -230,7 +231,7 @@ def get_incremental_export(url, access_token, request_timeout, start_time):
     while not end_of_stream:
         cursor = response_json['after_cursor']
 
-        params = {'cursor': cursor}
+        params = {'cursor': cursor, "include": side_load}
         # Replaced below line of code with call_api method
         # response = requests.get(url, params=params, headers=headers)
         # response.raise_for_status()
