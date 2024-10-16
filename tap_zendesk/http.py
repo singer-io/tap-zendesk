@@ -228,10 +228,10 @@ async def call_api_async(session, url, request_timeout, params, headers):
             if response.status == 200:
                 return response_json
             elif response.status == 429:
-                LOGGER.info("Caught HTTP 429, retrying request in %s seconds", retry_after)
 
                 # Get the 'Retry-After' header value, , defaulting to 60 seconds if not present.
                 retry_after = response.headers.get('Retry-After', DEFAULT_WAIT)
+                LOGGER.info("Caught HTTP 429, retrying request in %s seconds", retry_after)
 
                 await asyncio.sleep(int(retry_after))
             elif response.status == 409: # Check if the response status is 409 (Conflict).
