@@ -2,13 +2,15 @@ from time import sleep
 import backoff
 import requests
 import singer
+import asyncio
 from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError, ConnectionError
 from urllib3.exceptions import ProtocolError
 
 
 
 LOGGER = singer.get_logger()
-
+DEFAULT_WAIT = 60 # Default wait time for backoff
+DEFAULT_WAIT_FOR_CONFLICT_ERROR = 10 # Default wait time for backoff for conflict error
 
 class ZendeskError(Exception):
     def __init__(self, message=None, response=None):
@@ -207,6 +209,79 @@ def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
 
         yield response_json
         next_url = response_json.get('next_page')
+
+@backoff.on_exception(backoff.expo,
+                    (ConnectionError, ConnectionResetError, Timeout, ChunkedEncodingError, ProtocolError),#As ConnectionError error and timeout error does not have attribute status_code,
+                    max_tries=5, # here we added another backoff expression.
+                    factor=2)
+async def call_api_async(session, url, request_timeout, params, headers):
+    """
+    Perform an asynchronous GET request
+    """
+    while True:
+        async with session.get(url, params=params, headers=headers, timeout=request_timeout) as response:
+            try:
+                response_json = await response.json()
+            except Exception: # pylint: disable=broad-except
+                response_json = {}
+            
+            if response.status == 200:
+                return response_json
+            elif response.status == 429:
+                LOGGER.info("Caught HTTP 429, retrying request in %s seconds", retry_after)
+
+                # Get the 'Retry-After' header value, , defaulting to 60 seconds if not present.
+                retry_after = response.headers.get('Retry-After', DEFAULT_WAIT)
+
+                await asyncio.sleep(int(retry_after))
+            elif response.status == 409: # Check if the response status is 409 (Conflict).
+                LOGGER.info("Caught HTTP 409, retrying request in %s seconds", DEFAULT_WAIT_FOR_CONFLICT_ERROR)
+                await asyncio.sleep(DEFAULT_WAIT_FOR_CONFLICT_ERROR)
+            else:
+                if response_json.get('error'):
+                    message = "HTTP-error-code: {}, Error: {}".format(response.status, response_json.get('error'))
+                else:
+                    message = "HTTP-error-code: {}, Error: {}".format(
+                        response.status,
+                        response_json.get("message", ERROR_CODE_EXCEPTION_MAPPING.get(
+                            response.status, {}).get("message", "Unknown Error")))
+                exc = ERROR_CODE_EXCEPTION_MAPPING.get(
+                    response.status, {}).get("raise_exception", ZendeskError)
+                raise exc(message, response) from None
+
+
+async def paginate_ticket_audits(session, url, access_token, request_timeout, page_size, **kwargs):
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer {}'.format(access_token),
+        **kwargs.get('headers', {})
+    }
+
+    params = {
+        'per_page': page_size,
+        **kwargs.get('params', {})
+    }
+
+    # Make the initial asynchronous API call 
+    final_response = await call_api_async(session, url, request_timeout, params=params, headers=headers)
+
+    next_url = final_response.get('next_page')
+
+    # Fetch next pages of results.
+    while next_url:
+
+        # An asynchronous API call to fetch the next page of results.
+        response = await call_api_async(session, next_url, request_timeout, params=None, headers=headers)
+        
+        # Extend the final response with the audits from the current page.
+        final_response["audits"].extend(response["audits"])
+
+        # Get the URL for the next page 
+        next_url = response.get('next_page')
+
+    # Return the final aggregated response
+    return final_response
 
 def get_incremental_export(url, access_token, request_timeout, start_time, side_load):
     headers = {

@@ -4,6 +4,8 @@ import datetime
 import pytz
 from zenpy import Zenpy
 import zenpy
+import asyncio
+import aiohttp
 import singer
 from singer import metadata
 from singer import utils
@@ -17,6 +19,7 @@ KEY_PROPERTIES = ['id']
 
 DEFAULT_PAGE_SIZE = 100
 REQUEST_TIMEOUT = 300
+BATCH_SIZE = 2500
 START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 HEADERS = {
     'Content-Type': 'application/json',
@@ -286,6 +289,7 @@ class Tickets(CursorBasedExportStream):
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
 
+        ticket_ids = []
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
 
@@ -302,22 +306,41 @@ class Tickets(CursorBasedExportStream):
                 zendesk_metrics.capture('ticket_metric')
                 metrics_stream.count+=1
                 yield (metrics_stream.stream, ticket["metric_set"])        
-        
-            if comments_stream.is_selected() or audits_stream.is_selected():
-                try:
-                    for record in audits_stream.sync(ticket["id"], comments_stream):
-                        yield record
-                except http.ZendeskNotFoundError:
-                    # Skip stream if ticket_audit does not found for particular ticekt_id. Earlier it throwing HTTPError
-                    # but now as error handling updated, it throws ZendeskNotFoundError.
-                    message = "Unable to retrieve audits for ticket (ID: {}), record not found".format(ticket['id'])
-                    LOGGER.warning(message)
+
+            # Check if the number of ticket IDs has reached the batch size.
+            ticket_ids.append(ticket["id"])
+            if len(ticket_ids) >= BATCH_SIZE:
+                records = self.sync_ticket_audits_and_comments(comments_stream, audits_stream, ticket_ids)
+
+                for audits, comments in records:
+                    for audit in audits:
+                        yield audit
+                    for comment in comments:
+                        yield comment
+                    # Reset the list of ticket IDs after processing the batch.
+                    ticket_ids = []
 
             singer.write_state(state)
+        
+        # Check if there are any remaining ticket IDs after the loop.
+        if ticket_ids:
+            records = self.sync_ticket_audits_and_comments(comments_stream, audits_stream, ticket_ids)
+            for audits, comments in records:
+
+                for audit in audits:
+                    yield audit
+                for comment in comments:
+                    yield comment
+            
         emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
         emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
+
+    def sync_ticket_audits_and_comments(self, comments_stream, audits_stream, ticket_ids):
+
+        if comments_stream.is_selected() or audits_stream.is_selected():
+            return asyncio.run(audits_stream.sync_in_bulk(ticket_ids, comments_stream))
 
     def check_access(self):
         '''
@@ -338,34 +361,57 @@ class TicketAudits(Stream):
     endpoint='https://{}.zendesk.com/api/v2/tickets/{}/audits.json'
     item_key='audits'
 
-    def get_objects(self, ticket_id):
+    async def sync_in_bulk(self, ticket_ids, comments_stream):
+        """
+        Asynchronously fetch ticket audits for multiple tickets
+        """
+        # Create an asynchronous HTTP session
+        async with aiohttp.ClientSession() as session:
+            tasks = [self.sync(session, ticket_id, comments_stream) for ticket_id in ticket_ids]
+            # Run all tasks concurrently and wait for them to complete
+            return await asyncio.gather(*tasks)
+
+    async def get_objects(self, session, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
-        # Pass `request_timeout` parameter
-        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout, self.page_size)
-        for page in pages:
-            yield from page[self.item_key]
+        # Fetch the ticket audits using pagination
+        records = await http.paginate_ticket_audits(session, url, self.config['access_token'], self.request_timeout, self.page_size)
+        
+        return records[self.item_key]
 
-    def sync(self, ticket_id, comments_stream):
-        ticket_audits = self.get_objects(ticket_id)
-        for ticket_audit in ticket_audits:
-            if self.is_selected():
-                zendesk_metrics.capture('ticket_audit')
-                self.count += 1
-                yield (self.stream, ticket_audit)
-            
-            if comments_stream.is_selected():
-                ticket_comments = (event for event in ticket_audit['events'] if event['type'] == 'Comment')
-                zendesk_metrics.capture('ticket_audit')
-                for ticket_comment in ticket_comments:
-                    ticket_comment.update({
-                        'created_at': ticket_audit['created_at'],
-                        'via': ticket_audit['via'],
-                        'metadata': ticket_audit['metadata'],
-                        'ticket_id': ticket_id
-                    })
+    async def sync(self, session, ticket_id, comments_stream):
+        """
+        Fetch ticket audits for a single ticket. Also exctract comments for each audit.
+        """
+        audit_records = []
+        comment_records = []
+        try:
+            # Fetch ticket audits for the given ticket ID
+            ticket_audits = await self.get_objects(session, ticket_id)
+            for ticket_audit in ticket_audits:
+                if self.is_selected():
+                    zendesk_metrics.capture('ticket_audit')
+                    self.count += 1
+                    audit_records.append((self.stream, ticket_audit))
+                
+                if comments_stream.is_selected():
+                    # Extract comments from ticket audit
+                    ticket_comments = (event for event in ticket_audit['events'] if event['type'] == 'Comment')
+                    zendesk_metrics.capture('ticket_audit')
+                    for ticket_comment in ticket_comments:
+                        # Update the comment with additional information
+                        ticket_comment.update({
+                            'created_at': ticket_audit['created_at'],
+                            'via': ticket_audit['via'],
+                            'metadata': ticket_audit['metadata'],
+                            'ticket_id': ticket_id
+                        })
 
-                    comments_stream.count += 1
-                    yield (comments_stream.stream, ticket_comment)
+                        comments_stream.count += 1
+                        comment_records.append((comments_stream.stream, ticket_comment))
+        except Exception as e:
+            LOGGER.error("Error syncing ticket audits for ticket ID: %s, Error: %s", ticket_id, str(e))
+
+        return audit_records, comment_records
 
     def check_access(self):
         '''
