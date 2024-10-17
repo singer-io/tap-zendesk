@@ -1,8 +1,8 @@
 from time import sleep
+import asyncio
 import backoff
 import requests
 import singer
-import asyncio
 from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError, ConnectionError
 from urllib3.exceptions import ProtocolError
 
@@ -224,7 +224,7 @@ async def call_api_async(session, url, request_timeout, params, headers):
                 response_json = await response.json()
             except Exception: # pylint: disable=broad-except
                 response_json = {}
-            
+
             if response.status == 200:
                 return response_json
             elif response.status == 429:
@@ -263,7 +263,7 @@ async def paginate_ticket_audits(session, url, access_token, request_timeout, pa
         **kwargs.get('params', {})
     }
 
-    # Make the initial asynchronous API call 
+    # Make the initial asynchronous API call
     final_response = await call_api_async(session, url, request_timeout, params=params, headers=headers)
 
     next_url = final_response.get('next_page')
@@ -273,11 +273,11 @@ async def paginate_ticket_audits(session, url, access_token, request_timeout, pa
 
         # An asynchronous API call to fetch the next page of results.
         response = await call_api_async(session, next_url, request_timeout, params=None, headers=headers)
-        
+
         # Extend the final response with the audits from the current page.
         final_response["audits"].extend(response["audits"])
 
-        # Get the URL for the next page 
+        # Get the URL for the next page
         next_url = response.get('next_page')
 
     # Return the final aggregated response

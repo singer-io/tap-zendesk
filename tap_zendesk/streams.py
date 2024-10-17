@@ -1,10 +1,10 @@
 import os
 import json
 import datetime
+import asyncio
 import pytz
 from zenpy import Zenpy
 import zenpy
-import asyncio
 import aiohttp
 import singer
 from singer import metadata
@@ -19,7 +19,7 @@ KEY_PROPERTIES = ['id']
 
 DEFAULT_PAGE_SIZE = 100
 REQUEST_TIMEOUT = 300
-BATCH_SIZE = 2500
+DEFAULT_BATCH_SIZE = 700
 START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 HEADERS = {
     'Content-Type': 'application/json',
@@ -267,12 +267,18 @@ class Tickets(CursorBasedExportStream):
     replication_key = "generated_timestamp"
     item_key = "tickets"
     endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
+    batch_zise = DEFAULT_BATCH_SIZE
 
     def sync(self, state): #pylint: disable=too-many-statements
 
         bookmark = self.get_bookmark(state)
 
+        # Fetch tickets with side loaded metrics
+        # https://developer.zendesk.com/documentation/ticketing/using-the-zendesk-api/side_loading/#supported-endpoints
         tickets = self.get_objects(bookmark, side_load='metric_sets')
+
+        # Run this method to set batch size to fetch ticket audits and comments records in async way
+        self.check_access()
 
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
@@ -305,11 +311,11 @@ class Tickets(CursorBasedExportStream):
             if metrics_stream.is_selected() and ticket.get('metric_set'):
                 zendesk_metrics.capture('ticket_metric')
                 metrics_stream.count+=1
-                yield (metrics_stream.stream, ticket["metric_set"])        
+                yield (metrics_stream.stream, ticket["metric_set"])
 
             # Check if the number of ticket IDs has reached the batch size.
             ticket_ids.append(ticket["id"])
-            if len(ticket_ids) >= BATCH_SIZE:
+            if len(ticket_ids) >= self.batch_zise:
                 records = self.sync_ticket_audits_and_comments(comments_stream, audits_stream, ticket_ids)
 
                 for audits, comments in records:
@@ -320,8 +326,9 @@ class Tickets(CursorBasedExportStream):
                     # Reset the list of ticket IDs after processing the batch.
                     ticket_ids = []
 
-            singer.write_state(state)
-        
+                # Write state after processing the batch.
+                singer.write_state(state)
+
         # Check if there are any remaining ticket IDs after the loop.
         if ticket_ids:
             records = self.sync_ticket_audits_and_comments(comments_stream, audits_stream, ticket_ids)
@@ -331,7 +338,7 @@ class Tickets(CursorBasedExportStream):
                     yield audit
                 for comment in comments:
                     yield comment
-            
+
         emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
         emit_sub_stream_metrics(comments_stream)
@@ -342,6 +349,7 @@ class Tickets(CursorBasedExportStream):
         if comments_stream.is_selected() or audits_stream.is_selected():
             return asyncio.run(audits_stream.sync_in_bulk(ticket_ids, comments_stream))
 
+        return [], []
     def check_access(self):
         '''
         Check whether the permission was given to access stream resources or not.
@@ -351,7 +359,11 @@ class Tickets(CursorBasedExportStream):
         start_time = datetime.datetime.strptime(self.config['start_date'], START_DATE_FORMAT).timestamp()
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
-        http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=HEADERS)
+        response = http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=HEADERS)
+
+        # Rate limit are varies according to the zendesk account. So, we need to set the batch size dynamically.
+        # https://developer.zendesk.com/api-reference/introduction/rate-limits/
+        self.batch_zise = int(response.headers.get('x-rate-limit', DEFAULT_BATCH_SIZE))
 
 
 class TicketAudits(Stream):
@@ -375,7 +387,7 @@ class TicketAudits(Stream):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
         # Fetch the ticket audits using pagination
         records = await http.paginate_ticket_audits(session, url, self.config['access_token'], self.request_timeout, self.page_size)
-        
+
         return records[self.item_key]
 
     async def sync(self, session, ticket_id, comments_stream):
@@ -392,7 +404,7 @@ class TicketAudits(Stream):
                     zendesk_metrics.capture('ticket_audit')
                     self.count += 1
                     audit_records.append((self.stream, ticket_audit))
-                
+
                 if comments_stream.is_selected():
                     # Extract comments from ticket audit
                     ticket_comments = (event for event in ticket_audit['events'] if event['type'] == 'Comment')
@@ -408,8 +420,8 @@ class TicketAudits(Stream):
 
                         comments_stream.count += 1
                         comment_records.append((comments_stream.stream, ticket_comment))
-        except Exception as e:
-            LOGGER.error("Error syncing ticket audits for ticket ID: %s, Error: %s", ticket_id, str(e))
+        except http.ZendeskNotFoundError as e:
+            LOGGER.warning("Unable to retrieve metrics for ticket (ID: {}), record not found".format(ticket_id))
 
         return audit_records, comment_records
 
@@ -435,7 +447,7 @@ class TicketMetrics(CursorBasedStream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        pass # We load metrics as side load of tickets
+        return # We load metrics as side load of tickets, so we don't need to check access
 
 class TicketMetricEvents(Stream):
     name = "ticket_metric_events"
@@ -474,7 +486,7 @@ class TicketComments(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        pass # We load comments as side load of ticket_audits
+        return # We load comments as side load of ticket_audits, so we don't need to check access
 
 class TalkPhoneNumbers(Stream):
     name = 'talk_phone_numbers'

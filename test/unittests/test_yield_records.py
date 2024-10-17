@@ -83,14 +83,12 @@ def logger(logger, point):
 @mock.patch('tap_zendesk.streams.TicketMetrics.is_selected')
 @mock.patch('tap_zendesk.streams.TicketComments.is_selected')
 @mock.patch('tap_zendesk.streams.TicketAudits.sync')
-@mock.patch('tap_zendesk.streams.TicketMetrics.sync')
-@mock.patch('tap_zendesk.streams.TicketComments.sync')
 @mock.patch('tap_zendesk.streams.CursorBasedExportStream.get_objects')
 @mock.patch('tap_zendesk.streams.TicketAudits.stream')
 @mock.patch('tap_zendesk.streams.TicketComments.stream')
 @mock.patch('tap_zendesk.streams.TicketMetrics.stream')
 @mock.patch('singer.metrics.log')
-def test_yield_records(mocked_log, mocked_audits_stream, mocked_comments_stream, mocked_metrics_stream, mock_objects, mock_comments_sync, mock_metrics_sync, mock_audits_sync, mock_comments, mock_metrics, mock_audits, mock_get_bookmark, mock_update_bookmark):
+def test_yield_records(mocked_log, mocked_audits_stream, mocked_comments_stream, mocked_metrics_stream, mock_objects, mock_audits_sync, mock_comments, mock_metrics, mock_audits, mock_get_bookmark, mock_update_bookmark):
     """
     This function tests that the Tickets and its substreams' records are yielded properly.
     """
@@ -166,9 +164,7 @@ def test_yield_records(mocked_log, mocked_audits_stream, mocked_comments_stream,
     mock_audits.return_value = True
     mock_comments.return_value = True
     mock_update_bookmark.side_effect = None
-    mock_metrics_sync.side_effect = mocked_sync_metrics
     mock_audits_sync.side_effect = mocked_sync_audits
-    mock_comments_sync.side_effect = mocked_sync_comments
 
     expected_tickets = list(ticket_stream.sync(state={}))
     audits = []
