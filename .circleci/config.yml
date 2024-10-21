@@ -39,7 +39,7 @@ jobs:
           when: always
           command: |
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
-            pip install nose2 parameterized nose2[coverage_plugin]>=0.6.5
+            pip install nose2 parameterized nose2[coverage_plugin]>=0.6.5 aioresponses
             nose2 --with-coverage -v -s test/unittests
       - store_test_results:
           path: test_output/report.xml
