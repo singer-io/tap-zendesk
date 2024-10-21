@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.1
+  * Skip child record sync for deleted tickets [#149](https://github.com/singer-io/tap-zendesk/pull/149)
+
 ## 2.4.0
   * Upgrades to run on python 3.11.7 [#146](https://github.com/singer-io/tap-zendesk/pull/146)
 
