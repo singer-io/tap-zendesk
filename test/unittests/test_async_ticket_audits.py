@@ -123,6 +123,6 @@ class TestASyncTicketAudits(unittest.TestCase):
                 # Assertions
                 self.assertEqual(len(audit_records), 0)
                 self.assertEqual(len(comment_records), 0)
-                mock_warning.assert_called_once_with("Unable to retrieve metrics for ticket (ID: {}), record not found".format(ticket_id))
+                mock_warning.assert_called_once_with("Unable to retrieve metrics for ticket (ID: %s), record not found", ticket_id)
 
         asyncio.run(run_test())
