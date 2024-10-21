@@ -4,7 +4,9 @@ from tap_zendesk import http, streams
 import requests
 from urllib3.exceptions import ProtocolError
 from requests.exceptions import ChunkedEncodingError, ConnectionError
-
+from aioresponses import aioresponses
+import asyncio
+import aiohttp
 import zenpy
 
 
@@ -528,3 +530,93 @@ class TestBackoff(unittest.TestCase):
                 url="some_url", request_timeout=300, params={}, headers={}
             )
         self.assertEqual(mock_get.call_count, 5)
+
+class TestAPIAsync(unittest.TestCase):
+    
+    @aioresponses()
+    def test_call_api_async_success(self, mocked):
+        url = 'https://api.example.com/resource'
+        response_data = {'key': 'value'}
+        mocked.get(url, status=200, payload=response_data)
+
+        async def run_test():
+            async with aiohttp.ClientSession() as session:
+                result = await http.call_api_async(session, url, 10, {}, {})
+                self.assertEqual(result, response_data)
+
+        asyncio.run(run_test())
+
+    @aioresponses()
+    def test_call_api_async_rate_limit(self, mocked):
+        url = 'https://api.example.com/resource'
+        retry_after = '1'
+        response_data = {'key': 'value'}
+        mocked.get(url, status=429, headers={'Retry-After': retry_after})
+        mocked.get(url, status=200, payload=response_data)
+
+        async def run_test():
+            async with aiohttp.ClientSession() as session:
+                result = await http.call_api_async(session, url, 10, {}, {})
+                self.assertEqual(result, response_data)
+                # self.assertEqual(mocked.call_count, 2)
+
+        asyncio.run(run_test())
+
+    @aioresponses()
+    @patch('asyncio.sleep', return_value=None)
+    def test_call_api_async_conflict(self, mocked, mock_sleep):
+        url = 'https://api.example.com/resource'
+        response_data = {'key': 'value'}
+        mocked.get(url, status=409)
+        mocked.get(url, status=409)
+        mocked.get(url, status=200, payload=response_data)
+
+        async def run_test():
+            async with aiohttp.ClientSession() as session:
+                result = await http.call_api_async(session, url, 10, {}, {})
+                self.assertEqual(result, response_data)
+                self.assertEqual(mock_sleep.call_count, 2)
+
+        asyncio.run(run_test())
+
+    @aioresponses()
+    def test_call_api_async_other_error(self, mocked):
+        url = 'https://api.example.com/resource'
+        error_message = 'Some error'
+        response_data = {'error': error_message}
+        mocked.get(url, status=500, payload=response_data)
+
+        async def run_test():
+            async with aiohttp.ClientSession() as session:
+                with self.assertRaises(http.ZendeskError) as context:
+                    await http.call_api_async(session, url, 10, {}, {})
+                self.assertIn(error_message, str(context.exception))
+
+        asyncio.run(run_test())
+
+    @aioresponses()
+    def test_paginate_ticket_audits(self, mocked):
+        url = 'https://api.example.com/resource'
+        access_token = 'test_token'
+        page_size = 2
+        first_page = {
+            'audits': [{'id': 1}, {'id': 2}],
+            'next_page': 'https://api.example.com/resource?per_page=2'
+        }
+        second_page = {
+            'audits': [{'id': 3}, {'id': 4}],
+            'next_page': None
+        }
+        expected_result = {
+            'audits': [{'id': 1}, {'id': 2}, {'id': 3}, {'id': 4}],
+            'next_page': 'https://api.example.com/resource?per_page=2'
+        }
+        mocked.get('https://api.example.com/resource?per_page=2', status=200, payload=first_page)
+        mocked.get('https://api.example.com/resource?per_page=2', status=200, payload=second_page)
+
+        async def run_test():
+            async with aiohttp.ClientSession() as session:
+                result = await http.paginate_ticket_audits(session, url, access_token, 10, page_size)
+                self.assertEqual(result, expected_result)
+
+        asyncio.run(run_test())
