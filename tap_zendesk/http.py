@@ -4,8 +4,8 @@ import backoff
 import requests
 import singer
 from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError, ConnectionError
+import aiohttp
 from urllib3.exceptions import ProtocolError
-
 
 
 LOGGER = singer.get_logger()
@@ -210,44 +210,84 @@ def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
         yield response_json
         next_url = response_json.get('next_page')
 
-@backoff.on_exception(backoff.expo,
-                    (ConnectionError, ConnectionResetError, Timeout, ChunkedEncodingError, ProtocolError),#As ConnectionError error and timeout error does not have attribute status_code,
-                    max_tries=5, # here we added another backoff expression.
-                    factor=2)
+
+async def raise_for_error_for_async(response):
+    """
+    Error handling method which throws custom error. Class for each error defined above which extends `ZendeskError`.
+    """
+    response_json = {}
+    try:
+        response_json = await response.json()
+    except aiohttp.ContentTypeError as e:
+        LOGGER.warning("Error decoding response from API: %s", str(e))
+    except ValueError as e:
+        LOGGER.warning("Invalid response from API: %s", str(e))
+
+    if response.status == 200:
+        return response_json
+    elif response.status == 429:
+        # Get the 'Retry-After' header value, defaulting to 60 seconds if not present.
+        retry_after = response.headers.get("Retry-After", 1)
+        LOGGER.warning(
+            "Caught HTTP 429, retrying request in %s seconds", retry_after)
+        await asyncio.sleep(int(retry_after)) # Wait for the specified time before retrying the request.
+    # Check if the response status is 409 (Conflict).
+    elif response.status == 409:
+        LOGGER.warning(
+            "Caught HTTP 409, retrying request in %s seconds",
+            DEFAULT_WAIT_FOR_CONFLICT_ERROR,
+        )
+        await asyncio.sleep(DEFAULT_WAIT_FOR_CONFLICT_ERROR) # Wait for the specified time before retrying the request.
+
+    # Prepare the error message and raise the appropriate exception.
+    if response_json.get("error"):
+        message = "HTTP-error-code: {}, Error: {}".format(
+            response.status, response_json.get("error")
+        )
+    else:
+        message = "HTTP-error-code: {}, Error: {}".format(
+            response.status,
+            response_json.get(
+                "message",
+                ERROR_CODE_EXCEPTION_MAPPING.get(response.status, {}).get(
+                    "message", "Unknown Error"
+                ),
+            ),
+        )
+    exc = ERROR_CODE_EXCEPTION_MAPPING.get(response.status, {}).get(
+        "raise_exception", ZendeskError
+    )
+    raise exc(message, response) from None
+
+
+@backoff.on_exception(
+    backoff.constant,
+    (ZendeskRateLimitError, ZendeskConflictError),  # Exceptions to retry on
+    max_tries=5,  # Maximum number of retries
+    interval=0  # No additional backoff delay
+)
+@backoff.on_exception(
+    backoff.expo,
+    (
+        ConnectionError,
+        ConnectionResetError,
+        Timeout,
+        ChunkedEncodingError,
+        ProtocolError,
+    ),  # As ConnectionError error and timeout error does not have attribute status_code,
+    max_tries=5,  # here we added another backoff expression.
+    factor=2,
+)
 async def call_api_async(session, url, request_timeout, params, headers):
     """
     Perform an asynchronous GET request
     """
-    while True:
-        async with session.get(url, params=params, headers=headers, timeout=request_timeout) as response:
-            try:
-                response_json = await response.json()
-            except Exception: # pylint: disable=broad-except
-                response_json = {}
+    async with session.get(
+        url, params=params, headers=headers, timeout=request_timeout
+    ) as response:
+        response_json = await raise_for_error_for_async(response)
 
-            if response.status == 200:
-                return response_json
-            elif response.status == 429:
-
-                # Get the 'Retry-After' header value, , defaulting to 60 seconds if not present.
-                retry_after = response.headers.get('Retry-After', DEFAULT_WAIT)
-                LOGGER.info("Caught HTTP 429, retrying request in %s seconds", retry_after)
-
-                await asyncio.sleep(int(retry_after))
-            elif response.status == 409: # Check if the response status is 409 (Conflict).
-                LOGGER.info("Caught HTTP 409, retrying request in %s seconds", DEFAULT_WAIT_FOR_CONFLICT_ERROR)
-                await asyncio.sleep(DEFAULT_WAIT_FOR_CONFLICT_ERROR)
-            else:
-                if response_json.get('error'):
-                    message = "HTTP-error-code: {}, Error: {}".format(response.status, response_json.get('error'))
-                else:
-                    message = "HTTP-error-code: {}, Error: {}".format(
-                        response.status,
-                        response_json.get("message", ERROR_CODE_EXCEPTION_MAPPING.get(
-                            response.status, {}).get("message", "Unknown Error")))
-                exc = ERROR_CODE_EXCEPTION_MAPPING.get(
-                    response.status, {}).get("raise_exception", ZendeskError)
-                raise exc(message, response) from None
+        return response_json
 
 
 async def paginate_ticket_audits(session, url, access_token, request_timeout, page_size, **kwargs):

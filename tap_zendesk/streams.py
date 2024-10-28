@@ -267,7 +267,7 @@ class Tickets(CursorBasedExportStream):
     replication_key = "generated_timestamp"
     item_key = "tickets"
     endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
-    batch_zise = DEFAULT_BATCH_SIZE
+    batch_size = DEFAULT_BATCH_SIZE
 
     def sync(self, state): #pylint: disable=too-many-statements
 
@@ -315,8 +315,9 @@ class Tickets(CursorBasedExportStream):
 
             # Check if the number of ticket IDs has reached the batch size.
             ticket_ids.append(ticket["id"])
-            if len(ticket_ids) >= self.batch_zise:
-                records = self.sync_ticket_audits_and_comments(comments_stream, audits_stream, ticket_ids)
+            if len(ticket_ids) >= self.batch_size:
+                records = self.sync_ticket_audits_and_comments(
+                    comments_stream, audits_stream, ticket_ids)
 
                 for audits, comments in records:
                     for audit in audits:
@@ -345,11 +346,10 @@ class Tickets(CursorBasedExportStream):
         singer.write_state(state)
 
     def sync_ticket_audits_and_comments(self, comments_stream, audits_stream, ticket_ids):
-
         if comments_stream.is_selected() or audits_stream.is_selected():
             return asyncio.run(audits_stream.sync_in_bulk(ticket_ids, comments_stream))
-
         return [], []
+
     def check_access(self):
         '''
         Check whether the permission was given to access stream resources or not.
@@ -363,7 +363,7 @@ class Tickets(CursorBasedExportStream):
 
         # Rate limit are varies according to the zendesk account. So, we need to set the batch size dynamically.
         # https://developer.zendesk.com/api-reference/introduction/rate-limits/
-        self.batch_zise = int(response.headers.get('x-rate-limit', DEFAULT_BATCH_SIZE))
+        self.batch_size = int(response.headers.get('x-rate-limit', DEFAULT_BATCH_SIZE))
 
 
 class TicketAudits(Stream):
@@ -379,7 +379,8 @@ class TicketAudits(Stream):
         """
         # Create an asynchronous HTTP session
         async with aiohttp.ClientSession() as session:
-            tasks = [self.sync(session, ticket_id, comments_stream) for ticket_id in ticket_ids]
+            tasks = [self.sync(session, ticket_id, comments_stream)
+                     for ticket_id in ticket_ids]
             # Run all tasks concurrently and wait for them to complete
             return await asyncio.gather(*tasks)
 
@@ -407,8 +408,9 @@ class TicketAudits(Stream):
 
                 if comments_stream.is_selected():
                     # Extract comments from ticket audit
-                    ticket_comments = (event for event in ticket_audit['events'] if event['type'] == 'Comment')
-                    zendesk_metrics.capture('ticket_audit')
+                    ticket_comments = (
+                        event for event in ticket_audit['events'] if event['type'] == 'Comment')
+                    zendesk_metrics.capture('ticket_comments')
                     for ticket_comment in ticket_comments:
                         # Update the comment with additional information
                         ticket_comment.update({
@@ -419,9 +421,11 @@ class TicketAudits(Stream):
                         })
 
                         comments_stream.count += 1
-                        comment_records.append((comments_stream.stream, ticket_comment))
+                        comment_records.append(
+                            (comments_stream.stream, ticket_comment))
         except http.ZendeskNotFoundError:
-            LOGGER.warning("Unable to retrieve metrics for ticket (ID: %s), record not found", ticket_id)
+            LOGGER.warning(
+                "Unable to retrieve metrics for ticket (ID: %s), record not found", ticket_id)
 
         return audit_records, comment_records
 
