@@ -3,9 +3,8 @@ import json
 import datetime
 import asyncio
 import pytz
-from zenpy import Zenpy
-import zenpy
-import aiohttp
+from zenpy.lib.exception import APIException
+from aiohttp import ClientSession
 import singer
 from singer import metadata
 from singer import utils
@@ -65,7 +64,7 @@ class Stream():
     request_timeout = None
     page_size = None
 
-    def __init__(self, client:Zenpy=None, config=None):
+    def __init__(self, client=None, config=None):
         self.client = client
         self.config = config
         # Set and pass request timeout to config param `request_timeout` value.
@@ -165,7 +164,7 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
     # access to `custom_fields` and some do not. This is the specific
     # error that appears to be return from the API call in the event that
     # it doesn't have access.
-    if not isinstance(e, zenpy.lib.exception.APIException):
+    if not isinstance(e, APIException):
         raise ValueError("Called with a bad exception type") from e
 
     #If read permission is not available in OAuth access_token, then it returns the below error.
@@ -198,7 +197,7 @@ class Organizations(Stream):
         try:
             field_gen = self.client.organizations._query_zendesk(endpoint.organization_fields, # pylint: disable=protected-access
                                                                  'organization_field')
-        except zenpy.lib.exception.APIException as e:
+        except APIException as e:
             return raise_or_log_zenpy_apiexception(schema, self.name, e)
         schema['properties']['organization_fields']['properties'] = {}
         for field in field_gen:
@@ -232,7 +231,7 @@ class Users(CursorBasedExportStream):
     def _add_custom_fields(self, schema):
         try:
             field_gen = self.client.user_fields()
-        except zenpy.lib.exception.APIException as e:
+        except APIException as e:
             return raise_or_log_zenpy_apiexception(schema, self.name, e)
         schema['properties']['user_fields']['properties'] = {}
         for field in field_gen:
@@ -378,7 +377,7 @@ class TicketAudits(Stream):
         Asynchronously fetch ticket audits for multiple tickets
         """
         # Create an asynchronous HTTP session
-        async with aiohttp.ClientSession() as session:
+        async with ClientSession() as session:
             tasks = [self.sync(session, ticket_id, comments_stream)
                      for ticket_id in ticket_ids]
             # Run all tasks concurrently and wait for them to complete

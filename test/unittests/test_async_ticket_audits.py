@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 from aioresponses import aioresponses
 import asyncio
-import aiohttp
+from aiohttp import ClientSession
 
 from tap_zendesk import http, streams
 
@@ -41,7 +41,7 @@ class TestASyncTicketAudits(unittest.TestCase):
             with patch.object(
                 streams.TicketAudits, "get_objects", side_effect=mock_get_objects
             ):
-                async with aiohttp.ClientSession() as session:
+                async with ClientSession() as session:
                     audit_records, comment_records = await instance.sync(
                         session, ticket_id, comments_stream
                     )
@@ -94,7 +94,7 @@ class TestASyncTicketAudits(unittest.TestCase):
             with patch.object(
                 streams.TicketAudits, "get_objects", side_effect=mock_get_objects
             ):
-                async with aiohttp.ClientSession() as session:
+                async with ClientSession() as session:
                     audit_records, comment_records = await instance.sync(
                         session, ticket_id, comments_stream
                     )
@@ -137,7 +137,7 @@ class TestASyncTicketAudits(unittest.TestCase):
             with patch.object(
                 streams.TicketAudits, "get_objects", side_effect=mock_get_objects
             ):
-                async with aiohttp.ClientSession() as session:
+                async with ClientSession() as session:
                     audit_records, comment_records = await instance.sync(
                         session, ticket_id, comments_stream
                     )
@@ -173,7 +173,7 @@ class TestASyncTicketAudits(unittest.TestCase):
 
         async def run_test():
             # Run the sync method
-            async with aiohttp.ClientSession() as session:
+            async with ClientSession() as session:
                 audit_records, comment_records = await instance.sync(
                     session, ticket_id, comments_stream
                 )
@@ -213,7 +213,7 @@ class TestASyncTicketAudits(unittest.TestCase):
 
         async def run_test():
             # Run the sync method
-            async with aiohttp.ClientSession() as session:
+            async with ClientSession() as session:
                 with self.assertRaises(http.ZendeskError) as context:
                     audit_records, comment_records = await instance.sync(
                         session, ticket_id, comments_stream

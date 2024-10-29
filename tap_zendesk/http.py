@@ -1,10 +1,10 @@
 from time import sleep
-import asyncio
+from asyncio import sleep as async_sleep
 import backoff
 import requests
 import singer
 from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError, ConnectionError
-import aiohttp
+from aiohttp import ContentTypeError
 from urllib3.exceptions import ProtocolError
 
 
@@ -218,7 +218,7 @@ async def raise_for_error_for_async(response):
     response_json = {}
     try:
         response_json = await response.json()
-    except aiohttp.ContentTypeError as e:
+    except ContentTypeError as e:
         LOGGER.warning("Error decoding response from API: %s", str(e))
     except ValueError as e:
         LOGGER.warning("Invalid response from API: %s", str(e))
@@ -230,14 +230,16 @@ async def raise_for_error_for_async(response):
         retry_after = response.headers.get("Retry-After", 1)
         LOGGER.warning(
             "Caught HTTP 429, retrying request in %s seconds", retry_after)
-        await asyncio.sleep(int(retry_after)) # Wait for the specified time before retrying the request.
+        # Wait for the specified time before retrying the request.
+        await async_sleep(int(retry_after))
     # Check if the response status is 409 (Conflict).
     elif response.status == 409:
         LOGGER.warning(
             "Caught HTTP 409, retrying request in %s seconds",
             DEFAULT_WAIT_FOR_CONFLICT_ERROR,
         )
-        await asyncio.sleep(DEFAULT_WAIT_FOR_CONFLICT_ERROR) # Wait for the specified time before retrying the request.
+        # Wait for the specified time before retrying the request.
+        await async_sleep(DEFAULT_WAIT_FOR_CONFLICT_ERROR)
 
     # Prepare the error message and raise the appropriate exception.
     if response_json.get("error"):
@@ -257,14 +259,15 @@ async def raise_for_error_for_async(response):
     exc = ERROR_CODE_EXCEPTION_MAPPING.get(response.status, {}).get(
         "raise_exception", ZendeskError
     )
+    LOGGER.error(message)
     raise exc(message, response) from None
 
 
 @backoff.on_exception(
     backoff.constant,
-    (ZendeskRateLimitError, ZendeskConflictError),  # Exceptions to retry on
-    max_tries=5,  # Maximum number of retries
-    interval=0  # No additional backoff delay
+    (ZendeskRateLimitError, ZendeskConflictError),
+    max_tries=5,
+    interval=0
 )
 @backoff.on_exception(
     backoff.expo,
@@ -274,8 +277,8 @@ async def raise_for_error_for_async(response):
         Timeout,
         ChunkedEncodingError,
         ProtocolError,
-    ),  # As ConnectionError error and timeout error does not have attribute status_code,
-    max_tries=5,  # here we added another backoff expression.
+    ),
+    max_tries=5,
     factor=2,
 )
 async def call_api_async(session, url, request_timeout, params, headers):

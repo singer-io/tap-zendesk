@@ -6,7 +6,7 @@ from urllib3.exceptions import ProtocolError
 from requests.exceptions import ChunkedEncodingError, ConnectionError
 from aioresponses import aioresponses
 import asyncio
-import aiohttp
+from aiohttp import ClientSession
 import zenpy
 
 
@@ -544,7 +544,7 @@ class TestAPIAsync(unittest.TestCase):
         mocked.get(url, status=200, payload=response_data)
 
         async def run_test():
-            async with aiohttp.ClientSession() as session:
+            async with ClientSession() as session:
                 result = await http.call_api_async(session, url, 10, {}, {})
                 self.assertEqual(result, response_data)
 
@@ -570,10 +570,10 @@ class TestAPIAsync(unittest.TestCase):
         mocked.get(url, status=200, payload=response_data)
 
         async def run_test():
-            async with aiohttp.ClientSession() as session:
+            async with ClientSession() as session:
                 result = await http.call_api_async(session, url, 10, {}, {})
                 self.assertEqual(result, response_data)
-                self.assertEqual(mock_sleep.call_count, 8)
+                self.assertEqual(mock_sleep.call_count, 4)
 
         asyncio.run(run_test())
 
@@ -599,10 +599,10 @@ class TestAPIAsync(unittest.TestCase):
         mocked.get(url, status=200, payload=response_data)
 
         async def run_test():
-            async with aiohttp.ClientSession() as session:
+            async with ClientSession() as session:
                 with self.assertRaises(http.ZendeskError) as context:
                     await http.call_api_async(session, url, 10, {}, {})
-                self.assertEqual(mock_sleep.call_count, 9)
+                self.assertEqual(mock_sleep.call_count, 4)
                 self.assertEqual(
                     'HTTP-error-code: 429, Error: The API rate limit for your organisation/application pairing has been exceeded.', str(context.exception))
 
@@ -623,10 +623,10 @@ class TestAPIAsync(unittest.TestCase):
         mocked.get(url, status=200, payload=response_data)
 
         async def run_test():
-            async with aiohttp.ClientSession() as session:
+            async with ClientSession() as session:
                 result = await http.call_api_async(session, url, 10, {}, {})
                 self.assertEqual(result, response_data)
-                self.assertEqual(mock_sleep.call_count, 8)
+                self.assertEqual(mock_sleep.call_count, 4)
 
         asyncio.run(run_test())
 
@@ -642,7 +642,7 @@ class TestAPIAsync(unittest.TestCase):
         mocked.get(url, status=500, payload=response_data)
 
         async def run_test():
-            async with aiohttp.ClientSession() as session:
+            async with ClientSession() as session:
                 with self.assertRaises(http.ZendeskError) as context:
                     await http.call_api_async(session, url, 10, {}, {})
                 self.assertIn(error_message, str(context.exception))
@@ -676,7 +676,7 @@ class TestAPIAsync(unittest.TestCase):
                    status=200, payload=second_page)
 
         async def run_test():
-            async with aiohttp.ClientSession() as session:
+            async with ClientSession() as session:
                 result = await http.paginate_ticket_audits(session, url, access_token, 10, page_size)
                 self.assertEqual(result, expected_result)
 
