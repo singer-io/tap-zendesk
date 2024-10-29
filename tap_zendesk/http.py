@@ -294,6 +294,9 @@ async def call_api_async(session, url, request_timeout, params, headers):
 
 
 async def paginate_ticket_audits(session, url, access_token, request_timeout, page_size, **kwargs):
+    """
+    Paginate through the ticket audits API endpoint and return the aggregated results
+    """
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

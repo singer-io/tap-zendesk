@@ -315,17 +315,16 @@ class Tickets(CursorBasedExportStream):
             # Check if the number of ticket IDs has reached the batch size.
             ticket_ids.append(ticket["id"])
             if len(ticket_ids) >= self.batch_size:
+                # Process audits and comments in batches
                 records = self.sync_ticket_audits_and_comments(
                     comments_stream, audits_stream, ticket_ids)
-
                 for audits, comments in records:
                     for audit in audits:
                         yield audit
                     for comment in comments:
                         yield comment
-                    # Reset the list of ticket IDs after processing the batch.
-                    ticket_ids = []
-
+                # Reset the list of ticket IDs after processing the batch.
+                ticket_ids = []
                 # Write state after processing the batch.
                 singer.write_state(state)
 
@@ -333,7 +332,6 @@ class Tickets(CursorBasedExportStream):
         if ticket_ids:
             records = self.sync_ticket_audits_and_comments(comments_stream, audits_stream, ticket_ids)
             for audits, comments in records:
-
                 for audit in audits:
                     yield audit
                 for comment in comments:
@@ -394,8 +392,7 @@ class TicketAudits(Stream):
         """
         Fetch ticket audits for a single ticket. Also exctract comments for each audit.
         """
-        audit_records = []
-        comment_records = []
+        audit_records, comment_records = [], []
         try:
             # Fetch ticket audits for the given ticket ID
             ticket_audits = await self.get_objects(session, ticket_id)
