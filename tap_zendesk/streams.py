@@ -420,8 +420,7 @@ class TicketAudits(Stream):
                         comment_records.append(
                             (comments_stream.stream, ticket_comment))
         except http.ZendeskNotFoundError:
-            LOGGER.warning(
-                "Unable to retrieve metrics for ticket (ID: %s), record not found", ticket_id)
+            return audit_records, comment_records
 
         return audit_records, comment_records
 
