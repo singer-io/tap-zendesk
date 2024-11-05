@@ -21,8 +21,9 @@ setup(name='tap-zendesk',
               'ipdb',
           ],
           'test': [
-              'pylint==3.0.3',
+              'aioresponses',
               'nose2',
+              'pylint==3.0.3',
               'pytest'
           ]
       },
