@@ -48,7 +48,7 @@ def process_custom_field(field):
     json_type = CUSTOM_TYPES.get(field.type, "string")
     field_schema = {'type': [json_type, 'null']}
     if field.type == 'date':
-        field_schema['format'] = 'datetime'
+        field_schema['format'] = 'date-time'
     if field.type == 'dropdown':
         field_schema['enum'] = [o.value for o in field.custom_field_options]
 

@@ -64,7 +64,7 @@ class TestCustomFieldSchemaDiscovery(unittest.TestCase):
 
 
     def test_return_field_type_date(self):
-        expected_singer_type = {"type" : ["string", "null"], 'format': 'datetime'}
+        expected_singer_type = {"type" : ["string", "null"], 'format': 'date-time'}
         z_field = self.get_z_field_obj("field_title_date", "field_key_date", "date")
         actual_singer_type = process_custom_field(z_field)
         self.assertEqual(actual_singer_type, expected_singer_type)
