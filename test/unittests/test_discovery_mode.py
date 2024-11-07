@@ -61,14 +61,14 @@ class TestDiscovery(unittest.TestCase):
 
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
-        expected_call_count = 10
+        expected_call_count = 8
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
         # Verifying the logger message
         mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): "\
-            "groups, users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, "\
-            "satisfaction_ratings, tags, ticket_metrics. The data for these streams would not be collected due to lack of required "\
+            "groups, users, organizations, ticket_audits, ticket_fields, ticket_forms, group_memberships, macros, "\
+            "satisfaction_ratings, tags. The data for these streams would not be collected due to lack of required "\
             "permission.")
 
     @patch("tap_zendesk.discover.LOGGER.warning")
@@ -107,14 +107,14 @@ class TestDiscovery(unittest.TestCase):
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
 
-        expected_call_count = 10
+        expected_call_count = 8
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
     
         # Verifying the logger message
         mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): "\
-            "groups, users, organizations, ticket_audits, ticket_comments, ticket_fields, ticket_forms, group_memberships, macros, "\
-            "satisfaction_ratings, tags, ticket_metrics, sla_policies. The data for these streams would not be collected due to "\
+            "groups, users, organizations, ticket_audits, ticket_fields, ticket_forms, group_memberships, macros, "\
+            "satisfaction_ratings, tags, sla_policies. The data for these streams would not be collected due to "\
             "lack of required permission.")
 
     @patch("tap_zendesk.discover.LOGGER.warning")
@@ -132,7 +132,6 @@ class TestDiscovery(unittest.TestCase):
            side_effect=[
                 mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 1st get request call
                 mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 2nd get request call
-                mocked_get(status_code=404, json={"key1": "val1"}), # Response of the 3rd get request call
                 mocked_get(status_code=404, json={"key1": "val1"}), # Response of the 4th get request call
                 mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 5th get request call
                 mocked_get(status_code=403, json={"key1": "val1"}), # Response of the 6th get request call
@@ -153,7 +152,7 @@ class TestDiscovery(unittest.TestCase):
         '''
 
         responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
-        expected_call_count = 10
+        expected_call_count = 8
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
@@ -275,7 +274,7 @@ class TestDiscovery(unittest.TestCase):
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
 
-        expected_call_count = 10
+        expected_call_count = 8
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
