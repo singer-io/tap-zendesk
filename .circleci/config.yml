@@ -39,8 +39,8 @@ jobs:
           when: always
           command: |
             source /usr/local/share/virtualenvs/tap-zendesk/bin/activate
-            pip install nose2 parameterized nose2[coverage_plugin]>=0.6.5
-            nose2 --with-coverage -v -s test/unittests
+            pip install nose2 parameterized nose2[coverage_plugin]>=0.6.5 aioresponses
+            nose2 --with-coverage --coverage=tap_zendesk -v -s test/unittests
       - store_test_results:
           path: test_output/report.xml
       - store_artifacts:
@@ -48,7 +48,6 @@ jobs:
 
   integration_tests:
     executor: docker-executor
-    parallelism: 10
     steps:
       - checkout
       - attach_workspace:

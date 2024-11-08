@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='tap-zendesk',
-      version='2.4.0',
+      version='2.6.0',
       description='Singer.io tap for extracting data from the Zendesk API',
       author='Stitch',
       url='https://singer.io',
@@ -14,6 +14,7 @@ setup(name='tap-zendesk',
           'zenpy==2.0.24',
           'backoff==2.2.1',
           'requests==2.31.0',
+          'aiohttp==3.10.10'
       ],
       extras_require={
           'dev': [
