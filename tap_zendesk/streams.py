@@ -345,7 +345,7 @@ class Tickets(CursorBasedExportStream):
     def sync_ticket_audits_and_comments(self, comments_stream, audits_stream, ticket_ids):
         if comments_stream.is_selected() or audits_stream.is_selected():
             return asyncio.run(audits_stream.sync_in_bulk(ticket_ids, comments_stream))
-        return [], []
+        return [([], [])] # Return empty list of audits and comments if not selected
 
     def check_access(self):
         '''

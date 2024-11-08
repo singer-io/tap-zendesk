@@ -149,6 +149,40 @@ class TestASyncTicketAudits(unittest.TestCase):
 
         asyncio.run(run_test())
 
+    @patch('tap_zendesk.streams.Tickets.update_bookmark')
+    @patch('tap_zendesk.streams.Tickets.get_bookmark')
+    @patch('tap_zendesk.streams.Tickets.get_objects')
+    @patch('tap_zendesk.streams.Tickets.check_access')
+    @patch('tap_zendesk.streams.singer.write_state')
+    @patch('tap_zendesk.streams.zendesk_metrics.capture')
+    @patch('tap_zendesk.streams.LOGGER.info')
+    def test_sync_audits_comments_stream__both_not_selected(self, mock_info, mock_capture, mock_write_state, mock_check_access, mock_get_objects, mock_get_bookmark, mock_update_bookmark):
+        """
+        Test that audits and comments are processed and emitted when the respective streams are selected.
+        """
+        # Mock the necessary data
+        state = {}
+        bookmark = '2023-01-01T00:00:00Z'
+        tickets = [
+            {'id': 1, 'generated_timestamp': 1672531200, 'fields': 'duplicate'},
+            {'id': 2, 'generated_timestamp': 1672531300, 'fields': 'duplicate'}
+        ]
+        mock_get_bookmark.return_value = bookmark
+        mock_get_objects.return_value = tickets
+
+        # Create an instance of the Tickets class
+        instance = streams.Tickets(None, {})
+        audits_stream = streams.TicketAudits(None, {})
+        comments_stream = streams.TicketComments(None, {})
+        instance.audits_stream = audits_stream
+        instance.comments_stream = comments_stream
+
+        # Run the sync method
+        result = list(instance.sync(state))
+
+        # Assertions
+        self.assertEqual(len(result), 2)
+
     @aioresponses()
     @patch("tap_zendesk.streams.zendesk_metrics.capture")
     @patch("tap_zendesk.streams.LOGGER.warning")
