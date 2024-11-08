@@ -1,8 +1,5 @@
 # Changelog
 
-## 2.5.0
-  * Performance improvement on ticket records sync [#150](https://github.com/singer-io/tap-zendesk/pull/150)
-
 ## 2.4.0
   * Upgrades to run on python 3.11.7 [#146](https://github.com/singer-io/tap-zendesk/pull/146)
 

@@ -1,16 +1,14 @@
 from time import sleep
-from asyncio import sleep as async_sleep
 import backoff
 import requests
 import singer
 from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError, ConnectionError
-from aiohttp import ContentTypeError
 from urllib3.exceptions import ProtocolError
 
 
+
 LOGGER = singer.get_logger()
-DEFAULT_WAIT = 60 # Default wait time for backoff
-DEFAULT_WAIT_FOR_CONFLICT_ERROR = 10 # Default wait time for backoff for conflict error
+
 
 class ZendeskError(Exception):
     def __init__(self, message=None, response=None):
@@ -210,126 +208,7 @@ def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
         yield response_json
         next_url = response_json.get('next_page')
 
-
-async def raise_for_error_for_async(response):
-    """
-    Error handling method which throws custom error. Class for each error defined above which extends `ZendeskError`.
-    """
-    response_json = {}
-    try:
-        response_json = await response.json()
-    except ContentTypeError as e:
-        LOGGER.warning("Error decoding response from API: %s", str(e))
-    except ValueError as e:
-        LOGGER.warning("Invalid response from API: %s", str(e))
-
-    if response.status == 200:
-        return response_json
-    elif response.status == 429:
-        # Get the 'Retry-After' header value, defaulting to 60 seconds if not present.
-        retry_after = response.headers.get("Retry-After", 1)
-        LOGGER.warning(
-            "Caught HTTP 429, retrying request in %s seconds", retry_after)
-        # Wait for the specified time before retrying the request.
-        await async_sleep(int(retry_after))
-    # Check if the response status is 409 (Conflict).
-    elif response.status == 409:
-        LOGGER.warning(
-            "Caught HTTP 409, retrying request in %s seconds",
-            DEFAULT_WAIT_FOR_CONFLICT_ERROR,
-        )
-        # Wait for the specified time before retrying the request.
-        await async_sleep(DEFAULT_WAIT_FOR_CONFLICT_ERROR)
-
-    # Prepare the error message and raise the appropriate exception.
-    if response_json.get("error"):
-        message = "HTTP-error-code: {}, Error: {}".format(
-            response.status, response_json.get("error")
-        )
-    else:
-        message = "HTTP-error-code: {}, Error: {}".format(
-            response.status,
-            response_json.get(
-                "message",
-                ERROR_CODE_EXCEPTION_MAPPING.get(response.status, {}).get(
-                    "message", "Unknown Error"
-                ),
-            ),
-        )
-    exc = ERROR_CODE_EXCEPTION_MAPPING.get(response.status, {}).get(
-        "raise_exception", ZendeskError
-    )
-    LOGGER.error(message)
-    raise exc(message, response) from None
-
-
-@backoff.on_exception(
-    backoff.constant,
-    (ZendeskRateLimitError, ZendeskConflictError),
-    max_tries=5,
-    interval=0
-)
-@backoff.on_exception(
-    backoff.expo,
-    (
-        ConnectionError,
-        ConnectionResetError,
-        Timeout,
-        ChunkedEncodingError,
-        ProtocolError,
-    ),
-    max_tries=5,
-    factor=2,
-)
-async def call_api_async(session, url, request_timeout, params, headers):
-    """
-    Perform an asynchronous GET request
-    """
-    async with session.get(
-        url, params=params, headers=headers, timeout=request_timeout
-    ) as response:
-        response_json = await raise_for_error_for_async(response)
-
-        return response_json
-
-
-async def paginate_ticket_audits(session, url, access_token, request_timeout, page_size, **kwargs):
-    """
-    Paginate through the ticket audits API endpoint and return the aggregated results
-    """
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-        **kwargs.get('headers', {})
-    }
-
-    params = {
-        'per_page': page_size,
-        **kwargs.get('params', {})
-    }
-
-    # Make the initial asynchronous API call
-    final_response = await call_api_async(session, url, request_timeout, params=params, headers=headers)
-
-    next_url = final_response.get('next_page')
-
-    # Fetch next pages of results.
-    while next_url:
-
-        # An asynchronous API call to fetch the next page of results.
-        response = await call_api_async(session, next_url, request_timeout, params=None, headers=headers)
-
-        # Extend the final response with the audits from the current page.
-        final_response["audits"].extend(response["audits"])
-
-        # Get the URL for the next page
-        next_url = response.get('next_page')
-
-    # Return the final aggregated response
-    return final_response
-
-def get_incremental_export(url, access_token, request_timeout, start_time, side_load):
+def get_incremental_export(url, access_token, request_timeout, start_time):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -340,7 +219,6 @@ def get_incremental_export(url, access_token, request_timeout, start_time, side_
 
     if not isinstance(start_time, int):
         params = {'start_time': start_time.timestamp()}
-    params['include'] = side_load
 
     response = call_api(url, request_timeout, params=params, headers=headers)
     response_json = response.json()
@@ -352,7 +230,7 @@ def get_incremental_export(url, access_token, request_timeout, start_time, side_
     while not end_of_stream:
         cursor = response_json['after_cursor']
 
-        params = {'cursor': cursor, "include": side_load}
+        params = {'cursor': cursor}
         # Replaced below line of code with call_api method
         # response = requests.get(url, params=params, headers=headers)
         # response.raise_for_status()
