@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from aioresponses import aioresponses
 import asyncio
 from aiohttp import ClientSession
 
@@ -9,10 +8,9 @@ from tap_zendesk import http, streams
 
 class TestASyncTicketAudits(unittest.TestCase):
 
-    @aioresponses()
     @patch("tap_zendesk.streams.zendesk_metrics.capture")
     @patch("tap_zendesk.streams.LOGGER.warning")
-    def test_sync_audit_comment_both_selected(self, mocked, mock_capture, mock_warning):
+    def test_sync_audit_comment_both_selected(self, mock_capture, mock_warning):
         """
         Test that tap sync both ticket_audits and ticket_comments when both streams are selected.
         """
@@ -58,15 +56,13 @@ class TestASyncTicketAudits(unittest.TestCase):
                     )
                     self.assertEqual(comment_records[0][1]["via"], "web")
                     self.assertEqual(comment_records[0][1]["metadata"], {})
-                    self.assertEqual(
-                        comment_records[0][1]["ticket_id"], ticket_id)
+                    self.assertEqual(comment_records[0][1]["ticket_id"], ticket_id)
 
         asyncio.run(run_test())
 
-    @aioresponses()
     @patch("tap_zendesk.streams.zendesk_metrics.capture")
     @patch("tap_zendesk.streams.LOGGER.warning")
-    def test_sync_comment_only_selected(self, mocked, mock_capture, mock_warning):
+    def test_sync_comment_only_selected(self, mock_capture, mock_warning):
         """
         Test that tap sync just ticket_comments when only the comment stream is selected.
         """
@@ -105,10 +101,9 @@ class TestASyncTicketAudits(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @aioresponses()
     @patch("tap_zendesk.streams.zendesk_metrics.capture")
     @patch("tap_zendesk.streams.LOGGER.warning")
-    def test_sync_audit_only_selected(self, mocked, mock_capture, mock_warning):
+    def test_sync_audit_only_selected(self, mock_capture, mock_warning):
         """
         Test that tap sync just ticket_audits when only the audit stream is selected.
         """
@@ -149,23 +144,32 @@ class TestASyncTicketAudits(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @patch('tap_zendesk.streams.Tickets.update_bookmark')
-    @patch('tap_zendesk.streams.Tickets.get_bookmark')
-    @patch('tap_zendesk.streams.Tickets.get_objects')
-    @patch('tap_zendesk.streams.Tickets.check_access')
-    @patch('tap_zendesk.streams.singer.write_state')
-    @patch('tap_zendesk.streams.zendesk_metrics.capture')
-    @patch('tap_zendesk.streams.LOGGER.info')
-    def test_sync_audits_comments_stream__both_not_selected(self, mock_info, mock_capture, mock_write_state, mock_check_access, mock_get_objects, mock_get_bookmark, mock_update_bookmark):
+    @patch("tap_zendesk.streams.Tickets.update_bookmark")
+    @patch("tap_zendesk.streams.Tickets.get_bookmark")
+    @patch("tap_zendesk.streams.Tickets.get_objects")
+    @patch("tap_zendesk.streams.Tickets.check_access")
+    @patch("tap_zendesk.streams.singer.write_state")
+    @patch("tap_zendesk.streams.zendesk_metrics.capture")
+    @patch("tap_zendesk.streams.LOGGER.info")
+    def test_sync_audits_comments_stream__both_not_selected(
+        self,
+        mock_info,
+        mock_capture,
+        mock_write_state,
+        mock_check_access,
+        mock_get_objects,
+        mock_get_bookmark,
+        mock_update_bookmark,
+    ):
         """
-        Test that audits and comments are processed and emitted when the respective streams are selected.
+        Test that sync does not extract records for audits and comments when both of them are not selected.
         """
         # Mock the necessary data
         state = {}
-        bookmark = '2023-01-01T00:00:00Z'
+        bookmark = "2023-01-01T00:00:00Z"
         tickets = [
-            {'id': 1, 'generated_timestamp': 1672531200, 'fields': 'duplicate'},
-            {'id': 2, 'generated_timestamp': 1672531300, 'fields': 'duplicate'}
+            {"id": 1, "generated_timestamp": 1672531200, "fields": "duplicate"},
+            {"id": 2, "generated_timestamp": 1672531300, "fields": "duplicate"},
         ]
         mock_get_bookmark.return_value = bookmark
         mock_get_objects.return_value = tickets
@@ -183,16 +187,13 @@ class TestASyncTicketAudits(unittest.TestCase):
         # Assertions
         self.assertEqual(len(result), 2)
 
-    @aioresponses()
     @patch("tap_zendesk.streams.zendesk_metrics.capture")
     @patch("tap_zendesk.streams.LOGGER.warning")
     @patch(
         "tap_zendesk.streams.TicketAudits.get_objects",
         side_effect=http.ZendeskNotFoundError,
     )
-    def test_audit_not_found(
-        self, mocked, mock_capture, mock_warning, mock_get_objects
-    ):
+    def test_audit_not_found(self, mock_capture, mock_warning, mock_get_objects):
         """
         Test that sync handles the case where the ticket is not found.
         """
@@ -218,7 +219,6 @@ class TestASyncTicketAudits(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @aioresponses()
     @patch("tap_zendesk.streams.zendesk_metrics.capture")
     @patch("tap_zendesk.streams.LOGGER.warning")
     @patch(
@@ -228,7 +228,7 @@ class TestASyncTicketAudits(unittest.TestCase):
         ),
     )
     def test_paginate_ticket_audits_exception(
-        self, mocked, mock_capture, mock_warning, mock_get_objects
+        self, mock_capture, mock_warning, mock_get_objects
     ):
         """
         Test that sync handles generic exceptions thrown by paginate_ticket_audits method.
@@ -249,7 +249,9 @@ class TestASyncTicketAudits(unittest.TestCase):
                         session, ticket_id, comments_stream
                     )
 
-            self.assertEqual(str(
-                context.exception), "The server encountered an unexpected condition which prevented it from fulfilling the request.")
+            self.assertEqual(
+                str(context.exception),
+                "The server encountered an unexpected condition which prevented it from fulfilling the request.",
+            )
 
         asyncio.run(run_test())

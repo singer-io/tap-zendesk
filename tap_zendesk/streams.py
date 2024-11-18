@@ -345,7 +345,8 @@ class Tickets(CursorBasedExportStream):
     def sync_ticket_audits_and_comments(self, comments_stream, audits_stream, ticket_ids):
         if comments_stream.is_selected() or audits_stream.is_selected():
             return asyncio.run(audits_stream.sync_in_bulk(ticket_ids, comments_stream))
-        return [([], [])] # Return empty list of audits and comments if not selected
+        # Return empty list of audits and comments if not selected
+        return [([], [])]
 
     def check_access(self):
         '''
@@ -446,7 +447,8 @@ class TicketMetrics(CursorBasedStream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        return # We load metrics as side load of tickets, so we don't need to check access
+        # We load metrics as side load of tickets, so we don't need to check access
+        return
 
 class TicketMetricEvents(Stream):
     name = "ticket_metric_events"
@@ -485,7 +487,8 @@ class TicketComments(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        return # We load comments as side load of ticket_audits, so we don't need to check access
+        # We load comments as side load of ticket_audits, so we don't need to check access
+        return
 
 class TalkPhoneNumbers(Stream):
     name = 'talk_phone_numbers'

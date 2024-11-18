@@ -1,10 +1,9 @@
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 from tap_zendesk import http, streams
 import requests
 from urllib3.exceptions import ProtocolError
 from requests.exceptions import ChunkedEncodingError, ConnectionError
-from aioresponses import aioresponses
 import asyncio
 from aiohttp import ClientSession
 import zenpy
@@ -534,14 +533,17 @@ class TestBackoff(unittest.TestCase):
 
 class TestAPIAsync(unittest.TestCase):
 
-    @aioresponses()
+    @patch("aiohttp.ClientSession.get")
     def test_call_api_async_success(self, mocked):
         """
         Test that call_api_async successfully retrieves data when the response status is 200.
         """
-        url = 'https://api.example.com/resource'
-        response_data = {'key': 'value'}
-        mocked.get(url, status=200, payload=response_data)
+        url = "https://api.example.com/resource"
+        response_data = {"key": "value"}
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json.return_value = response_data
+        mocked.return_value.__aenter__.return_value = mock_response
 
         async def run_test():
             async with ClientSession() as session:
@@ -550,24 +552,28 @@ class TestAPIAsync(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @aioresponses()
-    @patch('asyncio.sleep', return_value=None)
+    @patch("asyncio.sleep", return_value=None)
+    @patch("aiohttp.ClientSession.get")
     def test_call_api_async_rate_limit(self, mocked, mock_sleep):
         """
         Test that call_api_async retries the request when the response status is 429 (Too Many Requests).
         """
-        url = 'https://api.example.com/resource'
-        retry_after = '1'
-        response_data = {'key': 'value'}
-        mocked.get(url, status=429, headers={
-                   'Retry-After': retry_after}, payload={})
-        mocked.get(url, status=429, headers={
-                   'Retry-After': retry_after}, payload={})
-        mocked.get(url, status=429, headers={
-                   'Retry-After': retry_after}, payload={})
-        mocked.get(url, status=429, headers={
-                   'Retry-After': retry_after}, payload={})
-        mocked.get(url, status=200, payload=response_data)
+        url = "https://api.example.com/resource"
+        retry_after = "1"
+        response_data = {"key": "value"}
+        mock_error_response = AsyncMock()
+        mock_error_response.status = 429
+        mock_error_response.headers = {"Retry-After": retry_after}
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json.return_value = response_data
+        mocked.return_value.__aenter__.side_effect = [
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_response,
+        ]
 
         async def run_test():
             async with ClientSession() as session:
@@ -577,26 +583,31 @@ class TestAPIAsync(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @aioresponses()
-    @patch('asyncio.sleep', return_value=None)
-    def test_call_api_async_rate_limit_exception_after_5_retries(self, mocked, mock_sleep):
+    @patch("asyncio.sleep", return_value=None)
+    @patch("aiohttp.ClientSession.get")
+    def test_call_api_async_rate_limit_exception_after_5_retries(
+        self, mocked, mock_sleep
+    ):
         """
         Test that call_api_async raises an exception after 5 retries when the response status is 429 (Too Many Requests).
         """
-        url = 'https://api.example.com/resource'
-        retry_after = '1'
-        response_data = {'key': 'value'}
-        mocked.get(url, status=429, headers={
-                   'Retry-After': retry_after}, payload={})
-        mocked.get(url, status=429, headers={
-                   'Retry-After': retry_after}, payload={})
-        mocked.get(url, status=429, headers={
-                   'Retry-After': retry_after}, payload={})
-        mocked.get(url, status=429, headers={
-                   'Retry-After': retry_after}, payload={})
-        mocked.get(url, status=429, headers={
-                   'Retry-After': retry_after}, payload={})
-        mocked.get(url, status=200, payload=response_data)
+        url = "https://api.example.com/resource"
+        retry_after = "1"
+        response_data = {"key": "value"}
+        mock_error_response = AsyncMock()
+        mock_error_response.status = 429
+        mock_error_response.headers = {"Retry-After": retry_after}
+        mock_error_response.json.return_value = {}
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json.return_value = response_data
+        mocked.return_value.__aenter__.side_effect = [
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+        ]
 
         async def run_test():
             async with ClientSession() as session:
@@ -604,23 +615,33 @@ class TestAPIAsync(unittest.TestCase):
                     await http.call_api_async(session, url, 10, {}, {})
                 self.assertEqual(mock_sleep.call_count, 4)
                 self.assertEqual(
-                    'HTTP-error-code: 429, Error: The API rate limit for your organisation/application pairing has been exceeded.', str(context.exception))
+                    "HTTP-error-code: 429, Error: The API rate limit for your organisation/application pairing has been exceeded.",
+                    str(context.exception),
+                )
 
         asyncio.run(run_test())
 
-    @aioresponses()
-    @patch('asyncio.sleep', return_value=None)
+    @patch("asyncio.sleep", return_value=None)
+    @patch("aiohttp.ClientSession.get")
     def test_call_api_async_conflict(self, mocked, mock_sleep):
         """
         Test that call_api_async retries the request when the response status is 409 (Conflict).
         """
-        url = 'https://api.example.com/resource'
-        response_data = {'key': 'value'}
-        mocked.get(url, status=409, payload={})
-        mocked.get(url, status=409, payload={})
-        mocked.get(url, status=409, payload={})
-        mocked.get(url, status=409, payload={})
-        mocked.get(url, status=200, payload=response_data)
+        url = "https://api.example.com/resource"
+        response_data = {"key": "value"}
+        mock_error_response = AsyncMock()
+        mock_error_response.status = 409
+        mock_error_response.json.return_value = {}
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json.return_value = response_data
+        mocked.return_value.__aenter__.side_effect = [
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_response,
+        ]
 
         async def run_test():
             async with ClientSession() as session:
@@ -630,16 +651,19 @@ class TestAPIAsync(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @aioresponses()
-    @patch('asyncio.sleep', return_value=None)
+    @patch("asyncio.sleep", return_value=None)
+    @patch("aiohttp.ClientSession.get")
     def test_call_api_async_other_error(self, mocked, mock_sleep):
         """
         Test that call_api_async raises an exception for other HTTP errors (e.g., 500).
         """
-        url = 'https://api.example.com/resource'
-        error_message = 'Some error'
-        response_data = {'error': error_message}
-        mocked.get(url, status=500, payload=response_data)
+        url = "https://api.example.com/resource"
+        error_message = "Some error"
+        response_data = {"error": error_message}
+        mock_response = AsyncMock()
+        mock_response.status = 500
+        mock_response.json.return_value = response_data
+        mocked.return_value.__aenter__.return_value = mock_response
 
         async def run_test():
             async with ClientSession() as session:
@@ -650,34 +674,39 @@ class TestAPIAsync(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @aioresponses()
+    @patch("aiohttp.ClientSession.get")
     def test_paginate_ticket_audits(self, mocked):
         """
         Test that paginate_ticket_audits correctly paginates through multiple pages of results.
         """
-        url = 'https://api.example.com/resource'
-        access_token = 'test_token'
+        url = "https://api.example.com/resource"
+        access_token = "test_token"
         page_size = 2
         first_page = {
-            'audits': [{'id': 1}, {'id': 2}],
-            'next_page': 'https://api.example.com/resource?per_page=2'
+            "audits": [{"id": 1}, {"id": 2}],
+            "next_page": "https://api.example.com/resource?per_page=2",
         }
-        second_page = {
-            'audits': [{'id': 3}, {'id': 4}],
-            'next_page': None
-        }
+        second_page = {"audits": [{"id": 3}, {"id": 4}], "next_page": None}
         expected_result = {
-            'audits': [{'id': 1}, {'id': 2}, {'id': 3}, {'id': 4}],
-            'next_page': 'https://api.example.com/resource?per_page=2'
+            "audits": [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 4}],
+            "next_page": "https://api.example.com/resource?per_page=2",
         }
-        mocked.get('https://api.example.com/resource?per_page=2',
-                   status=200, payload=first_page)
-        mocked.get('https://api.example.com/resource?per_page=2',
-                   status=200, payload=second_page)
+        mock_first_response = AsyncMock()
+        mock_first_response.status = 200
+        mock_first_response.json.return_value = first_page
+        mock_second_response = AsyncMock()
+        mock_second_response.status = 200
+        mock_second_response.json.return_value = second_page
+        mocked.return_value.__aenter__.side_effect = [
+            mock_first_response,
+            mock_second_response,
+        ]
 
         async def run_test():
             async with ClientSession() as session:
-                result = await http.paginate_ticket_audits(session, url, access_token, 10, page_size)
+                result = await http.paginate_ticket_audits(
+                    session, url, access_token, 10, page_size
+                )
                 self.assertEqual(result, expected_result)
 
         asyncio.run(run_test())

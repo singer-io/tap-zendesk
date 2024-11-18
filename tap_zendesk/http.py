@@ -9,8 +9,10 @@ from urllib3.exceptions import ProtocolError
 
 
 LOGGER = singer.get_logger()
-DEFAULT_WAIT = 60 # Default wait time for backoff
-DEFAULT_WAIT_FOR_CONFLICT_ERROR = 10 # Default wait time for backoff for conflict error
+# Default wait time for backoff
+DEFAULT_WAIT = 60
+# Default wait time for backoff for conflict error
+DEFAULT_WAIT_FOR_CONFLICT_ERROR = 10
 
 class ZendeskError(Exception):
     def __init__(self, message=None, response=None):
@@ -218,21 +220,17 @@ async def raise_for_error_for_async(response):
     response_json = {}
     try:
         response_json = await response.json()
-    except ContentTypeError as e:
-        LOGGER.warning("Error decoding response from API: %s", str(e))
-    except ValueError as e:
-        LOGGER.warning("Invalid response from API: %s", str(e))
+    except (ContentTypeError, ValueError) as e:
+        LOGGER.warning("Error decoding response from API. Exception: %s", e, exc_info=True)
 
     if response.status == 200:
         return response_json
     elif response.status == 429:
         # Get the 'Retry-After' header value, defaulting to 60 seconds if not present.
         retry_after = response.headers.get("Retry-After", 1)
-        LOGGER.warning(
-            "Caught HTTP 429, retrying request in %s seconds", retry_after)
+        LOGGER.warning("Caught HTTP 429, retrying request in %s seconds", retry_after)
         # Wait for the specified time before retrying the request.
         await async_sleep(int(retry_after))
-    # Check if the response status is 409 (Conflict).
     elif response.status == 409:
         LOGGER.warning(
             "Caught HTTP 409, retrying request in %s seconds",

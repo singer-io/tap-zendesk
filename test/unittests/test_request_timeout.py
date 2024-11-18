@@ -1,9 +1,8 @@
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 from tap_zendesk import http, streams
 import requests
 import datetime
-from aioresponses import aioresponses
 import asyncio
 import aiohttp
 
@@ -52,9 +51,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-        
+
     @patch('requests.get', side_effect=5*[requests.exceptions.Timeout])
     def test_get_cursor_based_handles_timeout_error(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times,
@@ -68,9 +67,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-    
+
     @patch('requests.get', side_effect=[mocked_get(status_code=200, json={"key1": "val1", **PAGINATE_RESPONSE}),
                                         requests.exceptions.Timeout, requests.exceptions.Timeout, 
                                         mocked_get(status_code=200, json={"key1": "val1", **SINGLE_RESPONSE})])
@@ -88,12 +87,12 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         # Verify the request call total 4 times(2 time retry call, 2 time 200 call)
         self.assertEqual(mock_get.call_count, 4)
-        
+
     @patch('requests.get', side_effect=5*[requests.exceptions.Timeout])
     def test_get_offset_based_handles_timeout_error(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times,
         """
-        
+
         try:
             responses = [response for response in http.get_offset_based(url='some_url',
                                                                         access_token='some_token',
@@ -102,9 +101,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-        
+
     @patch('requests.get', side_effect=[mocked_get(status_code=200, json={"key1": "val1", **PAGINATE_RESPONSE}),
                                         requests.exceptions.Timeout, requests.exceptions.Timeout, 
                                         mocked_get(status_code=200, json={"key1": "val1", **SINGLE_RESPONSE})])
@@ -122,7 +121,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         # Verify the request call total 4 times(2 time retry call, 2 time 200 call)
         self.assertEqual(mock_get.call_count, 4)
-        
+
     @patch('requests.get', side_effect=5*[requests.exceptions.Timeout])
     def test_get_incremental_export_handles_timeout_error(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times,
@@ -134,9 +133,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-        
+
     @patch('requests.get')
     def test_cursor_based_stream_timeout_error_without_parameter(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when `request_timeout` does not passed,
@@ -149,9 +148,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-        
+
     @patch('requests.get')
     def test_cursor_based_stream_timeout_error_with_zero_str_value(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string "0" value of `request_timeout` passed,
@@ -164,7 +163,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
 
     @patch('requests.get')
@@ -179,9 +178,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-        
+
     @patch('requests.get')
     def test_cursor_based_stream_timeout_error_with_str_value(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string value of `request_timeout` passed,
@@ -194,9 +193,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-    
+
     @patch('requests.get')
     def test_cursor_based_stream_timeout_error_with_int_value(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int value of `request_timeout` passed,
@@ -209,9 +208,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-        
+
     @patch('requests.get')
     def test_cursor_based_stream_timeout_error_with_float_value(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when float value of `request_timeout` passed,
@@ -224,7 +223,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
     @patch('requests.get')
     def test_cursor_based_stream_timeout_error_with_empty_value(self, mock_get, mock_sleep):
@@ -238,7 +237,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
     @patch('requests.get')
     def test_cursor_based_export_stream_timeout_error_without_parameter(self, mock_get, mock_sleep):
@@ -252,7 +251,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
 
     @patch('requests.get')
@@ -267,7 +266,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
 
     @patch('requests.get')
@@ -282,9 +281,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-    
+
     @patch('requests.get')
     def test_cursor_based_export_stream_timeout_error_with_empty_value(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when empty value of `request_timeout` passed,
@@ -297,9 +296,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-    
+
     @patch('requests.get')
     def test_cursor_based_export_stream_timeout_error_with_str_value(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string value of `request_timeout` passed,
@@ -312,9 +311,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-        
+
     @patch('requests.get')
     def test_cursor_based_export_stream_timeout_error_with_int_value(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int value of `request_timeout` passed,
@@ -327,9 +326,9 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-        
+
     @patch('requests.get')
     def test_cursor_based_export_stream_timeout_error_with_float_value(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when float value of `request_timeout` passed,
@@ -342,19 +341,21 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         except requests.exceptions.Timeout as e:
             pass
 
-        # Verify the request retry 5 times on timeout 
+        # Verify the request retry 5 times on timeout
         self.assertEqual(mock_get.call_count, 5)
-        
-    @aioresponses()
-    @patch('asyncio.sleep', return_value=None)
-    def test_ticket_audits_timeout_error_without_parameter(self, mock_get, mock_async_sleep, mock_sleep):
-        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when `request_timeout` does not passed,
-        """
-        url = 'https://test-zendesk.zendesk.com/api/v2/tickets/1/audits.json?per_page=100'
-        for _ in range(5):
-            mock_get.get(url, exception=requests.exceptions.Timeout)
-        
-        ticket_audits = streams.TicketAudits(config={'subdomain': 'test-zendesk', 'access_token': 'df'})
+
+    @patch("asyncio.sleep", return_value=None)
+    @patch("aiohttp.ClientSession.get")
+    def test_ticket_audits_timeout_error_without_parameter(
+        self, mock_get, mock_async_sleep, mock_sleep
+    ):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when `request_timeout` does not passed,"""
+        mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
+
+        ticket_audits = streams.TicketAudits(
+            config={"subdomain": "test-zendesk", "access_token": "df"}
+        )
+
         async def run_test():
             async with aiohttp.ClientSession() as session:
                 try:
@@ -362,20 +363,26 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
                 except requests.exceptions.Timeout as e:
                     pass
 
-            # Verify the request retry 5 times on timeout 
+            # Verify the request retry 5 times on timeout
             self.assertEqual(mock_async_sleep.call_count, 4)
-        
+
         asyncio.run(run_test())
 
-    @aioresponses()
-    @patch('asyncio.sleep', return_value=None)
-    def test_ticket_audits_timeout_error_with_zero_str_value(self, mock_get, mock_async_sleep, mock_sleep):
-        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string "0" value of `request_timeout` passed,
-        """
-        url = 'https://test-zendesk.zendesk.com/api/v2/tickets/1/audits.json?per_page=100'
-        for _ in range(5):
-            mock_get.get(url, exception=requests.exceptions.Timeout)
-        ticket_audits = streams.TicketAudits(config={'subdomain': 'test-zendesk', 'access_token': 'df', 'request_timeout': "0"})
+    @patch("asyncio.sleep", return_value=None)
+    @patch("aiohttp.ClientSession.get")
+    def test_ticket_audits_timeout_error_with_zero_str_value(
+        self, mock_get, mock_async_sleep, mock_sleep
+    ):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string "0" value of `request_timeout` passed,"""
+        mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
+        ticket_audits = streams.TicketAudits(
+            config={
+                "subdomain": "test-zendesk",
+                "access_token": "df",
+                "request_timeout": "0",
+            }
+        )
+
         async def run_test():
             async with aiohttp.ClientSession() as session:
                 try:
@@ -383,20 +390,27 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
                 except requests.exceptions.Timeout as e:
                     pass
 
-            # Verify the request retry 5 times on timeout 
+            # Verify the request retry 5 times on timeout
             self.assertEqual(mock_async_sleep.call_count, 4)
-        
+
         asyncio.run(run_test())
-        
-    @aioresponses()
-    @patch('asyncio.sleep', return_value=None)
-    def test_ticket_audits_timeout_error_with_zero_int_value(self, mock_get, mock_async_sleep, mock_sleep):
-        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int 0 value of `request_timeout` passed,
-        """
-        url = 'https://test-zendesk.zendesk.com/api/v2/tickets/1/audits.json?per_page=100'
-        for _ in range(5):
-            mock_get.get(url, exception=requests.exceptions.Timeout)
-        ticket_audits = streams.TicketAudits(config={'subdomain': 'test-zendesk', 'access_token': 'df', 'request_timeout': 0})
+
+    @patch("asyncio.sleep", return_value=None)
+    @patch("aiohttp.ClientSession.get")
+    def test_ticket_audits_timeout_error_with_zero_int_value(
+        self, mock_get, mock_async_sleep, mock_sleep
+    ):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int 0 value of `request_timeout` passed,"""
+        mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
+
+        ticket_audits = streams.TicketAudits(
+            config={
+                "subdomain": "test-zendesk",
+                "access_token": "df",
+                "request_timeout": 0,
+            }
+        )
+
         async def run_test():
             async with aiohttp.ClientSession() as session:
                 try:
@@ -404,20 +418,27 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
                 except requests.exceptions.Timeout as e:
                     pass
 
-            # Verify the request retry 5 times on timeout 
+            # Verify the request retry 5 times on timeout
             self.assertEqual(mock_async_sleep.call_count, 4)
-        
+
         asyncio.run(run_test())
-    
-    @aioresponses()
-    @patch('asyncio.sleep', return_value=None)
-    def test_ticket_audits_timeout_error_with_str_value(self, mock_get, mock_async_sleep, mock_sleep):
-        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string value of `request_timeout` passed,
-        """
-        url = 'https://test-zendesk.zendesk.com/api/v2/tickets/1/audits.json?per_page=100'
-        for _ in range(5):
-            mock_get.get(url, exception=requests.exceptions.Timeout)
-        ticket_audits = streams.TicketAudits(config={'subdomain': 'test-zendesk', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_STR})
+
+    @patch("asyncio.sleep", return_value=None)
+    @patch("aiohttp.ClientSession.get")
+    def test_ticket_audits_timeout_error_with_str_value(
+        self, mock_get, mock_async_sleep, mock_sleep
+    ):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string value of `request_timeout` passed,"""
+        mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
+
+        ticket_audits = streams.TicketAudits(
+            config={
+                "subdomain": "test-zendesk",
+                "access_token": "df",
+                "request_timeout": REQUEST_TIMEOUT_STR,
+            }
+        )
+
         async def run_test():
             async with aiohttp.ClientSession() as session:
                 try:
@@ -425,20 +446,27 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
                 except requests.exceptions.Timeout as e:
                     pass
 
-            # Verify the request retry 5 times on timeout 
+            # Verify the request retry 5 times on timeout
             self.assertEqual(mock_async_sleep.call_count, 4)
-        
+
         asyncio.run(run_test())
-        
-    @aioresponses()
-    @patch('asyncio.sleep', return_value=None)
-    def test_ticket_audits_timeout_error_with_int_value(self, mock_get, mock_async_sleep, mock_sleep):
-        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int value of `request_timeout` passed,
-        """
-        url = 'https://test-zendesk.zendesk.com/api/v2/tickets/1/audits.json?per_page=100'
-        for _ in range(5):
-            mock_get.get(url, exception=requests.exceptions.Timeout)
-        ticket_audits = streams.TicketAudits(config={'subdomain': 'test-zendesk', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT})
+
+    @patch("asyncio.sleep", return_value=None)
+    @patch("aiohttp.ClientSession.get")
+    def test_ticket_audits_timeout_error_with_int_value(
+        self, mock_get, mock_async_sleep, mock_sleep
+    ):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int value of `request_timeout` passed,"""
+        mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
+
+        ticket_audits = streams.TicketAudits(
+            config={
+                "subdomain": "test-zendesk",
+                "access_token": "df",
+                "request_timeout": REQUEST_TIMEOUT,
+            }
+        )
+
         async def run_test():
             async with aiohttp.ClientSession() as session:
                 try:
@@ -446,20 +474,27 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
                 except requests.exceptions.Timeout as e:
                     pass
 
-            # Verify the request retry 5 times on timeout 
+            # Verify the request retry 5 times on timeout
             self.assertEqual(mock_async_sleep.call_count, 4)
-        
+
         asyncio.run(run_test())
-        
-    @aioresponses()
-    @patch('asyncio.sleep', return_value=None)
-    def test_ticket_audits_timeout_error_with_float_value(self, mock_get, mock_async_sleep, mock_sleep):
-        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when float value of `request_timeout` passed,
-        """
-        url = 'https://test-zendesk.zendesk.com/api/v2/tickets/1/audits.json?per_page=100'
-        for _ in range(5):
-            mock_get.get(url, exception=requests.exceptions.Timeout)
-        ticket_audits = streams.TicketAudits(config={'subdomain': 'test-zendesk', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_FLOAT})
+
+    @patch("asyncio.sleep", return_value=None)
+    @patch("aiohttp.ClientSession.get")
+    def test_ticket_audits_timeout_error_with_float_value(
+        self, mock_get, mock_async_sleep, mock_sleep
+    ):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when float value of `request_timeout` passed,"""
+        mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
+
+        ticket_audits = streams.TicketAudits(
+            config={
+                "subdomain": "test-zendesk",
+                "access_token": "df",
+                "request_timeout": REQUEST_TIMEOUT_FLOAT,
+            }
+        )
+
         async def run_test():
             async with aiohttp.ClientSession() as session:
                 try:
@@ -467,20 +502,27 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
                 except requests.exceptions.Timeout as e:
                     pass
 
-            # Verify the request retry 5 times on timeout 
+            # Verify the request retry 5 times on timeout
             self.assertEqual(mock_async_sleep.call_count, 4)
-        
+
         asyncio.run(run_test())
-        
-    @aioresponses()
-    @patch('asyncio.sleep', return_value=None)
-    def test_ticket_audits_timeout_error_with_empty_value(self, mock_get, mock_async_sleep, mock_sleep):
-        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when empty value of `request_timeout` passed,
-        """
-        url = 'https://test-zendesk.zendesk.com/api/v2/tickets/1/audits.json?per_page=100'
-        for _ in range(5):
-            mock_get.get(url, exception=requests.exceptions.Timeout)
-        ticket_audits = streams.TicketAudits(config={'subdomain': 'test-zendesk', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_STR})
+
+    @patch("asyncio.sleep", return_value=None)
+    @patch("aiohttp.ClientSession.get")
+    def test_ticket_audits_timeout_error_with_empty_value(
+        self, mock_get, mock_async_sleep, mock_sleep
+    ):
+        """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when empty value of `request_timeout` passed,"""
+        mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
+
+        ticket_audits = streams.TicketAudits(
+            config={
+                "subdomain": "test-zendesk",
+                "access_token": "df",
+                "request_timeout": REQUEST_TIMEOUT_STR,
+            }
+        )
+
         async def run_test():
             async with aiohttp.ClientSession() as session:
                 try:
@@ -488,7 +530,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
                 except requests.exceptions.Timeout as e:
                     pass
 
-            # Verify the request retry 5 times on timeout 
+            # Verify the request retry 5 times on timeout
             self.assertEqual(mock_async_sleep.call_count, 4)
-        
+
         asyncio.run(run_test())
