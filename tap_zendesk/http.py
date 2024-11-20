@@ -219,7 +219,7 @@ async def raise_for_error_for_async(response):
     """
     try:
         response_json = await response.json()
-    except (ContentTypeError, ValueError) as e:
+    except (ContentTypeError, ValueError):
         # Invalid JSON response
         response_json = {}
 
