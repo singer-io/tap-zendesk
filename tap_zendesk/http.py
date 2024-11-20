@@ -9,7 +9,7 @@ from urllib3.exceptions import ProtocolError
 
 
 LOGGER = singer.get_logger()
-# Default wait time for backoff
+# Default wait time for 429 and 5xx error
 DEFAULT_WAIT = 60
 # Default wait time for backoff for conflict error
 DEFAULT_WAIT_FOR_CONFLICT_ERROR = 10
@@ -35,7 +35,7 @@ class ZendeskForbiddenError(ZendeskError):
 class ZendeskNotFoundError(ZendeskError):
     pass
 
-class ZendeskConflictError(ZendeskError):
+class ZendeskConflictError(ZendeskBackoffError):
     pass
 
 class ZendeskUnprocessableEntityError(ZendeskError):
@@ -217,18 +217,18 @@ async def raise_for_error_for_async(response):
     """
     Error handling method which throws custom error. Class for each error defined above which extends `ZendeskError`.
     """
-    response_json = {}
     try:
         response_json = await response.json()
     except (ContentTypeError, ValueError) as e:
-        LOGGER.warning("Error decoding response from API. Exception: %s", e, exc_info=True)
+        # Invalid JSON response
+        response_json = {}
 
     if response.status == 200:
         return response_json
-    elif response.status == 429:
+    elif response.status == 429 or response.status >= 500:
         # Get the 'Retry-After' header value, defaulting to 60 seconds if not present.
-        retry_after = response.headers.get("Retry-After", 1)
-        LOGGER.warning("Caught HTTP 429, retrying request in %s seconds", retry_after)
+        retry_after = int(response.headers.get("Retry-After", "0")) or DEFAULT_WAIT
+        LOGGER.warning("Caught HTTP %s, retrying request in %s seconds", response.status, retry_after)
         # Wait for the specified time before retrying the request.
         await async_sleep(int(retry_after))
     elif response.status == 409:
@@ -254,8 +254,10 @@ async def raise_for_error_for_async(response):
                 ),
             ),
         )
+
+    DEFAULT_ERROR_OBJECT = ZendeskError if response.status < 500 else ZendeskBackoffError
     exc = ERROR_CODE_EXCEPTION_MAPPING.get(response.status, {}).get(
-        "raise_exception", ZendeskError
+        "raise_exception", DEFAULT_ERROR_OBJECT
     )
     LOGGER.error(message)
     raise exc(message, response) from None
@@ -263,7 +265,7 @@ async def raise_for_error_for_async(response):
 
 @backoff.on_exception(
     backoff.constant,
-    (ZendeskRateLimitError, ZendeskConflictError),
+    ZendeskBackoffError,
     max_tries=5,
     interval=0
 )

@@ -18,7 +18,7 @@ KEY_PROPERTIES = ['id']
 
 DEFAULT_PAGE_SIZE = 100
 REQUEST_TIMEOUT = 300
-DEFAULT_BATCH_SIZE = 700
+DEFAULT_BATCH_SIZE = 20
 START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 HEADERS = {
     'Content-Type': 'application/json',
@@ -276,9 +276,6 @@ class Tickets(CursorBasedExportStream):
         # https://developer.zendesk.com/documentation/ticketing/using-the-zendesk-api/side_loading/#supported-endpoints
         tickets = self.get_objects(bookmark, side_load='metric_sets')
 
-        # Run this method to set batch size to fetch ticket audits and comments records in async way
-        self.check_access()
-
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
         comments_stream = TicketComments(self.client, self.config)
@@ -358,10 +355,6 @@ class Tickets(CursorBasedExportStream):
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
         response = http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=HEADERS)
-
-        # Rate limit are varies according to the zendesk account. So, we need to set the batch size dynamically.
-        # https://developer.zendesk.com/api-reference/introduction/rate-limits/
-        self.batch_size = int(response.headers.get('x-rate-limit', DEFAULT_BATCH_SIZE))
 
 
 class TicketAudits(Stream):
