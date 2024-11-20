@@ -18,7 +18,7 @@ KEY_PROPERTIES = ['id']
 
 DEFAULT_PAGE_SIZE = 100
 REQUEST_TIMEOUT = 300
-DEFAULT_BATCH_SIZE = 20
+CONCURRENCY_LIMIT = 20
 START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 HEADERS = {
     'Content-Type': 'application/json',
@@ -266,7 +266,7 @@ class Tickets(CursorBasedExportStream):
     replication_key = "generated_timestamp"
     item_key = "tickets"
     endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
-    batch_size = DEFAULT_BATCH_SIZE
+    concurrency_limit = CONCURRENCY_LIMIT
 
     def sync(self, state): #pylint: disable=too-many-statements
 
@@ -311,7 +311,7 @@ class Tickets(CursorBasedExportStream):
 
             # Check if the number of ticket IDs has reached the batch size.
             ticket_ids.append(ticket["id"])
-            if len(ticket_ids) >= self.batch_size:
+            if len(ticket_ids) >= self.concurrency_limit:
                 # Process audits and comments in batches
                 records = self.sync_ticket_audits_and_comments(
                     comments_stream, audits_stream, ticket_ids)
