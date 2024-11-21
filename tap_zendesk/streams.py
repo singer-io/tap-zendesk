@@ -2,6 +2,7 @@ import os
 import json
 import datetime
 import asyncio
+import time
 import pytz
 from zenpy.lib.exception import APIException
 from aiohttp import ClientSession
@@ -19,6 +20,8 @@ KEY_PROPERTIES = ['id']
 DEFAULT_PAGE_SIZE = 100
 REQUEST_TIMEOUT = 300
 CONCURRENCY_LIMIT = 20
+# Reference: https://developer.zendesk.com/api-reference/introduction/rate-limits/#endpoint-rate-limits:~:text=List%20Audits%20for,requests%20per%20minute
+AUDITS_REQUEST_PER_MINUTE=500
 START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 HEADERS = {
     'Content-Type': 'application/json',
@@ -266,7 +269,6 @@ class Tickets(CursorBasedExportStream):
     replication_key = "generated_timestamp"
     item_key = "tickets"
     endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
-    concurrency_limit = CONCURRENCY_LIMIT
 
     def sync(self, state): #pylint: disable=too-many-statements
 
@@ -292,6 +294,8 @@ class Tickets(CursorBasedExportStream):
             LOGGER.info("Syncing ticket_audits per ticket...")
 
         ticket_ids = []
+        counter = 0
+        start_time = time.time()
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
 
@@ -311,7 +315,7 @@ class Tickets(CursorBasedExportStream):
 
             # Check if the number of ticket IDs has reached the batch size.
             ticket_ids.append(ticket["id"])
-            if len(ticket_ids) >= self.concurrency_limit:
+            if len(ticket_ids) >= CONCURRENCY_LIMIT:
                 # Process audits and comments in batches
                 records = self.sync_ticket_audits_and_comments(
                     comments_stream, audits_stream, ticket_ids)
@@ -324,6 +328,15 @@ class Tickets(CursorBasedExportStream):
                 ticket_ids = []
                 # Write state after processing the batch.
                 singer.write_state(state)
+                counter+=CONCURRENCY_LIMIT
+
+                # Check if the number of records processed in a minute has reached the limit.
+                if counter >= AUDITS_REQUEST_PER_MINUTE-CONCURRENCY_LIMIT:
+                    # Processed max number of records in a minute. Sleep for few seconds.
+                    # Add 2 seconds of buffer time
+                    time.sleep(max(0, 60 - (time.time() - start_time)+2))
+                    start_time = time.time()
+                    counter = 0
 
         # Check if there are any remaining ticket IDs after the loop.
         if ticket_ids:
