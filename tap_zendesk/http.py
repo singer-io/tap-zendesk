@@ -259,7 +259,6 @@ async def raise_for_error_for_async(response):
     exc = ERROR_CODE_EXCEPTION_MAPPING.get(response.status, {}).get(
         "raise_exception", DEFAULT_ERROR_OBJECT
     )
-    LOGGER.error(message)
     raise exc(message, response) from None
 
 
