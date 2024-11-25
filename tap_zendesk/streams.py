@@ -307,15 +307,14 @@ class Tickets(CursorBasedExportStream):
             # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
             yield (self.stream, ticket)
 
+            # Skip deleted tickets because they don't have audits or comments
+            if ticket.get('status') == 'deleted':
+                continue
 
             if metrics_stream.is_selected() and ticket.get('metric_set'):
                 zendesk_metrics.capture('ticket_metric')
                 metrics_stream.count+=1
                 yield (metrics_stream.stream, ticket["metric_set"])
-
-            # Skip deleted tickets because they don't have audits or comments
-            if ticket.get('status') == 'deleted':
-                continue
 
             # Check if the number of ticket IDs has reached the batch size.
             ticket_ids.append(ticket["id"])
