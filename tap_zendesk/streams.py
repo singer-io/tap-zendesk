@@ -21,7 +21,7 @@ DEFAULT_PAGE_SIZE = 100
 REQUEST_TIMEOUT = 300
 CONCURRENCY_LIMIT = 20
 # Reference: https://developer.zendesk.com/api-reference/introduction/rate-limits/#endpoint-rate-limits:~:text=List%20Audits%20for,requests%20per%20minute
-AUDITS_REQUEST_PER_MINUTE=450
+AUDITS_REQUEST_PER_MINUTE = 450
 START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 HEADERS = {
     'Content-Type': 'application/json',
@@ -331,13 +331,18 @@ class Tickets(CursorBasedExportStream):
                 ticket_ids = []
                 # Write state after processing the batch.
                 singer.write_state(state)
-                counter+=CONCURRENCY_LIMIT
+                counter += CONCURRENCY_LIMIT
 
                 # Check if the number of records processed in a minute has reached the limit.
                 if counter >= AUDITS_REQUEST_PER_MINUTE:
-                    # Processed max number of records in a minute. Sleep for few seconds.
-                    # Add 2 seconds of buffer time
-                    time.sleep(max(0, 60 - (time.time() - start_time)+2))
+                    # Calculate elapsed time
+                    elapsed_time = time.time() - start_time
+                    
+                    # Calculate remaining time until the next minute, plus buffer of 2 more seconds
+                    remaining_time = max(0, 60 - elapsed_time + 2)
+                    
+                    # Sleep for the calculated time
+                    time.sleep(remaining_time)
                     start_time = time.time()
                     counter = 0
 
