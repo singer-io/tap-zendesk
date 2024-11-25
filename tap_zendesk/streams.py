@@ -313,6 +313,10 @@ class Tickets(CursorBasedExportStream):
                 metrics_stream.count+=1
                 yield (metrics_stream.stream, ticket["metric_set"])
 
+            # Skip deleted tickets because they don't have audits or comments
+            if ticket.get('status') == 'deleted':
+                continue
+
             # Check if the number of ticket IDs has reached the batch size.
             ticket_ids.append(ticket["id"])
             if len(ticket_ids) >= CONCURRENCY_LIMIT:
@@ -334,7 +338,7 @@ class Tickets(CursorBasedExportStream):
                 if counter >= AUDITS_REQUEST_PER_MINUTE:
                     # Processed max number of records in a minute. Sleep for few seconds.
                     # Add 2 seconds of buffer time
-                    time.sleep(max(0, 60 - (time.time() - start_time)+5))
+                    time.sleep(max(0, 60 - (time.time() - start_time)+2))
                     start_time = time.time()
                     counter = 0
 
