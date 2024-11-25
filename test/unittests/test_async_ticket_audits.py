@@ -195,6 +195,57 @@ class TestASyncTicketAudits(unittest.TestCase):
     @patch("tap_zendesk.streams.singer.write_state")
     @patch("tap_zendesk.streams.zendesk_metrics.capture")
     @patch("tap_zendesk.streams.LOGGER.info")
+    def test_sync_for_deleted_tickets(
+        self,
+        mock_info,
+        mock_capture,
+        mock_write_state,
+        mock_check_access,
+        mock_get_objects,
+        mock_get_bookmark,
+        mock_update_bookmark,
+        mock_sleep
+    ):
+        """
+        Test that sync does not extract records for audits and comments when both of them are not selected.
+        """
+        # Mock the necessary data
+        state = {}
+        bookmark = "2023-01-01T00:00:00Z"
+        tickets = [
+            {"id": 1, "generated_timestamp": 1672531200, "fields": "duplicate", "status": "deleted"},
+            {"id": 2, "generated_timestamp": 1672531300, "fields": "duplicate"},
+            {"id": 3, "generated_timestamp": 1672531200, "fields": "duplicate", "status": "deleted"},
+            {"id": 4, "generated_timestamp": 1672531300, "fields": "duplicate"}
+        ]
+        mock_get_bookmark.return_value = bookmark
+        mock_get_objects.return_value = tickets
+        streams.AUDITS_REQUEST_PER_MINUTE = 4
+        streams.CONCURRENCY_LIMIT = 2
+
+        # Create an instance of the Tickets class
+        instance = streams.Tickets(None, {})
+        instance.sync_ticket_audits_and_comments = MagicMock(return_value=[
+            (['audit1', 'audit2'], ['comment1', 'comment2']),
+            (['audit3'], ['comment3']),
+        ])
+
+        # Run the sync method
+        result = list(instance.sync(state))
+
+        # Assertions
+        self.assertEqual(mock_write_state.call_count, 2)
+        # 4 tickets, 3 audits, 3 comments
+        self.assertEqual(len(result), 10)
+
+    @patch('tap_zendesk.streams.time.sleep')
+    @patch("tap_zendesk.streams.Tickets.update_bookmark")
+    @patch("tap_zendesk.streams.Tickets.get_bookmark")
+    @patch("tap_zendesk.streams.Tickets.get_objects")
+    @patch("tap_zendesk.streams.Tickets.check_access")
+    @patch("tap_zendesk.streams.singer.write_state")
+    @patch("tap_zendesk.streams.zendesk_metrics.capture")
+    @patch("tap_zendesk.streams.LOGGER.info")
     def test_concurrency_for_audit_stream(
         self,
         mock_info,
