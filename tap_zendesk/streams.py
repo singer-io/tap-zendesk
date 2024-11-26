@@ -337,10 +337,10 @@ class Tickets(CursorBasedExportStream):
                 if counter >= AUDITS_REQUEST_PER_MINUTE:
                     # Calculate elapsed time
                     elapsed_time = time.time() - start_time
-                    
+
                     # Calculate remaining time until the next minute, plus buffer of 2 more seconds
                     remaining_time = max(0, 60 - elapsed_time + 2)
-                    
+
                     # Sleep for the calculated time
                     time.sleep(remaining_time)
                     start_time = time.time()
