@@ -552,14 +552,14 @@ class TestAPIAsync(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @patch("asyncio.sleep", return_value=None)
+    @patch("tap_zendesk.http.async_sleep")
     @patch("aiohttp.ClientSession.get")
     def test_call_api_async_rate_limit(self, mocked, mock_sleep):
         """
-        Test that call_api_async retries the request when the response status is 429 (Too Many Requests).
+        Test that call_api_async retries the request when the response status is 429 (Too Many Requests) and Retry-After header is present with value 10.
         """
         url = "https://api.example.com/resource"
-        retry_after = "1"
+        retry_after = "10"
         response_data = {"key": "value"}
         mock_error_response = AsyncMock()
         mock_error_response.status = 429
@@ -579,11 +579,73 @@ class TestAPIAsync(unittest.TestCase):
             async with ClientSession() as session:
                 result = await http.call_api_async(session, url, 10, {}, {})
                 self.assertEqual(result, response_data)
+
+        asyncio.run(run_test())
+        mock_sleep.assert_called_with(10)
+
+    @patch("tap_zendesk.http.async_sleep")
+    @patch("aiohttp.ClientSession.get")
+    def test_call_api_async_rate_limit_zero_retry_after(self, mocked, mock_sleep):
+        """
+        Test that call_api_async retries the request when the response status is 429 (Too Many Requests) and Retry-After header is present with value 0
+        """
+        url = "https://api.example.com/resource"
+        retry_after = "0"
+        response_data = {"key": "value"}
+        mock_error_response = AsyncMock()
+        mock_error_response.status = 429
+        mock_error_response.headers = {"Retry-After": retry_after}
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json.return_value = response_data
+        mocked.return_value.__aenter__.side_effect = [
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_response,
+        ]
+
+        async def run_test():
+            async with ClientSession() as session:
+                result = await http.call_api_async(session, url, 10, {}, {})
+                self.assertEqual(result, response_data)
+
+        asyncio.run(run_test())
+        mock_sleep.assert_called_with(60)
+
+    @patch("tap_zendesk.http.async_sleep")
+    @patch("aiohttp.ClientSession.get")
+    def test_call_api_async_rate_limit_retry_after_missing_header(self, mocked, mock_sleep):
+        """
+        Test that call_api_async retries the request when the response status is 429 (Too Many Requests) and Retry-After header is missing.
+        """
+        url = "https://api.example.com/resource"
+        response_data = {"key": "value"}
+        mock_error_response = AsyncMock()
+        mock_error_response.status = 429
+        mock_error_response.headers = {}
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json.return_value = response_data
+        mocked.return_value.__aenter__.side_effect = [
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_response,
+        ]
+
+        async def run_test():
+            async with ClientSession() as session:
+                result = await http.call_api_async(session, url, 10, {}, {})
+                self.assertEqual(result, response_data)
                 self.assertEqual(mock_sleep.call_count, 4)
 
         asyncio.run(run_test())
+        mock_sleep.assert_called_with(60)
 
-    @patch("asyncio.sleep", return_value=None)
+    @patch("tap_zendesk.http.async_sleep")
     @patch("aiohttp.ClientSession.get")
     def test_call_api_async_rate_limit_exception_after_5_retries(
         self, mocked, mock_sleep
@@ -593,14 +655,10 @@ class TestAPIAsync(unittest.TestCase):
         """
         url = "https://api.example.com/resource"
         retry_after = "1"
-        response_data = {"key": "value"}
         mock_error_response = AsyncMock()
         mock_error_response.status = 429
         mock_error_response.headers = {"Retry-After": retry_after}
         mock_error_response.json.return_value = {}
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json.return_value = response_data
         mocked.return_value.__aenter__.side_effect = [
             mock_error_response,
             mock_error_response,
@@ -609,11 +667,12 @@ class TestAPIAsync(unittest.TestCase):
             mock_error_response,
         ]
 
+
         async def run_test():
             async with ClientSession() as session:
-                with self.assertRaises(http.ZendeskError) as context:
+                with self.assertRaises(http.ZendeskRateLimitError) as context:
                     await http.call_api_async(session, url, 10, {}, {})
-                self.assertEqual(mock_sleep.call_count, 4)
+                self.assertEqual(mock_sleep.call_count, 5)
                 self.assertEqual(
                     "HTTP-error-code: 429, Error: The API rate limit for your organisation/application pairing has been exceeded.",
                     str(context.exception),
@@ -621,7 +680,7 @@ class TestAPIAsync(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @patch("asyncio.sleep", return_value=None)
+    @patch("tap_zendesk.http.async_sleep")
     @patch("aiohttp.ClientSession.get")
     def test_call_api_async_conflict(self, mocked, mock_sleep):
         """
@@ -651,25 +710,147 @@ class TestAPIAsync(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @patch("asyncio.sleep", return_value=None)
+    @patch("tap_zendesk.http.async_sleep")
     @patch("aiohttp.ClientSession.get")
-    def test_call_api_async_other_error(self, mocked, mock_sleep):
+    def test_call_api_async_conflict_after_5_retries(self, mocked, mock_sleep):
         """
-        Test that call_api_async raises an exception for other HTTP errors (e.g., 500).
+        Test that call_api_async retries the request when the response status is 409 (Conflict) with backoff.
         """
         url = "https://api.example.com/resource"
-        error_message = "Some error"
-        response_data = {"error": error_message}
-        mock_response = AsyncMock()
-        mock_response.status = 500
-        mock_response.json.return_value = response_data
-        mocked.return_value.__aenter__.return_value = mock_response
+        response_data = {"key": "value"}
+        mock_error_response = AsyncMock()
+        mock_error_response.status = 409
+        mock_error_response.json.return_value = {}
+        mocked.return_value.__aenter__.side_effect = [
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+        ]
 
         async def run_test():
             async with ClientSession() as session:
-                with self.assertRaises(http.ZendeskError) as context:
+                with self.assertRaises(http.ZendeskConflictError) as context:
                     await http.call_api_async(session, url, 10, {}, {})
-                self.assertIn(error_message, str(context.exception))
+                self.assertEqual(mock_sleep.call_count, 5)
+                self.assertEqual(
+                    "HTTP-error-code: 409, Error: The API request cannot be completed because the requested operation would conflict with an existing item.",
+                    str(context.exception),
+                )
+
+        asyncio.run(run_test())
+
+    @patch("tap_zendesk.http.async_sleep")
+    @patch("aiohttp.ClientSession.get")
+    def test_call_api_async_500_error_backoff(self, mocked, mock_sleep):
+        """
+        Test that call_api_async raises an exception for 500 (Internal Server Error) after 5 retries.
+        """
+        url = "https://api.example.com/resource"
+        error_message = "Internal Server Error"
+        response_data = {"error": error_message}
+        mock_error_response = AsyncMock()
+        mock_error_response.status = 500
+        mock_error_response.headers = {}
+        mock_error_response.json.return_value = response_data
+        mocked.return_value.__aenter__.side_effect = [
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+        ]
+
+        async def run_test():
+            async with ClientSession() as session:
+                with self.assertRaises(http.ZendeskInternalServerError) as context:
+                    await http.call_api_async(session, url, 10, {}, {})
+                self.assertEqual('HTTP-error-code: 500, Error: Internal Server Error', str(context.exception))
+                self.assertEqual(mock_sleep.call_count, 5)
+
+        asyncio.run(run_test())
+
+    @patch("tap_zendesk.http.async_sleep")
+    @patch("aiohttp.ClientSession.get")
+    def test_call_api_async_502_error_backoff(self, mocked, mock_sleep):
+        """
+        Test that call_api_async raises an exception for 502 (Bad Gateway Error) after 5 retries.
+        """
+        url = "https://api.example.com/resource"
+        error_message = "Bad Gateway Error"
+        response_data = {"error": error_message}
+        mock_error_response = AsyncMock()
+        mock_error_response.status = 502
+        mock_error_response.headers = {}
+        mock_error_response.json.return_value = response_data
+        mocked.return_value.__aenter__.side_effect = [
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+        ]
+
+        async def run_test():
+            async with ClientSession() as session:
+                with self.assertRaises(http.ZendeskBadGatewayError) as context:
+                    await http.call_api_async(session, url, 10, {}, {})
+                self.assertEqual('HTTP-error-code: 502, Error: Bad Gateway Error', str(context.exception))
+                self.assertEqual(mock_sleep.call_count, 5)
+
+        asyncio.run(run_test())
+
+    @patch("tap_zendesk.http.async_sleep")
+    @patch("aiohttp.ClientSession.get")
+    def test_call_api_async_524_error_backoff(self, mocked, mock_sleep):
+        """
+        Test that call_api_async raises an exception for 524 (Unknown Error) after 5 retries.
+        """
+        url = "https://api.example.com/resource"
+        error_message = "Unknown Error"
+        response_data = {"error": error_message}
+        mock_error_response = AsyncMock()
+        mock_error_response.status = 524
+        mock_error_response.headers = {}
+        mock_error_response.json.return_value = response_data
+        mocked.return_value.__aenter__.side_effect = [
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+            mock_error_response,
+        ]
+
+        async def run_test():
+            async with ClientSession() as session:
+                with self.assertRaises(http.ZendeskBackoffError) as context:
+                    await http.call_api_async(session, url, 10, {}, {})
+                self.assertEqual('HTTP-error-code: 524, Error: Unknown Error', str(context.exception))
+                self.assertEqual(mock_sleep.call_count, 5)
+
+        asyncio.run(run_test())
+
+    @patch("tap_zendesk.http.async_sleep")
+    @patch("aiohttp.ClientSession.get")
+    def test_call_api_async_400(self, mocked, mock_sleep):
+        """
+        Test that call_api_async raises an exception for 401 (Bad Request) responses without retrying.
+        """
+        url = "https://api.example.com/resource"
+        error_message = "Bad Request"
+        response_data = {"error": error_message}
+        mock_error_response = AsyncMock()
+        mock_error_response.status = 400
+        mock_error_response.headers = {}
+        mock_error_response.json.return_value = response_data
+        mocked.return_value.__aenter__.return_value = mock_error_response
+
+        async def run_test():
+            async with ClientSession() as session:
+                with self.assertRaises(http.ZendeskBadRequestError) as context:
+                    await http.call_api_async(session, url, 10, {}, {})
+                self.assertEqual('HTTP-error-code: 400, Error: Bad Request', str(context.exception))
                 self.assertEqual(mock_sleep.call_count, 0)
 
         asyncio.run(run_test())

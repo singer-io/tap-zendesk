@@ -2,6 +2,7 @@ import os
 import json
 import datetime
 import asyncio
+import time
 import pytz
 from zenpy.lib.exception import APIException
 from aiohttp import ClientSession
@@ -18,7 +19,9 @@ KEY_PROPERTIES = ['id']
 
 DEFAULT_PAGE_SIZE = 100
 REQUEST_TIMEOUT = 300
-DEFAULT_BATCH_SIZE = 700
+CONCURRENCY_LIMIT = 20
+# Reference: https://developer.zendesk.com/api-reference/introduction/rate-limits/#endpoint-rate-limits:~:text=List%20Audits%20for,requests%20per%20minute
+AUDITS_REQUEST_PER_MINUTE = 450
 START_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 HEADERS = {
     'Content-Type': 'application/json',
@@ -266,7 +269,6 @@ class Tickets(CursorBasedExportStream):
     replication_key = "generated_timestamp"
     item_key = "tickets"
     endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
-    batch_size = DEFAULT_BATCH_SIZE
 
     def sync(self, state): #pylint: disable=too-many-statements
 
@@ -275,9 +277,6 @@ class Tickets(CursorBasedExportStream):
         # Fetch tickets with side loaded metrics
         # https://developer.zendesk.com/documentation/ticketing/using-the-zendesk-api/side_loading/#supported-endpoints
         tickets = self.get_objects(bookmark, side_load='metric_sets')
-
-        # Run this method to set batch size to fetch ticket audits and comments records in async way
-        self.check_access()
 
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
@@ -295,6 +294,8 @@ class Tickets(CursorBasedExportStream):
             LOGGER.info("Syncing ticket_audits per ticket...")
 
         ticket_ids = []
+        counter = 0
+        start_time = time.time()
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
 
@@ -306,6 +307,9 @@ class Tickets(CursorBasedExportStream):
             # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
             yield (self.stream, ticket)
 
+            # Skip deleted tickets because they don't have audits or comments
+            if ticket.get('status') == 'deleted':
+                continue
 
             if metrics_stream.is_selected() and ticket.get('metric_set'):
                 zendesk_metrics.capture('ticket_metric')
@@ -314,7 +318,7 @@ class Tickets(CursorBasedExportStream):
 
             # Check if the number of ticket IDs has reached the batch size.
             ticket_ids.append(ticket["id"])
-            if len(ticket_ids) >= self.batch_size:
+            if len(ticket_ids) >= CONCURRENCY_LIMIT:
                 # Process audits and comments in batches
                 records = self.sync_ticket_audits_and_comments(
                     comments_stream, audits_stream, ticket_ids)
@@ -327,6 +331,20 @@ class Tickets(CursorBasedExportStream):
                 ticket_ids = []
                 # Write state after processing the batch.
                 singer.write_state(state)
+                counter += CONCURRENCY_LIMIT
+
+                # Check if the number of records processed in a minute has reached the limit.
+                if counter >= AUDITS_REQUEST_PER_MINUTE:
+                    # Calculate elapsed time
+                    elapsed_time = time.time() - start_time
+
+                    # Calculate remaining time until the next minute, plus buffer of 2 more seconds
+                    remaining_time = max(0, 60 - elapsed_time + 2)
+
+                    # Sleep for the calculated time
+                    time.sleep(remaining_time)
+                    start_time = time.time()
+                    counter = 0
 
         # Check if there are any remaining ticket IDs after the loop.
         if ticket_ids:
@@ -357,11 +375,7 @@ class Tickets(CursorBasedExportStream):
         start_time = datetime.datetime.strptime(self.config['start_date'], START_DATE_FORMAT).timestamp()
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
-        response = http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=HEADERS)
-
-        # Rate limit are varies according to the zendesk account. So, we need to set the batch size dynamically.
-        # https://developer.zendesk.com/api-reference/introduction/rate-limits/
-        self.batch_size = int(response.headers.get('x-rate-limit', DEFAULT_BATCH_SIZE))
+        http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=HEADERS)
 
 
 class TicketAudits(Stream):
