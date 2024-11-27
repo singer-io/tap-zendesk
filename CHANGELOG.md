@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.1
+  * Retry for 5xx errors and resolve too many 429 errors [#155](https://github.com/singer-io/tap-zendesk/pull/155)
+
 ## 2.6.0
   * Performance improvement on ticket records sync [#153](https://github.com/singer-io/tap-zendesk/pull/153)
 
