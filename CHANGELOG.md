@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2.6.2
-  * Upgrade aiohttp and requests lib versions to 3.11.9 and 2.32.3 respectively. [#155](https://github.com/singer-io/tap-zendesk/pull/157)
+  * Upgrade aiohttp and requests lib versions to 3.11.9 and 2.32.3 respectively. [#157](https://github.com/singer-io/tap-zendesk/pull/157)
 
 ## 2.6.1
   * Retry for 5xx errors and resolve too many 429 errors [#155](https://github.com/singer-io/tap-zendesk/pull/155)
