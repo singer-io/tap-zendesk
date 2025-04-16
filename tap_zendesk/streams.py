@@ -560,20 +560,13 @@ class Macros(CursorBasedStream):
     name = "macros"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
-    endpoint = 'https://{}.zendesk.com/api/v2/macros/search.json'
+    endpoint = 'https://{}.zendesk.com/api/v2/macros'
     item_key = 'macros'
-
-    def get_objects(self, **kwargs):
-        url = self.endpoint.format(self.config['subdomain'])
-        # Pass `request_timeout` parameter
-        for page in http.get_offset_based(url, self.config['access_token'], self.request_timeout, self.page_size, **kwargs):
-            yield from page[self.item_key]
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
-        params = {'query': 'updated_at>{}'.format(utils.strftime(bookmark, "%Y-%m-%dT%H:%M:%SZ"))}
-        macros = self.get_objects(params=params)
 
+        macros = self.get_objects()
         for macro in macros:
             if utils.strptime_with_tz(macro['updated_at']) >= bookmark:
                 # NB: We don't trust that the records come back ordered by
@@ -581,15 +574,6 @@ class Macros(CursorBasedStream):
                 # so we can't save state until we've seen all records
                 self.update_bookmark(state, macro['updated_at'])
                 yield (self.stream, macro)
-
-    def check_access(self):
-        '''
-        Check whether the permission was given to access stream resources or not.
-        '''
-        url = self.endpoint.format(self.config['subdomain'])
-        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
-
-        http.call_api(url, self.request_timeout, params={'per_page': 1, 'query': 'updated_at>=2021-10-12T04:03:53Z'}, headers=HEADERS)
 
 class Tags(CursorBasedStream):
     name = "tags"
