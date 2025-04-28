@@ -15,6 +15,31 @@ def process_record(record):
     rec_dict = json.loads(rec_str)
     return rec_dict
 
+def get_user_fields(instance):
+    user_fields_api_object = instance.client.user_fields
+    api_response = user_fields_api_object._call_api(
+        # We need this session.get object because it will get
+        # converted to 'GET' by `_call_api`
+        user_fields_api_object.session.get,
+
+        # `_build_url()` is how zenpy constructs the url for other
+        # streams so we follow that pattern here
+        user_fields_api_object._build_url(
+            endpoint=user_fields_api_object.endpoint()
+        )
+    )
+
+    api_response.raise_for_status()
+
+    return api_response.json()
+
+def merge_user_fields_into_users(rec, user_fields):
+    for key, field_metadata in user_fields.items():
+        rec_value = rec['user_fields'].get(key)
+        rec['user_fields'][key] = field_metadata
+        rec['user_fields'][key]['value'] = rec_value
+    return rec
+
 def sync_stream(state, start_date, instance):
     stream = instance.stream
 
@@ -28,6 +53,18 @@ def sync_stream(state, start_date, instance):
 
     parent_stream = stream
     with metrics.record_counter(stream.tap_stream_id) as counter, Transformer() as transformer:
+
+        if stream.tap_stream_id == 'users':
+            user_fields = {}
+            resp = get_user_fields(instance)
+            for field in resp['user_fields']:
+                user_fields[field['key']] = field
+
+            while resp.get('next'):
+                resp = get_user_fields(instance)
+                for field in resp['user_fields']:
+                    user_fields[field['key']] = field
+
         for (stream, record) in instance.sync(state):
             # NB: Only count parent records in the case of sub-streams
             if stream.tap_stream_id == parent_stream.tap_stream_id:
@@ -36,6 +73,9 @@ def sync_stream(state, start_date, instance):
             rec = process_record(record)
             # SCHEMA_GEN: Comment out transform
             rec = transformer.transform(rec, stream.schema.to_dict(), metadata.to_map(stream.metadata))
+
+            if stream.tap_stream_id == 'users':
+                rec = merge_user_fields_into_users(rec, user_fields)
 
             singer.write_record(stream.tap_stream_id, rec)
             # NB: We will only write state at the end of a stream's sync:
