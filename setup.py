@@ -10,10 +10,10 @@ setup(name='tap-zendesk',
       classifiers=['Programming Language :: Python :: 3 :: Only'],
       py_modules=['tap_zendesk'],
       install_requires=[
-          'singer-python==6.0.0',
+          'singer-python==6.0.1',
           'zenpy==2.0.24',
           'backoff==2.2.1',
-          'requests==2.32.3',
+          'requests==2.32.4',
           'aiohttp==3.11.11'
       ],
       extras_require={
