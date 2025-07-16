@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.4
+  * Bump dependency versions for twistlock compliance [#159](https://github.com/singer-io/tap-zendesk/pull/159)
+
 ## 2.6.3
   * Replace [#search](https://developer.zendesk.com/api-reference/ticketing/ticket-management/search/?_gl=1*1kjhwjj*_ga*NjA2MTA1ODg0LjE3NDQ3MTg3NDI.*_ga_0G6FC9CS2V*MTc0NDcxODg3OS4xLjEuMTc0NDcyMDM2Mi41Ni4wLjA.#export-search-results) endpoint for macros stream with [#list-macros](https://developer.zendesk.com/api-reference/ticketing/business-rules/macros/#list-macros) endpoint. [#158](https://github.com/singer-io/tap-zendesk/pull/158)
 
