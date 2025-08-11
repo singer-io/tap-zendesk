@@ -865,9 +865,20 @@ class TestAPIAsync(unittest.TestCase):
         page_size = 2
         first_page = {
             "audits": [{"id": 1}, {"id": 2}],
-            "next_page": "https://api.example.com/resource?per_page=2",
+            "meta": {
+                "has_more": True,
+                "after_cursor": "page_cursor_after==",
+                "before_cursor": "page_cursor_before=="
+            },
         }
-        second_page = {"audits": [{"id": 3}, {"id": 4}], "next_page": None}
+        second_page = {
+            "audits": [{"id": 3}, {"id": 4}],
+            "meta": {
+                "has_more": False,
+                "after_cursor": "page_cursor_after==",
+                "before_cursor": "page_cursor_before=="
+            }
+        }
         expected_result = {
             "audits": [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 4}],
             "next_page": "https://api.example.com/resource?per_page=2",
