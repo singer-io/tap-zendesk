@@ -870,6 +870,10 @@ class TestAPIAsync(unittest.TestCase):
                 "after_cursor": "page_cursor_after==",
                 "before_cursor": "page_cursor_before=="
             },
+            "links":{
+                "prev":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[before]=page_cursor_before==&page[size]=100",
+                "next":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[after]=page_cursor_before==&page[size]=100"
+            }
         }
         second_page = {
             "audits": [{"id": 3}, {"id": 4}],
@@ -877,6 +881,10 @@ class TestAPIAsync(unittest.TestCase):
                 "has_more": False,
                 "after_cursor": "page_cursor_after==",
                 "before_cursor": "page_cursor_before=="
+            },
+            "links":{
+                "prev":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[before]=page_cursor_before==&page[size]=100",
+                "next":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[after]=page_cursor_before==&page[size]=100"
             }
         }
         expected_result = {
