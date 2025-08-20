@@ -304,28 +304,23 @@ async def paginate_ticket_audits(session, url, access_token, request_timeout, pa
     }
 
     params = {
-        'per_page': page_size,
+        'page[size]': page_size,
         **kwargs.get('params', {})
     }
 
     # Make the initial asynchronous API call
     final_response = await call_api_async(session, url, request_timeout, params=params, headers=headers)
 
-    next_url = final_response.get('next_page')
+    has_more = final_response['meta']['has_more']
+    next_url = final_response['links']['next']
 
-    # Fetch next pages of results.
-    while next_url:
+    while has_more:
 
-        # An asynchronous API call to fetch the next page of results.
         response = await call_api_async(session, next_url, request_timeout, params=None, headers=headers)
-
-        # Extend the final response with the audits from the current page.
         final_response["audits"].extend(response["audits"])
+        next_url = response['links']['next']
+        has_more = response['meta']['has_more']
 
-        # Get the URL for the next page
-        next_url = response.get('next_page')
-
-    # Return the final aggregated response
     return final_response
 
 def get_incremental_export(url, access_token, request_timeout, start_time, side_load):
