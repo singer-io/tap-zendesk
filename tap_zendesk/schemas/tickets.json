@@ -149,7 +149,12 @@
               "integer"
             ]
           },
-          "value": { }
+          "value": {
+            "type": [
+              "null",
+              "string"
+              ]
+          }
         },
         "type": [
           "null",
