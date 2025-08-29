@@ -1,5 +1,6 @@
 from time import sleep
 from asyncio import sleep as async_sleep
+import base64
 import backoff
 import requests
 import singer
@@ -103,6 +104,27 @@ ERROR_CODE_EXCEPTION_MAPPING = {
         "message": "API service is currently unavailable."
     }
 }
+
+def build_auth_headers(config):
+    """
+    Build Authorization headers for Zendesk based on provided config.
+
+    - If 'access_token' is present, use OAuth Bearer.
+    - Else if 'email' and 'api_token' are present, use Basic with 'email/token:api_token'.
+    - Else return empty dict (caller should handle error upstream).
+    """
+    access_token = config.get("access_token") if isinstance(config, dict) else None
+    if access_token:
+        return {"Authorization": f"Bearer {access_token}"}
+
+    email = config.get("email") if isinstance(config, dict) else None
+    api_token = config.get("api_token") if isinstance(config, dict) else None
+    if email and api_token:
+        basic_str = f"{email}/token:{api_token}"
+        basic_b64 = base64.b64encode(basic_str.encode("utf-8")).decode("ascii")
+        return {"Authorization": f"Basic {basic_b64}"}
+
+    return {}
 def is_fatal(exception):
     status_code = exception.response.status_code
 
@@ -328,11 +350,12 @@ async def paginate_ticket_audits(session, url, access_token, request_timeout, pa
     # Return the final aggregated response
     return final_response
 
-def get_incremental_export(url, access_token, request_timeout, start_time, side_load):
+def get_incremental_export(url, access_token, request_timeout, start_time, side_load, **kwargs):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Authorization': 'Bearer {}'.format(access_token),
+        **kwargs.get('headers', {})
     }
 
     params = {'start_time': start_time}
