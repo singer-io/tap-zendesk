@@ -326,7 +326,7 @@ async def paginate_ticket_audits(session, url, access_token, request_timeout, pa
         try:
             cursor = response['meta']['after_cursor']
             params['page[after]'] = cursor
-        except KeyError as err:
+        except KeyError:
             LOGGER.info("Cursor Not found, Pagination Closed. %s", has_more)
 
     return initial_response
