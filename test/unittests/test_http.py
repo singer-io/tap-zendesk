@@ -872,7 +872,7 @@ class TestAPIAsync(unittest.TestCase):
             },
             "links":{
                 "prev":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[before]=page_cursor_before==&page[size]=100",
-                "next":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[after]=page_cursor_before==&page[size]=100"
+                "next":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[after]=page_cursor_after==&page[size]=100"
             }
         }
         second_page = {
@@ -884,7 +884,7 @@ class TestAPIAsync(unittest.TestCase):
             },
             "links":{
                 "prev":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[before]=page_cursor_before==&page[size]=100",
-                "next":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[after]=page_cursor_before==&page[size]=100"
+                "next":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[after]=page_cursor_after==&page[size]=100"
             }
         }
         expected_result = {
@@ -896,7 +896,7 @@ class TestAPIAsync(unittest.TestCase):
             },
             "links":{
                 "prev":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[before]=page_cursor_before==&page[size]=100",
-                "next":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[after]=page_cursor_before==&page[size]=100"
+                "next":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[after]=page_cursor_after==&page[size]=100"
             }
         }
         mock_first_response = AsyncMock()
