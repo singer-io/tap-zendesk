@@ -323,12 +323,13 @@ async def paginate_ticket_audits(session, url, access_token, request_timeout, pa
         initial_response["audits"].extend(response["audits"])
         has_more = response['meta']['has_more']
 
-        try:
-            cursor = response['meta']['after_cursor']
-            params['page[after]'] = cursor
-        except KeyError:
-            LOGGER.info("Cursor Not found, Pagination Closed. %s", has_more)
-            has_more = False
+        if has_more:
+            try:
+                cursor = response['meta']['after_cursor']
+                params['page[after]'] = cursor
+            except KeyError:
+                LOGGER.info("Cursor Not found, Pagination Closed. %s", has_more)
+                has_more = False
 
     return initial_response
 
