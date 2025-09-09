@@ -390,6 +390,12 @@
         "null",
         "integer"
       ]
+    },
+    "custom_status_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
     }
   },
   "type": [
