@@ -51,6 +51,7 @@ The script will:
 2. Prompt you to copy the authorization code from the redirect URL
 3. Exchange the code for an access token
 4. Automatically update your `config.json` with the access token
+
 ### Using API Tokens
 
 For a simplified, but less granular setup, you can use the API Token authentication which can be generated from the Zendesk Admin page. See https://support.zendesk.com/hc/en-us/articles/226022787-Generating-a-new-API-token- for more details about generating an API Token. You'll then be able to use the admins's `email` and the generated `api_token` to authenticate.
