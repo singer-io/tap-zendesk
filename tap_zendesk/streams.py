@@ -66,6 +66,7 @@ class Stream():
     endpoint = None
     request_timeout = None
     page_size = None
+    parent = ""
 
     def __init__(self, client=None, config=None):
         self.client = client
@@ -120,6 +121,10 @@ class Stream():
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
             else:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
+
+        parent_tap_stream_id = getattr(self, "parent", None)
+        if parent_tap_stream_id:
+            mdata = metadata.write(mdata, (), 'parent-tap-stream-id', parent_tap_stream_id)
 
         return metadata.to_list(mdata)
 
@@ -486,7 +491,7 @@ class TicketMetricEvents(Stream):
 
     def check_access(self):
         try:
-            epoch_start = int(utils.now().strftime('%s'))
+            epoch_start = int(utils.now().timestamp())
             self.client.tickets.metrics_incremental(start_time=epoch_start)
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
