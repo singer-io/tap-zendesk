@@ -63,6 +63,7 @@ class Stream():
     def __init__(self, client=None, config=None):
         self.client = client
         self.config = config
+        self.metadata = None
         # Set and pass request timeout to config param `request_timeout` value.
         config_request_timeout = self.config.get('request_timeout')
         if config_request_timeout and float(config_request_timeout):
