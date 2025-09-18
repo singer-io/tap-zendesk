@@ -3,6 +3,9 @@ from aiohttp import ClientSession
 from tap_zendesk import http
 from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk.streams.abstracts import Stream, HEADERS
+from tap_zendesk.exceptions import (
+    ZendeskNotFoundError
+)
 
 
 class TicketAudits(Stream):
@@ -61,7 +64,7 @@ class TicketAudits(Stream):
                         comments_stream.count += 1
                         comment_records.append(
                             (comments_stream.stream, ticket_comment))
-        except http.ZendeskNotFoundError:
+        except ZendeskNotFoundError:
             return audit_records, comment_records
 
         return audit_records, comment_records
@@ -75,6 +78,6 @@ class TicketAudits(Stream):
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
         try:
             http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
-        except http.ZendeskNotFoundError:
+        except ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
             pass

@@ -116,7 +116,8 @@ class Stream():
         return metadata.to_list(mdata)
 
     def is_selected(self):
-        return self.stream is not None
+        self.metadata = metadata.to_map(self.stream.metadata)
+        return metadata.get(self.metadata, (), "selected")
 
     def check_access(self):
         '''

@@ -36,6 +36,10 @@ API_TOKEN_CONFIG_KEYS = [
     "api_token",
 ]
 
+SUB_STREAMS = {
+    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments']
+}
+
 # patch Session.request to record HTTP request metrics
 request = Session.request
 
@@ -80,11 +84,6 @@ def get_selected_streams(catalog):
     return selected_stream_names
 
 
-SUB_STREAMS = {
-    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments']
-}
-
-
 def get_sub_stream_names():
     sub_stream_names = []
     for parent_stream in SUB_STREAMS:
@@ -110,16 +109,15 @@ def validate_dependencies(selected_stream_ids):
         raise DependencyException(" ".join(errs))
 
 
-def populate_class_schemas(catalog, selected_stream_names):
+def populate_class_schemas(catalog):
     for stream in catalog.streams:
-        if stream.tap_stream_id in selected_stream_names:
-            STREAMS[stream.tap_stream_id].stream = stream
+        STREAMS[stream.tap_stream_id].stream = stream
 
 
 def do_sync(client, catalog, state, config):
     selected_stream_names = get_selected_streams(catalog)
     validate_dependencies(selected_stream_names)
-    populate_class_schemas(catalog, selected_stream_names)
+    populate_class_schemas(catalog)
     all_sub_stream_names = get_sub_stream_names()
 
     for stream in catalog.streams:
@@ -129,18 +127,7 @@ def do_sync(client, catalog, state, config):
             LOGGER.info("%s: Skipping - not selected", stream_name)
             continue
 
-        # if starting_stream:
-        #     if starting_stream == stream_name:
-        #         LOGGER.info("%s: Resuming", stream_name)
-        #         starting_stream = None
-        #     else:
-        #         LOGGER.info("%s: Skipping - already synced", stream_name)
-        #         continue
-        # else:
-        #     LOGGER.info("%s: Starting", stream_name)
-
         key_properties = metadata.get(mdata, (), 'table-key-properties')
-        singer.write_schema(stream_name, stream.schema.to_dict(), key_properties)
 
         sub_stream_names = SUB_STREAMS.get(stream_name)
         if sub_stream_names:
@@ -158,6 +145,7 @@ def do_sync(client, catalog, state, config):
             continue
 
         LOGGER.info("%s: Starting sync", stream_name)
+        singer.write_schema(stream_name, stream.schema.to_dict(), key_properties)
         instance = STREAMS[stream_name](client, config)
         counter_value = sync_stream(state, config.get('start_date'), instance)
         singer.write_state(state)

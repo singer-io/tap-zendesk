@@ -2,14 +2,34 @@ import unittest
 from unittest.mock import patch, MagicMock
 import asyncio
 from aiohttp import ClientSession
+from singer.catalog import CatalogEntry
 
-from tap_zendesk import http, streams
+from tap_zendesk import streams
+from tap_zendesk.exceptions import (
+    ZendeskError,
+    ZendeskNotFoundError,
+    ZendeskInternalServerError
+)
 
 
 class TestASyncTicketAudits(unittest.TestCase):
 
-    @patch("tap_zendesk.streams.zendesk_metrics.capture")
-    @patch("tap_zendesk.streams.LOGGER.warning")
+    def make_catalog_entry(self, stream_name: str, selected: bool = True) -> CatalogEntry:
+        """
+        Utility to dynamically create a CatalogEntry for a given stream name and selection status.
+        """
+        return CatalogEntry(
+            tap_stream_id=stream_name,
+            stream=stream_name,
+            schema={},
+            metadata=[{
+                "breadcrumb": [],
+                "metadata": {"selected": selected}
+            }]
+        )
+
+    @patch("tap_zendesk.metrics.capture")
+    @patch("tap_zendesk.streams.abstracts.LOGGER.warning")
     def test_sync_audit_comment_both_selected(self, mock_capture, mock_warning):
         """
         Test that tap sync both ticket_audits and ticket_comments when both streams are selected.
@@ -32,7 +52,9 @@ class TestASyncTicketAudits(unittest.TestCase):
             ]
 
         instance = streams.TicketAudits(None, {})
-        instance.stream = "ticket_audits"
+
+        mock_audit_stream = self.make_catalog_entry(stream_name="ticket_audits", selected=True)
+        instance.stream = mock_audit_stream
 
         # Run the sync method
         async def run_test():
@@ -60,8 +82,8 @@ class TestASyncTicketAudits(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @patch("tap_zendesk.streams.zendesk_metrics.capture")
-    @patch("tap_zendesk.streams.LOGGER.warning")
+    @patch("tap_zendesk.metrics.capture")
+    @patch("tap_zendesk.streams.abstracts.LOGGER.warning")
     def test_sync_comment_only_selected(self, mock_capture, mock_warning):
         """
         Test that tap sync just ticket_comments when only the comment stream is selected.
@@ -83,7 +105,9 @@ class TestASyncTicketAudits(unittest.TestCase):
                 }
             ]
 
+        mock_audit_stream = self.make_catalog_entry(stream_name="ticket_audits", selected=False)
         instance = streams.TicketAudits(None, {})
+        instance.stream = mock_audit_stream
 
         # Run the sync method
         async def run_test():
@@ -101,8 +125,8 @@ class TestASyncTicketAudits(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @patch("tap_zendesk.streams.zendesk_metrics.capture")
-    @patch("tap_zendesk.streams.LOGGER.warning")
+    @patch("tap_zendesk.metrics.capture")
+    @patch("tap_zendesk.streams.abstracts.LOGGER.warning")
     def test_sync_audit_only_selected(self, mock_capture, mock_warning):
         """
         Test that tap sync just ticket_audits when only the audit stream is selected.
@@ -124,8 +148,9 @@ class TestASyncTicketAudits(unittest.TestCase):
                 }
             ]
 
+        mock_audit_stream = self.make_catalog_entry(stream_name="ticket_audits", selected=True)
         instance = streams.TicketAudits(None, {})
-        instance.stream = "ticket_audits"
+        instance.stream = mock_audit_stream
 
         # Run the sync method
         async def run_test():
@@ -148,11 +173,13 @@ class TestASyncTicketAudits(unittest.TestCase):
     @patch("tap_zendesk.streams.Tickets.get_bookmark")
     @patch("tap_zendesk.streams.Tickets.get_objects")
     @patch("tap_zendesk.streams.Tickets.check_access")
-    @patch("tap_zendesk.streams.singer.write_state")
-    @patch("tap_zendesk.streams.zendesk_metrics.capture")
-    @patch("tap_zendesk.streams.LOGGER.info")
+    @patch("tap_zendesk.streams.abstracts.singer.write_state")
+    @patch("tap_zendesk.metrics.capture")
+    @patch("tap_zendesk.streams.abstracts.LOGGER.info")
+    @patch("tap_zendesk.streams.abstracts.Stream.is_selected")
     def test_sync_audits_comments_stream__both_not_selected(
         self,
+        mock_is_selected,
         mock_info,
         mock_capture,
         mock_write_state,
@@ -173,6 +200,7 @@ class TestASyncTicketAudits(unittest.TestCase):
         ]
         mock_get_bookmark.return_value = bookmark
         mock_get_objects.return_value = tickets
+        mock_is_selected.return_value = False
 
         # Create an instance of the Tickets class
         instance = streams.Tickets(None, {})
@@ -187,16 +215,18 @@ class TestASyncTicketAudits(unittest.TestCase):
         # Assertions
         self.assertEqual(len(result), 2)
 
-    @patch('tap_zendesk.streams.time.sleep')
+    @patch('time.sleep')
     @patch("tap_zendesk.streams.Tickets.update_bookmark")
     @patch("tap_zendesk.streams.Tickets.get_bookmark")
     @patch("tap_zendesk.streams.Tickets.get_objects")
     @patch("tap_zendesk.streams.Tickets.check_access")
-    @patch("tap_zendesk.streams.singer.write_state")
-    @patch("tap_zendesk.streams.zendesk_metrics.capture")
-    @patch("tap_zendesk.streams.LOGGER.info")
+    @patch("tap_zendesk.streams.abstracts.singer.write_state")
+    @patch("tap_zendesk.metrics.capture")
+    @patch("tap_zendesk.streams.abstracts.LOGGER.info")
+    @patch("tap_zendesk.streams.abstracts.Stream.is_selected")
     def test_sync_for_deleted_tickets(
         self,
+        mock_is_selected,
         mock_info,
         mock_capture,
         mock_write_state,
@@ -220,11 +250,13 @@ class TestASyncTicketAudits(unittest.TestCase):
         ]
         mock_get_bookmark.return_value = bookmark
         mock_get_objects.return_value = tickets
-        streams.AUDITS_REQUEST_PER_MINUTE = 4
-        streams.CONCURRENCY_LIMIT = 2
+        mock_is_selected.return_value = True
+        streams.tickets.AUDITS_REQUEST_PER_MINUTE = 4
+        streams.tickets.CONCURRENCY_LIMIT = 2
 
         # Create an instance of the Tickets class
         instance = streams.Tickets(None, {})
+        instance.emit_sub_stream_metrics = MagicMock(return_value=None)
         instance.sync_ticket_audits_and_comments = MagicMock(return_value=[
             (['audit1', 'audit2'], ['comment1', 'comment2']),
             (['audit3'], ['comment3']),
@@ -238,16 +270,18 @@ class TestASyncTicketAudits(unittest.TestCase):
         # 4 tickets, 3 audits, 3 comments
         self.assertEqual(len(result), 10)
 
-    @patch('tap_zendesk.streams.time.sleep')
+    @patch('tap_zendesk.streams.tickets.time.sleep')
     @patch("tap_zendesk.streams.Tickets.update_bookmark")
     @patch("tap_zendesk.streams.Tickets.get_bookmark")
     @patch("tap_zendesk.streams.Tickets.get_objects")
     @patch("tap_zendesk.streams.Tickets.check_access")
-    @patch("tap_zendesk.streams.singer.write_state")
-    @patch("tap_zendesk.streams.zendesk_metrics.capture")
-    @patch("tap_zendesk.streams.LOGGER.info")
+    @patch("tap_zendesk.streams.tickets.singer.write_state")
+    @patch("tap_zendesk.streams.tickets.zendesk_metrics.capture")
+    @patch("tap_zendesk.streams.abstracts.LOGGER.info")
+    @patch("tap_zendesk.streams.abstracts.Stream.is_selected")
     def test_concurrency_for_audit_stream(
         self,
+        mock_is_selected,
         mock_info,
         mock_capture,
         mock_write_state,
@@ -276,11 +310,12 @@ class TestASyncTicketAudits(unittest.TestCase):
         ]
         mock_get_bookmark.return_value = bookmark
         mock_get_objects.return_value = tickets
-        streams.AUDITS_REQUEST_PER_MINUTE = 4
-        streams.CONCURRENCY_LIMIT = 2
-
+        mock_is_selected.return_value = True
+        streams.tickets.CONCURRENCY_LIMIT = 2
+        streams.tickets.AUDITS_REQUEST_PER_MINUTE = 4
         # Create an instance of the Tickets class
         instance = streams.Tickets(None, {})
+        instance.emit_sub_stream_metrics = MagicMock(return_value=None)
         instance.sync_ticket_audits_and_comments = MagicMock(return_value=[
             (['audit1', 'audit2'], ['comment1', 'comment2']),
             (['audit3', 'audit4'], ['comment3', 'comment4']),
@@ -293,11 +328,11 @@ class TestASyncTicketAudits(unittest.TestCase):
         self.assertEqual(mock_write_state.call_count, 5)
         self.assertEqual(mock_sleep.call_count, 2)
 
-    @patch("tap_zendesk.streams.zendesk_metrics.capture")
-    @patch("tap_zendesk.streams.LOGGER.warning")
+    @patch("tap_zendesk.metrics.capture")
+    @patch("tap_zendesk.streams.abstracts.LOGGER.warning")
     @patch(
         "tap_zendesk.streams.TicketAudits.get_objects",
-        side_effect=http.ZendeskNotFoundError,
+        side_effect=ZendeskNotFoundError,
     )
     def test_audit_not_found(self, mock_capture, mock_warning, mock_get_objects):
         """
@@ -325,11 +360,11 @@ class TestASyncTicketAudits(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    @patch("tap_zendesk.streams.zendesk_metrics.capture")
-    @patch("tap_zendesk.streams.LOGGER.warning")
+    @patch("tap_zendesk.metrics.capture")
+    @patch("tap_zendesk.streams.abstracts.LOGGER.warning")
     @patch(
         "tap_zendesk.streams.TicketAudits.get_objects",
-        side_effect=http.ZendeskInternalServerError(
+        side_effect=ZendeskInternalServerError(
             "The server encountered an unexpected condition which prevented it from fulfilling the request."
         ),
     )
@@ -350,7 +385,7 @@ class TestASyncTicketAudits(unittest.TestCase):
         async def run_test():
             # Run the sync method
             async with ClientSession() as session:
-                with self.assertRaises(http.ZendeskError) as context:
+                with self.assertRaises(ZendeskError) as context:
                     audit_records, comment_records = await instance.sync(
                         session, ticket_id, comments_stream
                     )

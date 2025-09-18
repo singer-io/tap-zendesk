@@ -1,6 +1,7 @@
 import unittest
-from unittest.mock import AsyncMock, Mock, patch
-from tap_zendesk import http, streams
+from unittest.mock import Mock, patch
+from tap_zendesk import http
+from tap_zendesk.streams import abstracts, TicketAudits
 import requests
 import datetime
 import asyncio
@@ -141,7 +142,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when `request_timeout` does not passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = streams.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df'})
+        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df'})
         cursor_based_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_stream.get_objects())
@@ -156,7 +157,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string "0" value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = streams.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': "0"})
+        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': "0"})
         cursor_based_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_stream.get_objects())
@@ -171,7 +172,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int 0 value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = streams.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': 0})
+        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': 0})
         cursor_based_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_stream.get_objects())
@@ -186,7 +187,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = streams.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_STR})
+        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_STR})
         cursor_based_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_stream.get_objects())
@@ -201,7 +202,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = streams.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT})
+        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT})
         cursor_based_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_stream.get_objects())
@@ -216,7 +217,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when float value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = streams.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_FLOAT})
+        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_FLOAT})
         cursor_based_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_stream.get_objects())
@@ -230,7 +231,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when empty value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = streams.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': ''})
+        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': ''})
         cursor_based_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_stream.get_objects())
@@ -244,7 +245,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when `request_timeout` does not passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_export_stream = streams.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df'})
+        cursor_based_export_stream = abstracts.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df'})
         cursor_based_export_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_export_stream.get_objects(datetime.datetime.utcnow()))
@@ -259,7 +260,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when stiring "0" value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_export_stream = streams.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': '0'})
+        cursor_based_export_stream = abstracts.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': '0'})
         cursor_based_export_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_export_stream.get_objects(datetime.datetime.utcnow()))
@@ -274,7 +275,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int 0 value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_export_stream = streams.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': 0})
+        cursor_based_export_stream = abstracts.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': 0})
         cursor_based_export_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_export_stream.get_objects(datetime.datetime.utcnow()))
@@ -289,7 +290,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when empty value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_export_stream = streams.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': ''})
+        cursor_based_export_stream = abstracts.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': ''})
         cursor_based_export_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_export_stream.get_objects(datetime.datetime.utcnow()))
@@ -304,7 +305,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_export_stream = streams.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_STR})
+        cursor_based_export_stream = abstracts.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_STR})
         cursor_based_export_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_export_stream.get_objects(datetime.datetime.utcnow()))
@@ -319,7 +320,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_export_stream = streams.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT})
+        cursor_based_export_stream = abstracts.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT})
         cursor_based_export_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_export_stream.get_objects(datetime.datetime.utcnow()))
@@ -334,7 +335,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when float value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_export_stream = streams.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_FLOAT})
+        cursor_based_export_stream = abstracts.CursorBasedExportStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_FLOAT})
         cursor_based_export_stream.endpoint = 'https://{}'
         try:
             responses = list(cursor_based_export_stream.get_objects(datetime.datetime.utcnow()))
@@ -352,7 +353,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when `request_timeout` does not passed,"""
         mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
 
-        ticket_audits = streams.TicketAudits(
+        ticket_audits = TicketAudits(
             config={"subdomain": "test-zendesk", "access_token": "df"}
         )
 
@@ -375,7 +376,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
     ):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string "0" value of `request_timeout` passed,"""
         mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
-        ticket_audits = streams.TicketAudits(
+        ticket_audits = TicketAudits(
             config={
                 "subdomain": "test-zendesk",
                 "access_token": "df",
@@ -403,7 +404,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int 0 value of `request_timeout` passed,"""
         mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
 
-        ticket_audits = streams.TicketAudits(
+        ticket_audits = TicketAudits(
             config={
                 "subdomain": "test-zendesk",
                 "access_token": "df",
@@ -431,7 +432,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string value of `request_timeout` passed,"""
         mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
 
-        ticket_audits = streams.TicketAudits(
+        ticket_audits = TicketAudits(
             config={
                 "subdomain": "test-zendesk",
                 "access_token": "df",
@@ -459,7 +460,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int value of `request_timeout` passed,"""
         mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
 
-        ticket_audits = streams.TicketAudits(
+        ticket_audits = TicketAudits(
             config={
                 "subdomain": "test-zendesk",
                 "access_token": "df",
@@ -487,7 +488,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when float value of `request_timeout` passed,"""
         mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
 
-        ticket_audits = streams.TicketAudits(
+        ticket_audits = TicketAudits(
             config={
                 "subdomain": "test-zendesk",
                 "access_token": "df",
@@ -515,7 +516,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when empty value of `request_timeout` passed,"""
         mock_get.return_value.__aenter__.side_effect = requests.exceptions.Timeout
 
-        ticket_audits = streams.TicketAudits(
+        ticket_audits = TicketAudits(
             config={
                 "subdomain": "test-zendesk",
                 "access_token": "df",

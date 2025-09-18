@@ -1,4 +1,3 @@
-
 import datetime
 import time
 import asyncio
@@ -28,6 +27,14 @@ class Tickets(CursorBasedExportStream):
     item_key = "tickets"
     endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
 
+    def emit_sub_stream_metrics(self, sub_stream):
+        if sub_stream.is_selected():
+            singer.metrics.log(LOGGER, Point(metric_type='counter',
+                                                metric=singer.metrics.Metric.record_count,
+                                                value=sub_stream.count,
+                                                tags={'endpoint':sub_stream.stream.tap_stream_id}))
+            sub_stream.count = 0
+
     def sync(self, state): #pylint: disable=too-many-statements
 
         bookmark = self.get_bookmark(state)
@@ -39,14 +46,6 @@ class Tickets(CursorBasedExportStream):
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
         comments_stream = TicketComments(self.client, self.config)
-
-        def emit_sub_stream_metrics(sub_stream):
-            if sub_stream.is_selected():
-                singer.metrics.log(LOGGER, Point(metric_type='counter',
-                                                 metric=singer.metrics.Metric.record_count,
-                                                 value=sub_stream.count,
-                                                 tags={'endpoint':sub_stream.stream.tap_stream_id}))
-                sub_stream.count = 0
 
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
@@ -113,9 +112,9 @@ class Tickets(CursorBasedExportStream):
                 for comment in comments:
                     yield comment
 
-        emit_sub_stream_metrics(audits_stream)
-        emit_sub_stream_metrics(metrics_stream)
-        emit_sub_stream_metrics(comments_stream)
+        self.emit_sub_stream_metrics(audits_stream)
+        self.emit_sub_stream_metrics(metrics_stream)
+        self.emit_sub_stream_metrics(comments_stream)
         singer.write_state(state)
 
     def sync_ticket_audits_and_comments(self, comments_stream, audits_stream, ticket_ids):

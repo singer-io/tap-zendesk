@@ -2,7 +2,7 @@ import unittest
 from tap_zendesk import  get_session
 from unittest import mock
 from pytest import raises
-from tap_zendesk.streams import raise_or_log_zenpy_apiexception, APIException, json, LOGGER
+from tap_zendesk.streams.abstracts import raise_or_log_zenpy_apiexception, APIException, json, LOGGER
 
 class ValueError(Exception):
     def __init__(self, m):
@@ -13,7 +13,7 @@ class ValueError(Exception):
 
 
 class TestException(unittest.TestCase):
-    @mock.patch("tap_zendesk.streams.LOGGER.warning")
+    @mock.patch("tap_zendesk.streams.abstracts.LOGGER.warning")
     def test_exception_logger(self, mocked_logger):
         """
         Test whether the specific logger message is correctly printed when access error occurs and the error is a dict
@@ -26,7 +26,7 @@ class TestException(unittest.TestCase):
         mocked_logger.assert_called_with(
             "The account credentials supplied do not have access to `%s` custom fields.",
             stream)
-        
+
     def test_zenpy_exception_raised(self):
         """
         Test whether the no logger message is printed in case of errors other then access error and the exception is raised
@@ -40,7 +40,7 @@ class TestException(unittest.TestCase):
         except APIException as ex:
             self.assertEqual(str(ex), error_string)
 
-        
+
     def test_zenpy_exception_but_different_message_raised(self):
         """
         Test whether the exception is raised when the error is a dict but with different error message
