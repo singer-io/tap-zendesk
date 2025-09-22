@@ -132,7 +132,7 @@ class Stream():
 
         http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
 
-    def update_params(self, **kwargs) -> None:
+    def update_params(self, **kwargs) -> None:  # pylint: disable=unused-argument
         """
         Update params for the stream
         """
@@ -147,7 +147,7 @@ class Stream():
             base_url = http.BASE_URL.format(**format_values)
             endpoint_path = self.endpoint.format(**kwargs)
         except KeyError as e:
-            raise ValueError(f"Missing required placeholder in config: {e}")
+            raise ValueError(f"Missing required placeholder in config: {e}") from e
         return urljoin(base_url + '/', endpoint_path.lstrip('/'))
 
 

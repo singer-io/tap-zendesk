@@ -1,4 +1,3 @@
-from singer import utils
 from tap_zendesk.streams.abstracts import (
     CursorBasedStream
 )
