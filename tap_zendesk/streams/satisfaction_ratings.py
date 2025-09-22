@@ -8,15 +8,14 @@ class SatisfactionRatings(CursorBasedStream):
     name = "satisfaction_ratings"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
-    endpoint = 'https://{}.zendesk.com/api/v2/satisfaction_ratings'
+    endpoint = 'satisfaction_ratings'
     item_key = 'satisfaction_ratings'
 
-    def sync(self, state):
+    def update_params(self, **kwargs):
+        """
+        Overriding Update params for the stream
+        """
+        state = kwargs.get("state")
         bookmark = self.get_bookmark(state)
         epoch_bookmark = int(bookmark.timestamp())
-        params = {'start_time': epoch_bookmark}
-        ratings = self.get_objects(params=params)
-        for rating in ratings:
-            if utils.strptime_with_tz(rating['updated_at']) >= bookmark:
-                self.update_bookmark(state, rating['updated_at'])
-                yield (self.stream, rating)
+        self.params.update({'start_time': epoch_bookmark})

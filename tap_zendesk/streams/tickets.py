@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 import time
 import asyncio
 import pytz
@@ -25,7 +25,7 @@ class Tickets(CursorBasedExportStream):
     replication_method = "INCREMENTAL"
     replication_key = "generated_timestamp"
     item_key = "tickets"
-    endpoint = "https://{}.zendesk.com/api/v2/incremental/tickets/cursor.json"
+    endpoint = "incremental/tickets/cursor.json"
 
     def emit_sub_stream_metrics(self, sub_stream):
         if sub_stream.is_selected():
@@ -56,7 +56,7 @@ class Tickets(CursorBasedExportStream):
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
 
-            generated_timestamp_dt = datetime.datetime.utcfromtimestamp(ticket.get('generated_timestamp')).replace(tzinfo=pytz.UTC)
+            generated_timestamp_dt = datetime.fromtimestamp(ticket.get('generated_timestamp'), tz=timezone.utc).replace(tzinfo=pytz.UTC)
 
             self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
 
@@ -127,9 +127,9 @@ class Tickets(CursorBasedExportStream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        url = self.endpoint.format(self.config['subdomain'])
+        url = self.get_stream_endpoint()
         # Convert start_date parameter to timestamp to pass with request param
-        start_time = datetime.datetime.strptime(self.config['start_date'], START_DATE_FORMAT).timestamp()
+        start_time = datetime.strptime(self.config['start_date'], START_DATE_FORMAT).timestamp()
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
         http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=HEADERS)

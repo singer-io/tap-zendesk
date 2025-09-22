@@ -1,5 +1,6 @@
 import os
 import json
+from urllib.parse import urljoin
 from zenpy.lib.exception import APIException
 import singer
 from singer import metadata
@@ -50,6 +51,7 @@ def process_custom_field(field):
 
     return field_schema
 
+
 class Stream():
     name = None
     replication_method = None
@@ -64,6 +66,7 @@ class Stream():
         self.client = client
         self.config = config
         self.metadata = None
+        self.params = {}
         # Set and pass request timeout to config param `request_timeout` value.
         config_request_timeout = self.config.get('request_timeout')
         if config_request_timeout and float(config_request_timeout):
@@ -129,6 +132,25 @@ class Stream():
 
         http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
 
+    def update_params(self, **kwargs) -> None:
+        """
+        Update params for the stream
+        """
+        self.params = {}    # Reset before each sync
+
+    def get_stream_endpoint(self, **kwargs) -> str:
+        """
+        Build the full API URL by joining the static BASE_URL and dynamic endpoint
+        """
+        format_values = self.config.copy()
+        try:
+            base_url = http.BASE_URL.format(**format_values)
+            endpoint_path = self.endpoint.format(**kwargs)
+        except KeyError as e:
+            raise ValueError(f"Missing required placeholder in config: {e}")
+        return urljoin(base_url + '/', endpoint_path.lstrip('/'))
+
+
 class CursorBasedStream(Stream):
     item_key = None
     endpoint = None
@@ -137,10 +159,34 @@ class CursorBasedStream(Stream):
         '''
         Cursor based object retrieval
         '''
-        url = self.endpoint.format(self.config['subdomain'])
+        url = self.get_stream_endpoint()
         # Pass `request_timeout` parameter
         for page in http.get_cursor_based(url, self.config['access_token'], self.request_timeout, self.page_size, **kwargs):
             yield from page[self.item_key]
+
+    def sync(self, state):
+        """
+        Implementation for `type: CursorBasedStream` stream.
+        """
+        self.update_params(state=state)
+        records = self.get_objects(params=self.params)
+
+        for record in records:
+            if self.replication_method == "INCREMENTAL":
+                replication_value = record.get(self.replication_key)
+                if replication_value is None:
+                    raise ValueError(
+                        f"Record has missing replication key '{self.replication_key}': {record}"
+                    )
+                bookmark = self.get_bookmark(state)
+                if utils.strptime_with_tz(replication_value) >= bookmark:
+                    self.update_bookmark(state, replication_value)
+                    yield (self.stream, record)
+            elif self.replication_method == "FULL_TABLE":
+                yield (self.stream, record)
+            else:
+                raise ValueError(f"Unknown replication method: {self.replication_method}")
+
 
 class CursorBasedExportStream(Stream):
     endpoint = None
@@ -150,7 +196,7 @@ class CursorBasedExportStream(Stream):
         '''
         Retrieve objects from the incremental exports endpoint using cursor based pagination
         '''
-        url = self.endpoint.format(self.config['subdomain'])
+        url = self.get_stream_endpoint()
         # Pass `request_timeout` parameter
         for page in http.get_incremental_export(url, self.config['access_token'], self.request_timeout, start_time, side_load):
             yield from page[self.item_key]

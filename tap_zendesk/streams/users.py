@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 import singer
 from zenpy.lib.exception import APIException
 from tap_zendesk.streams.abstracts import (
@@ -14,7 +14,7 @@ class Users(CursorBasedExportStream):
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
     item_key = "users"
-    endpoint = "https://{}.zendesk.com/api/v2/incremental/users/cursor.json"
+    endpoint = "incremental/users/cursor.json"
 
     def _add_custom_fields(self, schema):
         try:
@@ -44,5 +44,5 @@ class Users(CursorBasedExportStream):
         '''
         # Convert datetime object to standard format with timezone. Used utcnow to reduce API call burden at discovery time.
         # Because API will return records from now which will be very less
-        start_time = datetime.datetime.utcnow().strftime(START_DATE_FORMAT)
+        start_time = datetime.now(timezone.utc).strftime(START_DATE_FORMAT)
         self.client.search("", updated_after=start_time, updated_before='2000-01-02T00:00:00Z', type="user")

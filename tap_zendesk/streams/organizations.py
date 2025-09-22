@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 from zenpy.lib.exception import APIException
 from tap_zendesk.streams.abstracts import (
     Stream,
@@ -43,5 +43,5 @@ class Organizations(Stream):
         '''
         # Convert datetime object to standard format with timezone. Used utcnow to reduce API call burden at discovery time.
         # Because API will return records from now which will be very less
-        start_time = datetime.datetime.utcnow().strftime(START_DATE_FORMAT)
+        start_time = datetime.now(timezone.utc).strftime(START_DATE_FORMAT)
         self.client.organizations.incremental(start_time=start_time)

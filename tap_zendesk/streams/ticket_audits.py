@@ -12,7 +12,7 @@ class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
     count = 0
-    endpoint='https://{}.zendesk.com/api/v2/tickets/{}/audits.json'
+    endpoint='tickets/{ticket_id}/audits.json'
     item_key='audits'
 
     async def sync_in_bulk(self, ticket_ids, comments_stream):
@@ -27,7 +27,7 @@ class TicketAudits(Stream):
             return await asyncio.gather(*tasks)
 
     async def get_objects(self, session, ticket_id):
-        url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        url = self.get_stream_endpoint(ticket_id=ticket_id)
         # Fetch the ticket audits using pagination
         records = await http.paginate_ticket_audits(session, url, self.config['access_token'], self.request_timeout, self.page_size)
 
@@ -73,8 +73,8 @@ class TicketAudits(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-
-        url = self.endpoint.format(self.config['subdomain'], '1')
+        ticket_id = '1'
+        url = self.get_stream_endpoint(ticket_id=ticket_id)
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
         try:
             http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)

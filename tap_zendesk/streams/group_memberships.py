@@ -10,7 +10,7 @@ class GroupMemberships(CursorBasedStream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
-    endpoint = 'https://{}.zendesk.com/api/v2/group_memberships'
+    endpoint = 'group_memberships'
     item_key = 'group_memberships'
 
     def sync(self, state):

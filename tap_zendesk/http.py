@@ -19,6 +19,8 @@ DEFAULT_WAIT = 60
 # Default wait time for backoff for conflict error
 DEFAULT_WAIT_FOR_CONFLICT_ERROR = 10
 
+BASE_URL = "https://{subdomain}.zendesk.com/api/v2/"
+
 def is_fatal(exception):
     status_code = exception.response.status_code
 
@@ -55,6 +57,20 @@ def raise_for_error(response):
             response.status_code, {}).get("raise_exception", ZendeskError)
         raise exc(message, response) from None
 
+def build_headers(access_token: str, additional_headers: dict = None) -> dict:
+    """
+    Build standard headers for API requests with optional overrides.
+    """
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+
+    if additional_headers:
+        headers.update(additional_headers)
+
+    return headers
 
 @backoff.on_exception(backoff.expo,
                       (HTTPError, ZendeskError), # Added support of backoff for all unhandled status codes.
@@ -70,64 +86,69 @@ def call_api(url, request_timeout, params, headers):
     return response
 
 def get_cursor_based(url, access_token, request_timeout, page_size, cursor=None, **kwargs):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-        **kwargs.get('headers', {})
-    }
+    """
+    Cursor-based pagination generator.
+    Yields:
+        dict: Response JSON for each page.
+    """
+    custom_headers = kwargs.pop('headers', {})
+    query_params = kwargs.pop('params', {})
 
+    headers = build_headers(access_token=access_token, additional_headers=custom_headers)
     params = {
         'page[size]': page_size,
-        **kwargs.get('params', {})
+        **query_params
     }
 
     if cursor:
         params['page[after]'] = cursor
-    response = call_api(url, request_timeout, params=params, headers=headers)
-    response_json = response.json()
 
-    yield response_json
-
-    has_more = response_json['meta']['has_more']
-
-    while has_more:
-        cursor = response_json['meta']['after_cursor']
-        params['page[after]'] = cursor
-
-        response = call_api(url, request_timeout, params=params, headers=headers)
+    while True:
+        response = call_api(
+            url,
+            request_timeout,
+            params=params,
+            headers=headers
+        )
         response_json = response.json()
 
         yield response_json
-        has_more = response_json['meta']['has_more']
+
+        meta = response_json.get('meta', {})
+        if not meta.get('has_more'):
+            break
+
+        params['page[after]'] = meta.get('after_cursor')
 
 def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-        **kwargs.get('headers', {})
-    }
+    """
+    Offset-based pagination generator.
+    Yields:
+        dict: Parsed JSON response from each page.
+    """
+    custom_headers = kwargs.pop('headers', {})
+    query_params = kwargs.pop('params', {})
 
+    headers = build_headers(access_token=access_token, additional_headers=custom_headers)
+    next_url = url
     params = {
-        'per_page': page_size,
-        **kwargs.get('params', {})
+        'page[size]': page_size,
+        **query_params
     }
-
-    response = call_api(url, request_timeout, params=params, headers=headers)
-    response_json = response.json()
-
-    yield response_json
-
-    next_url = response_json.get('next_page')
 
     while next_url:
-        response = call_api(next_url, request_timeout, params=None, headers=headers)
+        response = call_api(
+            next_url,
+            request_timeout,
+            params=params if next_url == url else None,
+            headers=headers
+        )
+
         response_json = response.json()
-
         yield response_json
-        next_url = response_json.get('next_page')
 
+        next_url = response_json.get('next_page')
+        params = None  # Clear params after first request
 
 async def raise_for_error_for_async(response):
     """
@@ -207,21 +228,17 @@ async def call_api_async(session, url, request_timeout, params, headers):
 
         return response_json
 
-
 async def paginate_ticket_audits(session, url, access_token, request_timeout, page_size, **kwargs):
     """
     Paginate through the ticket audits API endpoint and return the aggregated results
     """
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-        **kwargs.get('headers', {})
-    }
+    custom_headers = kwargs.pop('headers', {})
+    query_params = kwargs.pop('params', {})
 
+    headers = build_headers(access_token=access_token, additional_headers=custom_headers)
     params = {
         'per_page': page_size,
-        **kwargs.get('params', {})
+        **query_params
     }
 
     # Make the initial asynchronous API call
@@ -245,38 +262,32 @@ async def paginate_ticket_audits(session, url, access_token, request_timeout, pa
     return final_response
 
 def get_incremental_export(url, access_token, request_timeout, start_time, side_load):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-    }
-
-    params = {'start_time': start_time}
+    """
+    Generator to handle Zendesk's incremental export API.
+    """
+    headers = build_headers(access_token=access_token)
 
     if not isinstance(start_time, int):
-        params = {'start_time': start_time.timestamp()}
-    params['include'] = side_load
+        start_time = int(start_time.timestamp())
 
-    response = call_api(url, request_timeout, params=params, headers=headers)
-    response_json = response.json()
+    params = {
+        'start_time': start_time,
+        'include': side_load
+    }
 
-    yield response_json
-
-    end_of_stream = response_json.get('end_of_stream')
-
-    while not end_of_stream:
-        cursor = response_json['after_cursor']
-
-        params = {'cursor': cursor, "include": side_load}
-        # Replaced below line of code with call_api method
-        # response = requests.get(url, params=params, headers=headers)
-        # response.raise_for_status()
-        # Because it doing the same as call_api. So, now error handling will work properly with backoff
-        # as earlier backoff was not possible
+    while True:
         response = call_api(url, request_timeout, params=params, headers=headers)
-
         response_json = response.json()
-
         yield response_json
 
-        end_of_stream = response_json.get('end_of_stream')
+        if response_json.get('end_of_stream'):
+            break
+
+        cursor = response_json.get('after_cursor')
+        if not cursor:
+            raise ValueError("Missing 'after_cursor' in response during pagination.")
+
+        params = {
+            'cursor': cursor,
+            'include': side_load
+        }
