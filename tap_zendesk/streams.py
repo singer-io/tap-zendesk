@@ -676,6 +676,68 @@ class SLAPolicies(Stream):
         '''
         self.client.sla_policies()
 
+class Calls(Stream):
+    name = "calls"
+    replication_method = "INCREMENTAL"
+    replication_key = "updated_at"
+    endpoint = "https://{}.zendesk.com/api/v2/channels/voice/stats/incremental/calls.json"
+
+    def get_objects(self, start_time):
+        '''
+        Retrieve call objects from the incremental calls endpoint
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        auth_headers = http.build_auth_headers(self.config)
+        
+        # Convert datetime to timestamp if needed
+        if not isinstance(start_time, int):
+            start_time = int(start_time.timestamp())
+        
+        params = {'start_time': start_time}
+        response = http.call_api(url, self.request_timeout, params=params, headers={**HEADERS, **auth_headers})
+        response_json = response.json()
+        
+        # Yield initial page
+        if 'calls' in response_json:
+            yield from response_json['calls']
+        
+        # Handle pagination using cursor-based approach
+        while not response_json.get('end_of_stream', True):
+            cursor = response_json.get('after_cursor')
+            if cursor:
+                params = {'cursor': cursor}
+                response = http.call_api(url, self.request_timeout, params=params, headers={**HEADERS, **auth_headers})
+                response_json = response.json()
+                
+                if 'calls' in response_json:
+                    yield from response_json['calls']
+            else:
+                break
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+        calls = self.get_objects(bookmark)
+        
+        for call in calls:
+            # Use updated_at as replication key, fallback to created_at if not available
+            replication_key_value = call.get(self.replication_key) or call.get('created_at')
+            if replication_key_value:
+                self.update_bookmark(state, replication_key_value)
+            yield (self.stream, call)
+
+        singer.write_state(state)
+
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        # Use recent timestamp to reduce API call burden at discovery time
+        start_time = int(datetime.datetime.utcnow().timestamp()) - 86400  # 24 hours ago
+        headers = {**HEADERS, **http.build_auth_headers(self.config)}
+        
+        http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=headers)
+
 STREAMS = {
     "tickets": Tickets,
     "groups": Groups,
@@ -693,4 +755,5 @@ STREAMS = {
     "ticket_metric_events": TicketMetricEvents,
     "sla_policies": SLAPolicies,
     "talk_phone_numbers": TalkPhoneNumbers,
+    "calls": Calls,
 }

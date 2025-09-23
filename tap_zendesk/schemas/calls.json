@@ -1,0 +1,425 @@
+{
+    "type": [
+        "object",
+        "null"
+    ],
+    "properties": {
+        "id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "agent_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "call_charge": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "consultation_time": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "completion_status": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "customer_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "customer_requested_voicemail": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "direction": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "duration": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "exceeded_queue_wait_time": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "hold_time": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "minutes_billed": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "outside_business_hours": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "phone_number_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "phone_number": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "ticket_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "time_to_answer": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "voicemail": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "wait_time": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "wrap_up_time": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "ivr_time_spent": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "ivr_hops": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "ivr_destination_group_name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "talk_time": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "ivr_routed_to": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "callback": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "callback_source": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "default_group": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "ivr_action": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "line": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "line_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "line_type": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "overflowed": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "overflowed_to": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "recording_control_interactions": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "recording_time": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "not_recording_time": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "call_recording_consent": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "call_recording_consent_action": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "call_recording_consent_keypress": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "call_group_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "call_channel": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "quality_issues": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": [
+                    "string",
+                    "null"
+                ]
+            }
+        },
+        "post_call_transcription_created": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "post_call_summary_created": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "call_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "customer_phone_number": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "state": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "started_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "answered_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "ended_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "recording_url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "cost": {
+            "type": [
+                "number",
+                "null"
+            ]
+        },
+        "formatted_cost": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "transcription": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "quality": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "missed": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "international": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "consultation": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "forwarded": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "agent": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "properties": {
+                "id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "email": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            }
+        },
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}
