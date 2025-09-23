@@ -150,18 +150,32 @@ class Stream():
             raise ValueError(f"Missing required placeholder in config: {e}") from e
         return urljoin(base_url + '/', endpoint_path.lstrip('/'))
 
-
-class CursorBasedStream(Stream):
+class PaginatedStream(Stream):
+    pagination_type = None
     item_key = None
     endpoint = None
 
     def get_objects(self, **kwargs):
-        '''
-        Cursor based object retrieval
-        '''
         url = self.get_stream_endpoint()
-        # Pass `request_timeout` parameter
-        for page in http.get_cursor_based(url, self.config['access_token'], self.request_timeout, self.page_size, **kwargs):
+
+        pagination_methods = {
+            "cursor": http.get_cursor_based,
+            "offset": http.get_offset_based,
+        }
+
+        pagination_func = pagination_methods.get(self.pagination_type)
+        if pagination_func is None:
+            raise ValueError(f"Unsupported pagination type: {self.pagination_type}")
+
+        pages = pagination_func(
+            url,
+            self.config['access_token'],
+            self.request_timeout,
+            self.page_size,
+            **kwargs
+        )
+
+        for page in pages:
             yield from page[self.item_key]
 
     def sync(self, state):

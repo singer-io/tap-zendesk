@@ -1,12 +1,13 @@
 from tap_zendesk.streams.abstracts import (
-    CursorBasedStream
+    PaginatedStream
 )
 
 
-class TicketMetrics(CursorBasedStream):
+class TicketMetrics(PaginatedStream):
     name = "ticket_metrics"
     replication_method = "INCREMENTAL"
     count = 0
+    pagination_type = "cursor"
 
     def check_access(self):
         '''

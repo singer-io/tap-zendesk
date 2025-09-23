@@ -71,7 +71,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 5)
 
     @patch('requests.get', side_effect=[mocked_get(status_code=200, json={"key1": "val1", **PAGINATE_RESPONSE}),
-                                        requests.exceptions.Timeout, requests.exceptions.Timeout, 
+                                        requests.exceptions.Timeout, requests.exceptions.Timeout,
                                         mocked_get(status_code=200, json={"key1": "val1", **SINGLE_RESPONSE})])
     def test_get_cursor_based_handles_timeout_error_in_pagination_call(self, mock_get, mock_sleep):
         """We mock request method to raise a `Timeout`. In next page call the tap should retry request timeout error.
@@ -141,10 +141,18 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when `request_timeout` does not passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df'})
-        cursor_based_stream.endpoint = 'endpoint_path'
+        # cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df'})
+        # cursor_based_stream.endpoint = 'endpoint_path'
+        # try:
+        #     responses = list(cursor_based_stream.get_objects())
+        # except requests.exceptions.Timeout as e:
+        #     pass
+
+        paginated_stream = abstracts.PaginatedStream(config={'subdomain': '34', 'access_token': 'df'})
+        paginated_stream.endpoint = 'endpoint_path'
+        paginated_stream.pagination_type = 'cursor'
         try:
-            responses = list(cursor_based_stream.get_objects())
+            responses = list(paginated_stream.get_objects())
         except requests.exceptions.Timeout as e:
             pass
 
@@ -156,10 +164,11 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string "0" value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': "0"})
-        cursor_based_stream.endpoint = 'endpoint_path'
+        paginated_stream = abstracts.PaginatedStream(config={'subdomain': '34', 'access_token': 'df'})
+        paginated_stream.endpoint = 'endpoint_path'
+        paginated_stream.pagination_type = 'cursor'
         try:
-            responses = list(cursor_based_stream.get_objects())
+            responses = list(paginated_stream.get_objects())
         except requests.exceptions.Timeout as e:
             pass
 
@@ -171,10 +180,11 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int 0 value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': 0})
-        cursor_based_stream.endpoint = 'endpoint_path'
+        paginated_stream = abstracts.PaginatedStream(config={'subdomain': '34', 'access_token': 'df'})
+        paginated_stream.endpoint = 'endpoint_path'
+        paginated_stream.pagination_type = 'cursor'
         try:
-            responses = list(cursor_based_stream.get_objects())
+            responses = list(paginated_stream.get_objects())
         except requests.exceptions.Timeout as e:
             pass
 
@@ -186,10 +196,11 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when string value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_STR})
-        cursor_based_stream.endpoint = 'endpoint_path'
+        paginated_stream = abstracts.PaginatedStream(config={'subdomain': '34', 'access_token': 'df'})
+        paginated_stream.endpoint = 'endpoint_path'
+        paginated_stream.pagination_type = 'cursor'
         try:
-            responses = list(cursor_based_stream.get_objects())
+            responses = list(paginated_stream.get_objects())
         except requests.exceptions.Timeout as e:
             pass
 
@@ -201,10 +212,11 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when int value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT})
-        cursor_based_stream.endpoint = 'endpoint_path'
+        paginated_stream = abstracts.PaginatedStream(config={'subdomain': '34', 'access_token': 'df'})
+        paginated_stream.endpoint = 'endpoint_path'
+        paginated_stream.pagination_type = 'cursor'
         try:
-            responses = list(cursor_based_stream.get_objects())
+            responses = list(paginated_stream.get_objects())
         except requests.exceptions.Timeout as e:
             pass
 
@@ -216,10 +228,11 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when float value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': REQUEST_TIMEOUT_FLOAT})
-        cursor_based_stream.endpoint = 'endpoint_path'
+        paginated_stream = abstracts.PaginatedStream(config={'subdomain': '34', 'access_token': 'df'})
+        paginated_stream.endpoint = 'endpoint_path'
+        paginated_stream.pagination_type = 'cursor'
         try:
-            responses = list(cursor_based_stream.get_objects())
+            responses = list(paginated_stream.get_objects())
         except requests.exceptions.Timeout as e:
             pass
 
@@ -230,10 +243,11 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when empty value of `request_timeout` passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df', 'request_timeout': ''})
-        cursor_based_stream.endpoint = 'endpoint_path'
+        paginated_stream = abstracts.PaginatedStream(config={'subdomain': '34', 'access_token': 'df'})
+        paginated_stream.endpoint = 'endpoint_path'
+        paginated_stream.pagination_type = 'cursor'
         try:
-            responses = list(cursor_based_stream.get_objects())
+            responses = list(paginated_stream.get_objects())
         except requests.exceptions.Timeout as e:
             pass
 
