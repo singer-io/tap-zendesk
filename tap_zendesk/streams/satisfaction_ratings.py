@@ -1,14 +1,15 @@
 from tap_zendesk.streams.abstracts import (
-    CursorBasedStream
+    PaginatedStream
 )
 
 
-class SatisfactionRatings(CursorBasedStream):
+class SatisfactionRatings(PaginatedStream):
     name = "satisfaction_ratings"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
     endpoint = 'satisfaction_ratings'
     item_key = 'satisfaction_ratings'
+    pagination_type = "cursor"
 
     def update_params(self, **kwargs):
         """

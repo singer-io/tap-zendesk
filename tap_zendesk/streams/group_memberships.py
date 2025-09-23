@@ -1,17 +1,18 @@
 
 from singer import utils
 from tap_zendesk.streams.abstracts import (
-    CursorBasedStream,
+    PaginatedStream,
     LOGGER
 )
 
 
-class GroupMemberships(CursorBasedStream):
+class GroupMemberships(PaginatedStream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
     endpoint = 'group_memberships'
     item_key = 'group_memberships'
+    pagination_type = "cursor"
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)

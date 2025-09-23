@@ -12,7 +12,7 @@ class Organizations(Stream):
     name = "organizations"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
-    endpoint = 'https://{}.zendesk.com/api/v2/organizations'
+    endpoint = 'organizations'
     item_key = 'organizations'
 
     def _add_custom_fields(self, schema):
