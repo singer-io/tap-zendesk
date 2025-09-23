@@ -684,35 +684,31 @@ class Calls(Stream):
 
     def get_objects(self, start_time):
         '''
-        Retrieve call objects from the incremental calls endpoint
+        Retrieve call objects from the incremental calls endpoint using next_page URL pagination
         '''
-        url = self.endpoint.format(self.config['subdomain'])
-        auth_headers = http.build_auth_headers(self.config)
-        
         # Convert datetime to timestamp if needed
         if not isinstance(start_time, int):
             start_time = int(start_time.timestamp())
         
-        params = {'start_time': start_time}
-        response = http.call_api(url, self.request_timeout, params=params, headers={**HEADERS, **auth_headers})
-        response_json = response.json()
+        # Start with the initial URL
+        url = self.endpoint.format(self.config['subdomain'])
+        auth_headers = http.build_auth_headers(self.config)
+        params = {'start_time': start_time, 'per_page': self.page_size}
         
-        # Yield initial page
-        if 'calls' in response_json:
-            yield from response_json['calls']
-        
-        # Handle pagination using cursor-based approach
-        while not response_json.get('end_of_stream', True):
-            cursor = response_json.get('after_cursor')
-            if cursor:
-                params = {'cursor': cursor}
-                response = http.call_api(url, self.request_timeout, params=params, headers={**HEADERS, **auth_headers})
-                response_json = response.json()
-                
-                if 'calls' in response_json:
-                    yield from response_json['calls']
-            else:
-                break
+        while url:
+            # Make API call - always pass params (empty dict for next_page URLs)
+            current_params = params if params is not None else {}
+            response = http.call_api(url, self.request_timeout, params=current_params, headers={**HEADERS, **auth_headers})
+            
+            response_json = response.json()
+            
+            # Yield calls from current page
+            if 'calls' in response_json:
+                yield from response_json['calls']
+            
+            # Get next page URL for pagination
+            url = response_json.get('next_page')
+            params = None  # Clear params for subsequent requests since next_page URL contains everything
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
