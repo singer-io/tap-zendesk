@@ -127,7 +127,7 @@ class Stream():
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        url = self.endpoint.format(self.config['subdomain'])
+        url = self.get_stream_endpoint()
         HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
         http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
