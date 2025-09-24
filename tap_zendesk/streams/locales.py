@@ -2,11 +2,11 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-class Activities(PaginatedStream):
-    name = "activities"
+class Locales(PaginatedStream):
+    name = "locales"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
     key_properties = ["id"]
-    endpoint = 'activities'
-    item_key = 'activities'
-    pagination_type = "cursor"
+    endpoint = 'locales'
+    item_key = 'locales'
+    pagination_type = "offset"

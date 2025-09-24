@@ -2,11 +2,11 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-class CustomObjects(PaginatedStream):
-    name = "custom_objects"
+class SatisfactionReasons(PaginatedStream):
+    name = "satisfaction_reasons"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
-    key_properties = ["key"]
-    endpoint = 'custom_objects'
-    item_key = 'custom_objects'
+    key_properties = ["id"]
+    endpoint = 'satisfaction_reasons'
+    item_key = 'reasons'
     pagination_type = "offset"

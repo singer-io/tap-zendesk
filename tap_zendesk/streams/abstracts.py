@@ -163,6 +163,18 @@ class Stream():
         """
         return record
 
+    def get_nested_value(self, data, key_path, default=None):
+        """
+        Recursively get a value from nested dicts using dot-separated key path.
+        """
+        keys = key_path.split(".")
+        for key in keys:
+            if isinstance(data, dict):
+                data = data.get(key, default)
+            else:
+                return default
+        return data
+
 class PaginatedStream(Stream):
     pagination_type = None
     item_key = None
@@ -189,7 +201,7 @@ class PaginatedStream(Stream):
         )
 
         for page in pages:
-            raw_records = page[self.item_key]
+            raw_records = self.get_nested_value(page, self.item_key, [])
             if isinstance(raw_records, dict):
                 yield from [raw_records]
 

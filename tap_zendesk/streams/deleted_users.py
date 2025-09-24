@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class DeletedUsers(PaginatedStream):
     name = "deleted_users"
     replication_method = "INCREMENTAL"
@@ -10,4 +9,4 @@ class DeletedUsers(PaginatedStream):
     key_properties = ["id"]
     endpoint = 'deleted_users'
     item_key = 'deleted_users'
-    pagination_type = "offset"
+    pagination_type = "cursor"

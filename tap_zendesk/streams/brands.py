@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class Brands(PaginatedStream):
     name = "brands"
     replication_method = "INCREMENTAL"
@@ -10,4 +9,4 @@ class Brands(PaginatedStream):
     key_properties = ["id"]
     endpoint = 'brands'
     item_key = 'brands'
-    pagination_type = "offset"
+    pagination_type = "cursor"
