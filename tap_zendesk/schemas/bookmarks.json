@@ -74,7 +74,10 @@
                         "null"
                     ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "email": {
                                 "type": [
@@ -104,7 +107,10 @@
                         "null"
                     ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "id": {
                                 "type": [

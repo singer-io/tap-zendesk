@@ -8,19 +8,33 @@
             ]
         },
         "apps": {
-            "type": "array",
+            "type": [
+                "array",
+                "null"
+            ],
             "items": {
-                "type": "object",
-                "additionalProperties": true
+                "type": [
+                    "object",
+                    "null"
+                ]
             }
         },
         "conditions": {
-            "type": "object",
+            "type": [
+                "object",
+                "null"
+            ],
             "properties": {
                 "all": {
-                    "type": "array",
+                    "type": [
+                        "array",
+                        "null"
+                    ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "field": {
                                 "type": [
@@ -44,9 +58,15 @@
                     }
                 },
                 "any": {
-                    "type": "array",
+                    "type": [
+                        "array",
+                        "null"
+                    ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "field": {
                                 "type": [
@@ -91,7 +111,10 @@
             ]
         },
         "macro_ids": {
-            "type": "array",
+            "type": [
+                "array",
+                "null"
+            ],
             "items": {
                 "type": [
                     "string",
@@ -100,7 +123,10 @@
             }
         },
         "macros": {
-            "type": "array",
+            "type": [
+                "array",
+                "null"
+            ],
             "items": {
                 "type": [
                     "integer",
@@ -121,14 +147,26 @@
             ]
         },
         "selected_macros": {
-            "type": "array",
+            "type": [
+                "array",
+                "null"
+            ],
             "items": {
-                "type": "object",
+                "type": [
+                    "object",
+                    "null"
+                ],
                 "properties": {
                     "actions": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
-                            "type": "object",
+                            "type": [
+                                "object",
+                                "null"
+                            ],
                             "properties": {
                                 "field": {
                                     "type": [
@@ -189,8 +227,10 @@
                         ]
                     },
                     "restriction": {
-                        "type": "object",
-                        "additionalProperties": true
+                        "type": [
+                            "object",
+                            "null"
+                        ]
                     },
                     "updated_at": {
                         "type": [
