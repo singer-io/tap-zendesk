@@ -1,3 +1,4 @@
+from tap_zendesk.streams.brands import Brands
 from tap_zendesk.streams.groups import Groups
 from tap_zendesk.streams.group_memberships import GroupMemberships
 from tap_zendesk.streams.macros import Macros
@@ -17,6 +18,7 @@ from tap_zendesk.streams.users import Users
 
 
 STREAMS = {
+    "brands": Brands,
     "groups": Groups,
     "group_memberships": GroupMemberships,
     "macros": Macros,
