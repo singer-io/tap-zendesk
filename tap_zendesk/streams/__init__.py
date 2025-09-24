@@ -1,3 +1,5 @@
+from tap_zendesk.streams.activities import Activities
+from tap_zendesk.streams.audit_logs import AuditLogs
 from tap_zendesk.streams.automations import Automations
 from tap_zendesk.streams.bookmarks import Bookmarks
 from tap_zendesk.streams.brands import Brands
@@ -25,6 +27,8 @@ from tap_zendesk.streams.users import Users
 
 
 STREAMS = {
+    "activities": Activities,
+    "audit_logs": AuditLogs,
     "automations": Automations,
     "bookmarks": Bookmarks,
     "brands": Brands,
