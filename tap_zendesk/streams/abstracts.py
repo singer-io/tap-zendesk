@@ -183,17 +183,22 @@ class PaginatedStream(Stream):
         )
 
         for page in pages:
-            yield from page[self.item_key]
+            raw_records = page[self.item_key]
+            if isinstance(raw_records, dict):
+                yield from [raw_records]
+
+            elif isinstance(raw_records, list):
+                yield from raw_records
+
+            else:
+                yield from []
 
     def sync(self, state: Dict, parent_obj: Dict = None):
         """
-        Implementation for `type: CursorBasedStream` stream.
+        Implementation for `type: Paginated` stream.
         """
         self.update_params(state=state)
         records = self.get_objects(params=self.params)
-        if isinstance(records, dict):
-            # If the dict looks like a single object, wrap it in a list
-            records = [records]
 
         for record in records:
             record = self.modify_object(record, parent_record=parent_obj)
