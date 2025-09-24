@@ -191,6 +191,9 @@ class PaginatedStream(Stream):
         """
         self.update_params(state=state)
         records = self.get_objects(params=self.params)
+        if isinstance(records, dict):
+            # If the dict looks like a single object, wrap it in a list
+            records = [records]
 
         for record in records:
             record = self.modify_object(record, parent_record=parent_obj)
