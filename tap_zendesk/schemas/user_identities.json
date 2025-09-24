@@ -1,0 +1,86 @@
+{
+    "type": "object",
+    "properties": {
+        "user_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "type": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "value": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "deliverable_state": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "primary": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "undeliverable_count": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "verification_method": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "verified": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "verified_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        }
+    }
+}

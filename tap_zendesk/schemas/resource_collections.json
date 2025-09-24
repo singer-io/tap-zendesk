@@ -1,0 +1,60 @@
+{
+    "type": "object",
+    "properties": {
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "resources": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "object",
+                "properties": {
+                    "deleted": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "identifier": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "resource_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            }
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        }
+    }
+}

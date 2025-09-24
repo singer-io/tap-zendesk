@@ -1,0 +1,48 @@
+{
+    "type": "object",
+    "properties": {
+        "deleted": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "instance_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "metric": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "ticket_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "time": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "type": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

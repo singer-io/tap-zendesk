@@ -1,0 +1,67 @@
+{
+    "type": "object",
+    "properties": {
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "locale": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "native_name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "presentation_name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "rtl": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "default": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        }
+    }
+}

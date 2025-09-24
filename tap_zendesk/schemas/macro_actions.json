@@ -1,0 +1,85 @@
+{
+    "type": "object",
+    "properties": {
+        "title": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "values": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "properties": {
+                "type": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "additionalProperties": true
+            }
+        },
+        "value": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "operators": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "title": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            }
+        },
+        "group": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "title_for_field": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "output_key": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "repeatable": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "field": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

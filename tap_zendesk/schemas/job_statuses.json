@@ -1,0 +1,70 @@
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "job_type": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "message": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "progress": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "results": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "index": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                }
+            }
+        },
+        "status": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "total": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

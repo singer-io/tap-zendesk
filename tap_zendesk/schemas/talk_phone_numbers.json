@@ -104,7 +104,7 @@
     },
     "id": {
       "type": [
-        "integer"
+        "string"
       ]
     },
      "ivr_id": {

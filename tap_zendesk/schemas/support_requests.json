@@ -1,0 +1,196 @@
+{
+    "type": "object",
+    "properties": {
+        "subject": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "assignee_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "can_be_solved_by_me": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "collaborator_ids": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "string"
+            }
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "custom_fields": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "value": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            }
+        },
+        "custom_status_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "description": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "due_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "email_cc_ids": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "string"
+            }
+        },
+        "followup_source_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "group_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "is_public": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "organization_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "priority": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "recipient": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "requester_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "solved": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "status": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "ticket_form_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "type": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "via": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "properties": {
+                "channel": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "additionalProperties": true
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,54 @@
+{
+    "type": "object",
+    "properties": {
+        "consecutive_failure_count": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "raw_request": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "raw_response": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "status_code": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "target_name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

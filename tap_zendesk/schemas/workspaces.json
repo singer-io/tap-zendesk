@@ -1,0 +1,279 @@
+{
+    "type": "object",
+    "properties": {
+        "activated": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "apps": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": true
+            }
+        },
+        "conditions": {
+            "type": "object",
+            "properties": {
+                "all": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "field": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "operator": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "value": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "any": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "field": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "operator": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "value": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "description": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "macro_ids": {
+            "type": "array",
+            "items": {
+                "type": [
+                    "string",
+                    "null"
+                ]
+            }
+        },
+        "macros": {
+            "type": "array",
+            "items": {
+                "type": [
+                    "integer",
+                    "null"
+                ]
+            }
+        },
+        "position": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "prefer_workspace_app_order": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "selected_macros": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "actions": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "field": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "value": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "title": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "active": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "default": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "position": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "restriction": {
+                        "type": "object",
+                        "additionalProperties": true
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "app_installation": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "categories": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "permissions": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "usage_1h": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "usage_7d": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "usage_24h": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "usage_30d": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                }
+            }
+        },
+        "ticket_form_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "title": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

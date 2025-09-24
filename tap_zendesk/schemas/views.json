@@ -1,0 +1,325 @@
+{
+    "type": "object",
+    "properties": {
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "title": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "active": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "default": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "position": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "description": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "execution": {
+            "type": "object",
+            "properties": {
+                "group_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "group_order": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "sort_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "sort_order": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "group": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "title": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "filterable": {
+                            "type": [
+                                "boolean",
+                                "null"
+                            ]
+                        },
+                        "sortable": {
+                            "type": [
+                                "boolean",
+                                "null"
+                            ]
+                        },
+                        "order": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    }
+                },
+                "sort": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "title": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "filterable": {
+                            "type": [
+                                "boolean",
+                                "null"
+                            ]
+                        },
+                        "sortable": {
+                            "type": [
+                                "boolean",
+                                "null"
+                            ]
+                        },
+                        "order": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    }
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "title": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "filterable": {
+                                "type": [
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "sortable": {
+                                "type": [
+                                    "boolean",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "title": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "filterable": {
+                                "type": [
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "sortable": {
+                                "type": [
+                                    "boolean",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "custom_fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "title": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "filterable": {
+                                "type": [
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "sortable": {
+                                "type": [
+                                    "boolean",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "conditions": {
+            "type": "object",
+            "properties": {
+                "all": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "field": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "operator": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "value": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "any": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "field": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "operator": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "value": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "restriction": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "raw_title": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

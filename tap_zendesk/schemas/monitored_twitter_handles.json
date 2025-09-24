@@ -1,0 +1,67 @@
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "screen_name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "twitter_user_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "allow_reply": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "avatar_url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "brand_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "can_reply": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        }
+    }
+}

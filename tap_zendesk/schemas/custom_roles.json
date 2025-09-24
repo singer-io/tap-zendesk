@@ -1,0 +1,456 @@
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "description": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "role_type": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "team_member_count": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "configuration": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "properties": {
+                "chat_access": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "end_user_list_access": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "forum_access_restricted_content": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "light_agent": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_business_rules": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_dynamic_content": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_extensions_and_channels": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_facebook": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "moderate_forums": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "side_conversation_create": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "ticket_access": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "ticket_comment_access": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "ticket_deletion": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "ticket_tag_editing": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "twitter_search_access": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "view_deleted_tickets": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "voice_access": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "group_access": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "organization_editing": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "organization_notes_editing": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "assign_tickets_to_any_group": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "end_user_profile_access": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "explore_access": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "forum_access": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "macro_access": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "report_access": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "ticket_editing": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "ticket_merge": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "user_view_access": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "view_access": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "voice_dashboard_access": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "assign_agent_statuses": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_automations": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_contextual_workspaces": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_groups": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_group_memberships": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_malicious_attachments": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_organizations": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_organization_fields": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_skills": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_slas": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_suspended_tickets": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_ticket_fields": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_ticket_forms": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_triggers": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_user_fields": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "ticket_redaction": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_macro_content_suggestions": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "read_macro_content_suggestions": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "view_reduced_count": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "view_filter_tickets": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "export_views": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_roles": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "manage_deletion_schedules": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "explore_reports": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "ticket_access": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "groups_ticket_access": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "brands_ticket_access": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "ticket_access_selected_groups": {
+                            "type": [
+                                "array",
+                                "null"
+                            ],
+                            "items": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "ticket_access_selected_brands": {
+                            "type": [
+                                "array",
+                                "null"
+                            ],
+                            "items": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "manage_approval_requests": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "assign_tickets_to_any_brand": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "manage_ip_bans": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "custom_objects": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "additionalProperties": true
+                }
+            }
+        }
+    }
+}

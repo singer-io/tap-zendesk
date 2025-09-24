@@ -77,7 +77,7 @@
     "id": {
       "type": [
         "null",
-        "integer"
+        "string"
       ]
     },
     "restricted_brand_ids": {

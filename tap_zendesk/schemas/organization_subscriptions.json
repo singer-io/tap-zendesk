@@ -1,0 +1,30 @@
+{
+    "type": "object",
+    "properties": {
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "organization_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "user_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}
