@@ -51,7 +51,10 @@
                 "null"
             ],
             "items": {
-                "type": "object",
+                "type": [
+                    "object",
+                    "null"
+                ],
                 "properties": {
                     "field": {
                         "type": [
@@ -62,7 +65,10 @@
                     "value": {
                         "anyOf": [
                             {
-                                "type": "array",
+                                "type": [
+                                    "array",
+                                    "null"
+                                ],
                                 "items": {
                                     "type": [
                                         "string",
@@ -93,7 +99,10 @@
                         "null"
                     ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "field": {
                                 "type": [
@@ -123,7 +132,10 @@
                         "null"
                     ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "field": {
                                 "type": [

@@ -51,7 +51,10 @@
                 "null"
             ],
             "items": {
-                "type": "object",
+                "type": [
+                    "object",
+                    "null"
+                ],
                 "properties": {
                     "field": {
                         "type": [
@@ -80,7 +83,10 @@
                         "null"
                     ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "field": {
                                 "type": [
@@ -109,7 +115,10 @@
                         "null"
                     ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "field": {
                                 "type": [

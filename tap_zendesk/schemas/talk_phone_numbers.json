@@ -31,14 +31,14 @@
       }
     },
     "categorised_greetings": {
-      "properties": { },
+      "properties": {},
       "type": [
         "null",
         "object"
       ]
     },
     "categorised_greetings_with_sub_settings": {
-      "properties": { },
+      "properties": {},
       "type": [
         "null",
         "object"
@@ -58,7 +58,10 @@
       "format": "date-time"
     },
     "default_greeting_ids": {
-      "type": ["null", "array"],
+      "type": [
+        "null",
+        "array"
+      ],
       "items": {
         "type": [
           "null",
@@ -85,7 +88,10 @@
       ]
     },
     "greeting_ids": {
-      "type": ["null", "array"],
+      "type": [
+        "null",
+        "array"
+      ],
       "items": {
         "type": [
           "null",
@@ -94,7 +100,10 @@
       }
     },
     "group_ids": {
-      "type": ["null", "array"],
+      "type": [
+        "null",
+        "array"
+      ],
       "items": {
         "type": [
           "null",
@@ -107,7 +116,7 @@
         "string"
       ]
     },
-     "ivr_id": {
+    "ivr_id": {
       "type": [
         "null",
         "integer"

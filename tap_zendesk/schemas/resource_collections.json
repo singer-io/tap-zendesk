@@ -20,7 +20,10 @@
                 "null"
             ],
             "items": {
-                "type": "object",
+                "type": [
+                    "object",
+                    "null"
+                ],
                 "properties": {
                     "deleted": {
                         "type": [
