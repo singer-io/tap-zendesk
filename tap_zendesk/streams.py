@@ -702,12 +702,24 @@ class Calls(Stream):
             
             response_json = response.json()
             
+            # Check if this page has any calls
+            calls_in_page = response_json.get('calls', [])
+            if not calls_in_page:
+                # No calls in this page, stop pagination
+                LOGGER.info("No more calls found, ending pagination")
+                break
+            
             # Yield calls from current page
-            if 'calls' in response_json:
-                yield from response_json['calls']
+            yield from calls_in_page
             
             # Get next page URL for pagination
-            url = response_json.get('next_page')
+            next_url = response_json.get('next_page')
+            
+            # Stop if no next_page or if it's the same as current URL
+            if not next_url or next_url == url:
+                break
+                
+            url = next_url
             params = None  # Clear params for subsequent requests since next_page URL contains everything
 
     def sync(self, state):
