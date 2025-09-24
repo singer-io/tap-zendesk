@@ -86,7 +86,13 @@ class Stream():
             self.page_size = DEFAULT_PAGE_SIZE
 
     def get_bookmark(self, state):
-        return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
+        return utils.strptime_with_tz(
+            singer.get_bookmark(
+                state, self.name,
+                self.replication_key,
+                self.config["start_date"]
+            )
+        )
 
     def update_bookmark(self, state, value):
         current_bookmark = self.get_bookmark(state)
