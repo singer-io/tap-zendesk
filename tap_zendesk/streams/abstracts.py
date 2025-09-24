@@ -197,6 +197,8 @@ class PaginatedStream(Stream):
         """
         Implementation for `type: Paginated` stream.
         """
+        bookmark_date = self.get_bookmark(state)
+        current_max_bookmark_date = bookmark_date
         self.update_params(state=state)
         records = self.get_objects(params=self.params)
 
@@ -208,10 +210,19 @@ class PaginatedStream(Stream):
                     raise ValueError(
                         f"Record has missing replication key '{self.replication_key}': {record}"
                     )
-                bookmark = self.get_bookmark(state)
-                if utils.strptime_with_tz(replication_value) >= bookmark:
-                    self.update_bookmark(state, replication_value)
+
+                replication_datetime = (
+                    utils.strptime_with_tz(replication_value)
+                    if isinstance(replication_value, str)
+                    else replication_value
+                )
+
+                if replication_datetime >= bookmark_date:
+                    current_max_bookmark_date = max(
+                        current_max_bookmark_date, replication_datetime
+                    )
                     yield (self.stream, record)
+                    self.update_bookmark(state, current_max_bookmark_date.isoformat())
             elif self.replication_method == "FULL_TABLE":
                 yield (self.stream, record)
             else:
