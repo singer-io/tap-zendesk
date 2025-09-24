@@ -1,6 +1,11 @@
 from tap_zendesk.streams.automations import Automations
 from tap_zendesk.streams.bookmarks import Bookmarks
 from tap_zendesk.streams.brands import Brands
+from tap_zendesk.streams.custom_objects import CustomObjects
+from tap_zendesk.streams.custom_roles import CustomRoles
+from tap_zendesk.streams.deleted_tickets import DeletedTickets
+from tap_zendesk.streams.deleted_users import DeletedUsers
+from tap_zendesk.streams.dynamic_content_items import DynamicContentItems
 from tap_zendesk.streams.groups import Groups
 from tap_zendesk.streams.group_memberships import GroupMemberships
 from tap_zendesk.streams.macros import Macros
@@ -23,6 +28,11 @@ STREAMS = {
     "automations": Automations,
     "bookmarks": Bookmarks,
     "brands": Brands,
+    "custom_objects": CustomObjects,
+    "custom_roles": CustomRoles,
+    "deleted_tickets": DeletedTickets,
+    "deleted_users": DeletedUsers,
+    "dynamic_content_items": DynamicContentItems,
     "groups": Groups,
     "group_memberships": GroupMemberships,
     "macros": Macros,
