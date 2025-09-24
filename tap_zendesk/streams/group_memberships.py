@@ -1,4 +1,4 @@
-
+from typing import Dict
 from singer import utils
 from tap_zendesk.streams.abstracts import (
     PaginatedStream,
@@ -14,11 +14,12 @@ class GroupMemberships(PaginatedStream):
     item_key = 'group_memberships'
     pagination_type = "cursor"
 
-    def sync(self, state):
+    def sync(self, state, parent_obj: Dict = None):
         bookmark = self.get_bookmark(state)
         memberships = self.get_objects()
 
         for membership in memberships:
+            membership = self.modify_object(membership, parent_record=parent_obj)
             # some group memberships come back without an updated_at
             if membership['updated_at']:
                 if utils.strptime_with_tz(membership['updated_at']) >= bookmark:

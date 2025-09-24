@@ -1,5 +1,6 @@
 import os
 import json
+from typing import Dict
 from urllib.parse import urljoin
 from zenpy.lib.exception import APIException
 import singer
@@ -150,6 +151,12 @@ class Stream():
             raise ValueError(f"Missing required placeholder in config: {e}") from e
         return urljoin(base_url + '/', endpoint_path.lstrip('/'))
 
+    def modify_object(self, record: Dict, **_kwargs) -> Dict:
+        """
+        Modify the record before writing to the stream
+        """
+        return record
+
 class PaginatedStream(Stream):
     pagination_type = None
     item_key = None
@@ -178,7 +185,7 @@ class PaginatedStream(Stream):
         for page in pages:
             yield from page[self.item_key]
 
-    def sync(self, state):
+    def sync(self, state: Dict, parent_obj: Dict = None):
         """
         Implementation for `type: CursorBasedStream` stream.
         """
@@ -186,6 +193,7 @@ class PaginatedStream(Stream):
         records = self.get_objects(params=self.params)
 
         for record in records:
+            record = self.modify_object(record, parent_record=parent_obj)
             if self.replication_method == "INCREMENTAL":
                 replication_value = record.get(self.replication_key)
                 if replication_value is None:
