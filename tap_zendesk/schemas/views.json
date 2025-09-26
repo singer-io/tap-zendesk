@@ -58,7 +58,10 @@
             ]
         },
         "execution": {
-            "type": "object",
+            "type": [
+                "object",
+                "null"
+            ],
             "properties": {
                 "group_by": {
                     "type": [
@@ -85,7 +88,10 @@
                     ]
                 },
                 "group": {
-                    "type": "object",
+                    "type": [
+                        "object",
+                        "null"
+                    ],
                     "properties": {
                         "id": {
                             "type": [
@@ -120,7 +126,10 @@
                     }
                 },
                 "sort": {
-                    "type": "object",
+                    "type": [
+                        "object",
+                        "null"
+                    ],
                     "properties": {
                         "id": {
                             "type": [
@@ -155,9 +164,15 @@
                     }
                 },
                 "columns": {
-                    "type": "array",
+                    "type": [
+                        "array",
+                        "null"
+                    ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "id": {
                                 "type": [
@@ -187,9 +202,15 @@
                     }
                 },
                 "fields": {
-                    "type": "array",
+                    "type": [
+                        "array",
+                        "null"
+                    ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "id": {
                                 "type": [
@@ -219,9 +240,15 @@
                     }
                 },
                 "custom_fields": {
-                    "type": "array",
+                    "type": [
+                        "array",
+                        "null"
+                    ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "id": {
                                 "type": [
@@ -253,12 +280,21 @@
             }
         },
         "conditions": {
-            "type": "object",
+            "type": [
+                "object",
+                "null"
+            ],
             "properties": {
                 "all": {
-                    "type": "array",
+                    "type": [
+                        "array",
+                        "null"
+                    ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "field": {
                                 "type": [
@@ -282,9 +318,15 @@
                     }
                 },
                 "any": {
-                    "type": "array",
+                    "type": [
+                        "array",
+                        "null"
+                    ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "object",
+                            "null"
+                        ],
                         "properties": {
                             "field": {
                                 "type": [

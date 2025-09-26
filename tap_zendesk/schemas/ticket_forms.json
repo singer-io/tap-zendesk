@@ -82,8 +82,8 @@
     },
     "restricted_brand_ids": {
       "type": [
-          "null",
-          "array"
+        "null",
+        "array"
       ],
       "items": {
         "type": [
@@ -94,8 +94,8 @@
     },
     "ticket_field_ids": {
       "type": [
-          "null",
-          "array"
+        "null",
+        "array"
       ],
       "items": {
         "type": [
@@ -104,7 +104,6 @@
         ]
       }
     }
-
   },
   "type": [
     "null",

@@ -10,4 +10,4 @@ class Automations(PaginatedStream):
     key_properties = ["id"]
     endpoint = 'automations'
     item_key = 'automations'
-    pagination_type = "offset"
+    pagination_type = "cursor"

@@ -7,7 +7,6 @@ from tap_zendesk.streams.abstracts import (
     START_DATE_FORMAT
 )
 
-
 class Organizations(Stream):
     name = "organizations"
     replication_method = "INCREMENTAL"

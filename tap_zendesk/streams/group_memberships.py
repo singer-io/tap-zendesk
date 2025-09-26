@@ -5,7 +5,6 @@ from tap_zendesk.streams.abstracts import (
     LOGGER
 )
 
-
 class GroupMemberships(PaginatedStream):
     name = "group_memberships"
     replication_method = "INCREMENTAL"

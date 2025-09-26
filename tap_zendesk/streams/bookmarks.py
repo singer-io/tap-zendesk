@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class Bookmarks(PaginatedStream):
     name = "bookmarks"
     replication_method = "INCREMENTAL"

@@ -41,7 +41,7 @@
         "object"
       ],
       "additionalProperties": true
-     },
+    },
     "notes": {
       "type": [
         "null",

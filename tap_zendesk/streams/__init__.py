@@ -31,6 +31,24 @@ from tap_zendesk.streams.ticket_metric_events import TicketMetricEvents
 from tap_zendesk.streams.ticket_metrics import TicketMetrics
 from tap_zendesk.streams.tickets import Tickets
 from tap_zendesk.streams.users import Users
+from tap_zendesk.streams.account_attribute_definitions import AccountAttributeDefinitions
+from tap_zendesk.streams.account_attributes import AccountAttributes
+from tap_zendesk.streams.locales import Locales
+from tap_zendesk.streams.job_statuses import JobStatuses
+from tap_zendesk.streams.macro_actions import MacroActions
+from tap_zendesk.streams.macro_categories import MacroCategories
+from tap_zendesk.streams.macro_definitions import MacroDefinitions
+from tap_zendesk.streams.monitored_twitter_handles import MonitoredTwitterHandles
+from tap_zendesk.streams.organization_memberships import OrganizationMemberships
+from tap_zendesk.streams.organization_subscriptions import OrganizationSubscriptions
+from tap_zendesk.streams.support_requests import SupportRequests
+from tap_zendesk.streams.resource_collections import ResourceCollections
+from tap_zendesk.streams.satisfaction_reasons import SatisfactionReasons
+from tap_zendesk.streams.schedules import Schedules
+from tap_zendesk.streams.trigger_categories import TriggerCategories
+from tap_zendesk.streams.triggers import Triggers
+from tap_zendesk.streams.views import Views
+from tap_zendesk.streams.workspaces import Workspaces
 
 
 STREAMS = {
@@ -66,5 +84,23 @@ STREAMS = {
     "ticket_forms": TicketForms,
     "ticket_metrics": TicketMetrics,
     "ticket_metric_events": TicketMetricEvents,
-    "users": Users
+    "users": Users,
+    "account_attribute_definitions": AccountAttributeDefinitions,
+    "account_attributes": AccountAttributes,
+    "locales": Locales,
+    "job_statuses": JobStatuses,
+    "macro_actions": MacroActions,
+    "macro_categories": MacroCategories,
+    "macro_definitions": MacroDefinitions,
+    "monitored_twitter_handles": MonitoredTwitterHandles,
+    "organization_memberships": OrganizationMemberships,
+    "organization_subscriptions": OrganizationSubscriptions,
+    "support_requests": SupportRequests,
+    "resource_collections": ResourceCollections,
+    "satisfaction_reasons": SatisfactionReasons,
+    "schedules": Schedules,
+    "triggers": Triggers,
+    "trigger_categories": TriggerCategories,
+    "views": Views,
+    "workspaces": Workspaces
 }
