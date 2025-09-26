@@ -12,6 +12,7 @@ from tap_zendesk.streams.groups import Groups
 from tap_zendesk.streams.group_memberships import GroupMemberships
 from tap_zendesk.streams.macros import Macros
 from tap_zendesk.streams.organizations import Organizations
+from tap_zendesk.streams.requests import Requests
 from tap_zendesk.streams.satisfaction_ratings import SatisfactionRatings
 from tap_zendesk.streams.sessions import Sessions
 from tap_zendesk.streams.sharing_agreements import SharingAgreements
@@ -66,6 +67,7 @@ STREAMS = {
     "group_memberships": GroupMemberships,
     "macros": Macros,
     "organizations": Organizations,
+    "requests": Requests,
     "satisfaction_ratings": SatisfactionRatings,
     "sessions": Sessions,
     "sharing_agreements": SharingAgreements,
