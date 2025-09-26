@@ -13,9 +13,16 @@ from tap_zendesk.streams.group_memberships import GroupMemberships
 from tap_zendesk.streams.macros import Macros
 from tap_zendesk.streams.organizations import Organizations
 from tap_zendesk.streams.satisfaction_ratings import SatisfactionRatings
+from tap_zendesk.streams.sessions import Sessions
+from tap_zendesk.streams.sharing_agreements import SharingAgreements
+from tap_zendesk.streams.side_conversations_events import SideConversationsEvents
 from tap_zendesk.streams.sla_policies import SLAPolicies
+from tap_zendesk.streams.recipient_addresses import RecipientAddresses
+from tap_zendesk.streams.suspended_tickets import SuspendedTickets
 from tap_zendesk.streams.tags import Tags
 from tap_zendesk.streams.talk_phone_numbers import TalkPhoneNumbers
+from tap_zendesk.streams.target_failures import TargetFailures
+from tap_zendesk.streams.targets import Targets
 from tap_zendesk.streams.ticket_audits import TicketAudits
 from tap_zendesk.streams.ticket_comments import TicketComments
 from tap_zendesk.streams.ticket_fields import TicketFields
@@ -42,9 +49,16 @@ STREAMS = {
     "macros": Macros,
     "organizations": Organizations,
     "satisfaction_ratings": SatisfactionRatings,
+    "sessions": Sessions,
+    "sharing_agreements": SharingAgreements,
+    "side_conversations_events": SideConversationsEvents,
     "sla_policies": SLAPolicies,
+    "recipient_addresses": RecipientAddresses,
+    "suspended_tickets": SuspendedTickets,
     "talk_phone_numbers": TalkPhoneNumbers,
     "tags": Tags,
+    "targets": Targets,
+    "target_failures": TargetFailures,
     "tickets": Tickets,
     "ticket_audits": TicketAudits,
     "ticket_comments": TicketComments,
