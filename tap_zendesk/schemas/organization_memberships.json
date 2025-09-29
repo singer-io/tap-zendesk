@@ -9,19 +9,19 @@
         },
         "id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
         "user_id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
         "organization_id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },

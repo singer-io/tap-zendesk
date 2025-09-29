@@ -32,7 +32,7 @@
                     },
                     "locale_id": {
                         "type": [
-                            "string",
+                            "integer",
                             "null"
                         ]
                     },
@@ -57,7 +57,7 @@
                     },
                     "id": {
                         "type": [
-                            "string",
+                            "integer",
                             "null"
                         ]
                     },
@@ -92,7 +92,7 @@
         },
         "id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },

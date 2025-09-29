@@ -16,7 +16,7 @@
     "id": {
       "type": [
         "null",
-        "string"
+        "integer"
       ]
     },
     "ticket_id": {

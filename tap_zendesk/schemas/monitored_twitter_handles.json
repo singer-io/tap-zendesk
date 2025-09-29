@@ -3,7 +3,7 @@
     "properties": {
         "id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
@@ -15,7 +15,7 @@
         },
         "twitter_user_id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
@@ -33,7 +33,7 @@
         },
         "brand_id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },

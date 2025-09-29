@@ -10,7 +10,7 @@
         },
         "id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
@@ -250,7 +250,7 @@
                 },
                 "organization_id": {
                     "type": [
-                        "string",
+                        "integer",
                         "null"
                     ]
                 },
@@ -262,7 +262,7 @@
                 },
                 "problem_id": {
                     "type": [
-                        "string",
+                        "integer",
                         "null"
                     ]
                 },
@@ -311,7 +311,7 @@
                 },
                 "submitter_id": {
                     "type": [
-                        "string",
+                        "integer",
                         "null"
                     ]
                 },
@@ -329,7 +329,7 @@
                 },
                 "ticket_form_id": {
                     "type": [
-                        "string",
+                        "integer",
                         "null"
                     ]
                 },
@@ -375,7 +375,7 @@
                 },
                 "via_followup_source_id": {
                     "type": [
-                        "string",
+                        "integer",
                         "null"
                     ]
                 }

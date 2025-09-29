@@ -16,7 +16,7 @@
         },
         "id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },

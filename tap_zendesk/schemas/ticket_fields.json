@@ -157,7 +157,7 @@
     "id": {
       "type": [
         "null",
-        "string"
+        "integer"
       ]
     },
     "description": {

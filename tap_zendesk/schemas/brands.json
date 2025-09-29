@@ -9,7 +9,7 @@
         },
         "id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
@@ -80,7 +80,7 @@
             ],
             "items": {
                 "type": [
-                    "string",
+                    "integer",
                     "null"
                 ]
             }

@@ -106,7 +106,7 @@
         },
         "id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
@@ -117,7 +117,7 @@
             ],
             "items": {
                 "type": [
-                    "string",
+                    "integer",
                     "null"
                 ]
             }
@@ -216,7 +216,7 @@
                     },
                     "id": {
                         "type": [
-                            "string",
+                            "integer",
                             "null"
                         ]
                     },
@@ -292,7 +292,7 @@
         },
         "ticket_form_id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
