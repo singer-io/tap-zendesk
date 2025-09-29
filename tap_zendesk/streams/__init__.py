@@ -49,6 +49,14 @@ from tap_zendesk.streams.trigger_categories import TriggerCategories
 from tap_zendesk.streams.triggers import Triggers
 from tap_zendesk.streams.views import Views
 from tap_zendesk.streams.workspaces import Workspaces
+from tap_zendesk.streams.incremental_ticket_events import IncrementalTicketEvents
+from tap_zendesk.streams.trigger_revisions import TriggerRevisions
+from tap_zendesk.streams.macro_attachments import MacroAttachments
+from tap_zendesk.streams.ticket_skips import TicketSkips
+from tap_zendesk.streams.user_attribute_values import UserAttributeValues
+from tap_zendesk.streams.user_identities import UserIdentities
+from tap_zendesk.streams.schedule_holidays import ScheduleHolidays
+from tap_zendesk.streams.side_conversations import SideConversations
 
 
 STREAMS = {
@@ -102,5 +110,13 @@ STREAMS = {
     "triggers": Triggers,
     "trigger_categories": TriggerCategories,
     "views": Views,
-    "workspaces": Workspaces
+    "workspaces": Workspaces,
+    "incremental_ticket_events": IncrementalTicketEvents,
+    "trigger_revisions": TriggerRevisions,
+    "macro_attachments": MacroAttachments,
+    "ticket_skips": TicketSkips,
+    "user_attribute_values": UserAttributeValues,
+    "user_identities": UserIdentities,
+    "schedule_holidays": ScheduleHolidays,
+    "side_conversations": SideConversations
 }

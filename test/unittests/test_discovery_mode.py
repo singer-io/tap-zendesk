@@ -55,19 +55,20 @@ class TestDiscovery(unittest.TestCase):
 
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
-        expected_call_count = 36
+        expected_call_count = 44
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
         # Verifying the logger message
         mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): " \
         "audit_logs, automations, bookmarks, brands, custom_objects, custom_roles, deleted_tickets, deleted_users, " \
-        "dynamic_content_items, groups, group_memberships, macros, organizations, satisfaction_ratings, tags, tickets, " \
-        "ticket_audits, ticket_fields, ticket_forms, users, account_attribute_definitions, account_attributes, locales, " \
+        "dynamic_content_items, groups, group_memberships, macros, organizations, satisfaction_ratings, sessions, " \
+        "sharing_agreements, side_conversations_events, recipient_addresses, suspended_tickets, tags, targets, target_failures, " \
+        "tickets, ticket_audits, ticket_fields, ticket_forms, users, account_attribute_definitions, account_attributes, locales, " \
         "job_statuses, macro_actions, macro_categories, macro_definitions, monitored_twitter_handles, organization_memberships, " \
         "organization_subscriptions, support_requests, resource_collections, satisfaction_reasons, schedules, triggers, " \
-        "trigger_categories, views, workspaces. The data for these streams would not be collected due to lack of required " \
-        "permission.")
+        "trigger_categories, views, workspaces, incremental_ticket_events. The data for these streams would not be collected " \
+        "due to lack of required permission.")
 
     @patch("tap_zendesk.discover.LOGGER.warning")
     @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access')
@@ -95,7 +96,7 @@ class TestDiscovery(unittest.TestCase):
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
 
-        expected_call_count = 36
+        expected_call_count = 44
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
@@ -131,7 +132,7 @@ class TestDiscovery(unittest.TestCase):
         '''
 
         responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
-        expected_call_count = 36
+        expected_call_count = 44
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
@@ -235,7 +236,7 @@ class TestDiscovery(unittest.TestCase):
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
 
-        expected_call_count = 36
+        expected_call_count = 44
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 

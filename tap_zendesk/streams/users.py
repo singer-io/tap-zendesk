@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-import singer
 from zenpy.lib.exception import APIException
 from tap_zendesk.streams.abstracts import (
     CursorBasedExportStream,
@@ -15,6 +14,7 @@ class Users(CursorBasedExportStream):
     replication_key = "updated_at"
     item_key = "users"
     endpoint = "incremental/users/cursor.json"
+    children = ['ticket_skips', 'user_identities', 'user_attribute_values']
 
     def _add_custom_fields(self, schema):
         try:
@@ -26,17 +26,6 @@ class Users(CursorBasedExportStream):
             schema['properties']['user_fields']['properties'][field.key] = process_custom_field(field)
 
         return schema
-
-    def sync(self, state):
-        bookmark = self.get_bookmark(state)
-        epoch_bookmark = int(bookmark.timestamp())
-        users = self.get_objects(epoch_bookmark)
-
-        for user in users:
-            self.update_bookmark(state, user["updated_at"])
-            yield (self.stream, user)
-
-        singer.write_state(state)
 
     def check_access(self):
         '''

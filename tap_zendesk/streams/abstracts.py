@@ -1,11 +1,14 @@
 import os
 import json
-from typing import Dict
+from typing import Dict, Any
 from urllib.parse import urljoin
 from zenpy.lib.exception import APIException
 import singer
-from singer import metadata
-from singer import utils
+from singer import (
+    metadata,
+    utils
+)
+from singer.metrics import Point
 from tap_zendesk import http
 
 
@@ -62,12 +65,16 @@ class Stream():
     endpoint = None
     request_timeout = None
     page_size = None
+    parent = ""
+    children = []
+    count = 0
 
     def __init__(self, client=None, config=None):
         self.client = client
         self.config = config
         self.metadata = None
         self.params = {}
+        self.child_to_sync = []
         # Set and pass request timeout to config param `request_timeout` value.
         config_request_timeout = self.config.get('request_timeout')
         if config_request_timeout and float(config_request_timeout):
@@ -175,13 +182,22 @@ class Stream():
                 return default
         return data
 
+    def emit_sub_stream_metrics(self, sub_stream):
+        if sub_stream.is_selected():
+            singer.metrics.log(LOGGER, Point(metric_type='counter',
+                                                metric=singer.metrics.Metric.record_count,
+                                                value=sub_stream.count,
+                                                tags={'endpoint':sub_stream.stream.tap_stream_id}))
+            sub_stream.count = 0
+
 class PaginatedStream(Stream):
     pagination_type = None
     item_key = None
     endpoint = None
 
     def get_objects(self, **kwargs):
-        url = self.get_stream_endpoint()
+        parent_obj = kwargs.get('parent_obj', {})
+        url = self.get_stream_endpoint(parent_obj=parent_obj)
 
         pagination_methods = {
             "cursor": http.get_cursor_based,
@@ -218,9 +234,8 @@ class PaginatedStream(Stream):
         bookmark_date = self.get_bookmark(state)
         current_max_bookmark_date = bookmark_date
         self.update_params(state=state)
-        records = self.get_objects(params=self.params)
 
-        for record in records:
+        for record in self.get_objects(params=self.params, parent_obj=parent_obj):
             record = self.modify_object(record, parent_record=parent_obj)
             if self.replication_method == "INCREMENTAL":
                 replication_value = record.get(self.replication_key)
@@ -239,13 +254,20 @@ class PaginatedStream(Stream):
                     current_max_bookmark_date = max(
                         current_max_bookmark_date, replication_datetime
                     )
-                    yield (self.stream, record)
+                    if self.is_selected():
+                        self.count += 1
+                        yield (self.stream, record)
                     self.update_bookmark(state, current_max_bookmark_date.isoformat())
             elif self.replication_method == "FULL_TABLE":
-                yield (self.stream, record)
+                if self.is_selected():
+                    self.count += 1
+                    yield (self.stream, record)
             else:
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
 
+            for child in self.child_to_sync:
+                yield from child.sync(state=state, parent_obj=record)
+                self.emit_sub_stream_metrics(child)
 
 class CursorBasedExportStream(Stream):
     endpoint = None
@@ -256,10 +278,43 @@ class CursorBasedExportStream(Stream):
         Retrieve objects from the incremental exports endpoint using cursor based pagination
         '''
         url = self.get_stream_endpoint()
-        # Pass `request_timeout` parameter
         for page in http.get_incremental_export(url, self.config['access_token'], self.request_timeout, start_time, side_load):
             yield from page[self.item_key]
 
+    def sync(self, state, parent_obj: Dict = None):
+        bookmark_date = self.get_bookmark(state)
+        current_max_bookmark_date = bookmark_date
+        epoch_bookmark = int(bookmark_date.timestamp())
+        records = self.get_objects(epoch_bookmark)
+
+        for record in records:
+            record = self.modify_object(record, parent_record=parent_obj)
+            if self.replication_method == "INCREMENTAL":
+                replication_value = record.get(self.replication_key)
+                if replication_value is None:
+                    raise ValueError(
+                        f"Record has missing replication key '{self.replication_key}': {record}"
+                    )
+                replication_datetime = (
+                    utils.strptime_with_tz(replication_value)
+                    if isinstance(replication_value, str)
+                    else replication_value
+                )
+                current_max_bookmark_date = max(
+                        current_max_bookmark_date, replication_datetime
+                    )
+                if self.is_selected():
+                    yield (self.stream, record)
+                self.update_bookmark(state, current_max_bookmark_date.isoformat())
+            elif self.replication_method == "FULL_TABLE":
+                if self.is_selected():
+                    yield (self.stream, record)
+            else:
+                raise ValueError(f"Unknown replication method: {self.replication_method}")
+
+            for child in self.child_to_sync:
+                yield from child.sync(state=state, parent_obj=record)
+                self.emit_sub_stream_metrics(child)
 
 def raise_or_log_zenpy_apiexception(schema, stream, e):
     # There are multiple tiers of Zendesk accounts. Some of them have
@@ -283,3 +338,48 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
         return schema
     else:
         raise e
+
+class ParentChildBookmarkMixin:
+    """
+    Mixin to extend bookmark handling for streams with child streams.
+    """
+    def get_bookmark(self, state: Dict) -> int:
+        """
+        Get the minimum bookmark value among the parent and its incremental children,
+        excluding full-table replication children.
+        """
+        min_parent_bookmark = super().get_bookmark(state) if self.is_selected() else ""
+
+        for child in self.child_to_sync:
+            if not child.is_selected():
+                continue
+            if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
+                continue
+
+            bookmark_key = f"{self.name}_{self.replication_key}"
+            child_bookmark = super().get_bookmark(state, child.name, key=bookmark_key)
+
+            if min_parent_bookmark:
+                min_parent_bookmark = min(min_parent_bookmark, child_bookmark)
+            else:
+                min_parent_bookmark = child_bookmark
+
+        return min_parent_bookmark
+
+    def write_bookmark(self, state: Dict, stream: str, value: Any = None) -> Dict:
+        """
+        Write the bookmark value to the parent and all incremental children.
+        """
+        if self.is_selected():
+            super().write_bookmark(state, stream, value=value)
+
+        for child in self.child_to_sync:
+            if not child.is_selected():
+                continue
+            if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
+                continue
+
+            bookmark_key = f"{self.tap_stream_id}_{self.replication_key}"
+            super().write_bookmark(state, child.tap_stream_id, key=bookmark_key, value=value)
+
+        return state

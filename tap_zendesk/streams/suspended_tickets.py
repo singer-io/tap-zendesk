@@ -10,4 +10,4 @@ class SuspendedTickets(PaginatedStream):
     key_properties = ["id"]
     endpoint = 'suspended_tickets'
     item_key = 'suspended_tickets'
-    pagination_type = "offset"
+    pagination_type = "cursor"

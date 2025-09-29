@@ -10,4 +10,4 @@ class RecipientAddresses(PaginatedStream):
     key_properties = ["id"]
     endpoint = 'recipient_addresses'
     item_key = 'recipient_addresses'
-    pagination_type = "offset"
+    pagination_type = "cursor"

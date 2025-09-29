@@ -10,4 +10,4 @@ class Sessions(PaginatedStream):
     key_properties = ["id"]
     endpoint = 'sessions'
     item_key = 'sessions'
-    pagination_type = "offset"
+    pagination_type = "cursor"

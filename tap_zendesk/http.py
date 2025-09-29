@@ -147,8 +147,8 @@ def get_offset_based(url, access_token, request_timeout, page_size=None, **kwarg
         response_json = response.json()
         yield response_json
 
-        next_url = response_json.get('next_page')
-        params = None  # Clear params after first request
+        next_url = response_json.get('next_page') or response_json.get('after_url')
+        params = None
 
 async def raise_for_error_for_async(response):
     """

@@ -37,7 +37,15 @@ API_TOKEN_CONFIG_KEYS = [
 ]
 
 SUB_STREAMS = {
-    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments']
+    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'side_conversations'],
+    'triggers': ['trigger_revisions'],
+    'macros': ['macro_attachments'],
+    'users': ['ticket_skips', 'user_identities', 'user_attribute_values'],
+    'schedules': ['schedule_holidays']
+}
+
+EXCEPTIONAL_STREAMS = {
+    'tickets'
 }
 
 # patch Session.request to record HTTP request metrics
@@ -97,13 +105,11 @@ class DependencyException(Exception):
 
 def validate_dependencies(selected_stream_ids):
     errs = []
-    msg_tmpl = ("Unable to extract {0} data. "
-                "To receive {0} data, you also need to select {1}.")
     for parent_stream_name in SUB_STREAMS:
         sub_stream_names = SUB_STREAMS[parent_stream_name]
         for sub_stream_name in sub_stream_names:
             if sub_stream_name in selected_stream_ids and parent_stream_name not in selected_stream_ids:
-                errs.append(msg_tmpl.format(sub_stream_name, parent_stream_name))
+                selected_stream_ids.append(parent_stream_name)
 
     if errs:
         raise DependencyException(" ".join(errs))
@@ -129,6 +135,13 @@ def do_sync(client, catalog, state, config):
 
         key_properties = metadata.get(mdata, (), 'table-key-properties')
 
+        # parent stream will sync sub stream
+        if stream_name in all_sub_stream_names:
+            continue
+
+        LOGGER.info("%s: Starting sync", stream_name)
+        singer.write_schema(stream_name, stream.schema.to_dict(), key_properties)
+
         sub_stream_names = SUB_STREAMS.get(stream_name)
         if sub_stream_names:
             for sub_stream_name in sub_stream_names:
@@ -140,13 +153,13 @@ def do_sync(client, catalog, state, config):
                 singer.write_schema(sub_stream.tap_stream_id, sub_stream.schema.to_dict(),
                                     sub_key_properties)
 
-        # parent stream will sync sub stream
-        if stream_name in all_sub_stream_names:
-            continue
-
-        LOGGER.info("%s: Starting sync", stream_name)
-        singer.write_schema(stream_name, stream.schema.to_dict(), key_properties)
         instance = STREAMS[stream_name](client, config)
+
+        for child in instance.children:
+            child_obj = STREAMS[child](client, config)
+            if child in selected_stream_names:
+                instance.child_to_sync.append(child_obj)
+
         counter_value = sync_stream(state, config.get('start_date'), instance)
         singer.write_state(state)
         LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)

@@ -10,3 +10,4 @@ class Schedules(PaginatedStream):
     endpoint = 'business_hours/schedules'
     item_key = 'schedules'
     pagination_type = "offset"
+    children = ['schedule_holidays']

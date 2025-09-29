@@ -204,6 +204,7 @@ class TestASyncTicketAudits(unittest.TestCase):
 
         # Create an instance of the Tickets class
         instance = streams.Tickets(None, {})
+        instance.is_selected = MagicMock(return_value=True)
         audits_stream = streams.TicketAudits(None, {})
         comments_stream = streams.TicketComments(None, {})
         instance.audits_stream = audits_stream
@@ -224,8 +225,10 @@ class TestASyncTicketAudits(unittest.TestCase):
     @patch("tap_zendesk.metrics.capture")
     @patch("tap_zendesk.streams.abstracts.LOGGER.info")
     @patch("tap_zendesk.streams.abstracts.Stream.is_selected")
+    @patch("tap_zendesk.http.call_api")
     def test_sync_for_deleted_tickets(
         self,
+        mock_call_api,
         mock_is_selected,
         mock_info,
         mock_capture,
@@ -248,14 +251,24 @@ class TestASyncTicketAudits(unittest.TestCase):
             {"id": 3, "generated_timestamp": 1672531200, "fields": "duplicate", "status": "deleted"},
             {"id": 4, "generated_timestamp": 1672531300, "fields": "duplicate"}
         ]
+        mock_call_api.return_value = {
+            "tickets": tickets,
+            "next_page": None
+        }
         mock_get_bookmark.return_value = bookmark
         mock_get_objects.return_value = tickets
         mock_is_selected.return_value = True
         streams.tickets.AUDITS_REQUEST_PER_MINUTE = 4
         streams.tickets.CONCURRENCY_LIMIT = 2
+        config = {
+            'start_date': '2024-01-01T00:00:00Z',
+            'subdomain': 'dummy',
+            'access_token': 'dummy token'
+        }
 
         # Create an instance of the Tickets class
-        instance = streams.Tickets(None, {})
+        instance = streams.Tickets(None, config)
+        instance.is_selected = MagicMock(return_value=True)
         instance.emit_sub_stream_metrics = MagicMock(return_value=None)
         instance.sync_ticket_audits_and_comments = MagicMock(return_value=[
             (['audit1', 'audit2'], ['comment1', 'comment2']),
@@ -313,8 +326,13 @@ class TestASyncTicketAudits(unittest.TestCase):
         mock_is_selected.return_value = True
         streams.tickets.CONCURRENCY_LIMIT = 2
         streams.tickets.AUDITS_REQUEST_PER_MINUTE = 4
+        config = {
+            'start_date': '2024-01-01T00:00:00Z',
+            'subdomain': '34',
+            'access_token': 'df'
+        }
         # Create an instance of the Tickets class
-        instance = streams.Tickets(None, {})
+        instance = streams.Tickets(None, config)
         instance.emit_sub_stream_metrics = MagicMock(return_value=None)
         instance.sync_ticket_audits_and_comments = MagicMock(return_value=[
             (['audit1', 'audit2'], ['comment1', 'comment2']),

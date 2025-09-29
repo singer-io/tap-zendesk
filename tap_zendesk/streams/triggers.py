@@ -1,5 +1,6 @@
 from tap_zendesk.streams.abstracts import (
-    PaginatedStream
+    PaginatedStream,
+    ParentChildBookmarkMixin
 )
 
 class Triggers(PaginatedStream):
@@ -10,3 +11,4 @@ class Triggers(PaginatedStream):
     endpoint = 'triggers'
     item_key = 'triggers'
     pagination_type = "cursor"
+    children = ['trigger_revisions']
