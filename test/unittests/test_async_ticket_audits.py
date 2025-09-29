@@ -251,10 +251,10 @@ class TestASyncTicketAudits(unittest.TestCase):
             {"id": 3, "generated_timestamp": 1672531200, "fields": "duplicate", "status": "deleted"},
             {"id": 4, "generated_timestamp": 1672531300, "fields": "duplicate"}
         ]
-        mock_call_api.return_value = {
-            "tickets": tickets,
-            "next_page": None
-        }
+        # mock_call_api.return_value = {
+        #     "tickets": tickets,
+        #     "next_page": None
+        # }
         mock_get_bookmark.return_value = bookmark
         mock_get_objects.return_value = tickets
         mock_is_selected.return_value = True
@@ -275,8 +275,9 @@ class TestASyncTicketAudits(unittest.TestCase):
             (['audit3'], ['comment3']),
         ])
 
-        # Run the sync method
-        result = list(instance.sync(state))
+        with patch("tap_zendesk.streams.side_conversations.SideConversations.sync", return_value=[]):
+            # Run the sync method
+            result = list(instance.sync(state))
 
         # Assertions
         self.assertEqual(mock_write_state.call_count, 2)
@@ -339,8 +340,8 @@ class TestASyncTicketAudits(unittest.TestCase):
             (['audit3', 'audit4'], ['comment3', 'comment4']),
         ])
 
-        # Run the sync method
-        result = list(instance.sync(state))
+        with patch("tap_zendesk.streams.side_conversations.SideConversations.sync", return_value=[]):
+            result = list(instance.sync(state))
 
         # Assertions
         self.assertEqual(mock_write_state.call_count, 5)

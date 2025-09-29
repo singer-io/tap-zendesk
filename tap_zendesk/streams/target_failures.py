@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class TargetFailures(PaginatedStream):
     name = "target_failures"
     replication_method = "INCREMENTAL"

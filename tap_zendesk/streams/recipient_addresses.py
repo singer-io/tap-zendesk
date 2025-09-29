@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class RecipientAddresses(PaginatedStream):
     name = "recipient_addresses"
     replication_method = "INCREMENTAL"

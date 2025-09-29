@@ -32,7 +32,7 @@ def update_currently_syncing(state: Dict, stream_name: str) -> None:
 def sync_stream(state, start_date, instance):
     stream = instance.stream
     last_stream = singer.get_currently_syncing(state)
-    LOGGER.info("last/currently syncing stream: {}".format(last_stream))
+    LOGGER.info("last/currently syncing stream: %s", last_stream)
 
     # If we have a bookmark, use it; otherwise use start_date
     if (instance.replication_method == 'INCREMENTAL' and

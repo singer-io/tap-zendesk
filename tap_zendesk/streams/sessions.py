@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class Sessions(PaginatedStream):
     name = "sessions"
     replication_method = "INCREMENTAL"

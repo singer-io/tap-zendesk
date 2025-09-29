@@ -92,11 +92,11 @@ class Stream():
         else:
             self.page_size = DEFAULT_PAGE_SIZE
 
-    def get_bookmark(self, state):
+    def get_bookmark(self, state, key: Any = None):
         return utils.strptime_with_tz(
             singer.get_bookmark(
                 state, self.name,
-                self.replication_key,
+                key or self.replication_key,
                 self.config["start_date"]
             )
         )
@@ -357,7 +357,7 @@ class ParentChildBookmarkMixin:
                 continue
 
             bookmark_key = f"{self.name}_{self.replication_key}"
-            child_bookmark = super().get_bookmark(state, child.name, key=bookmark_key)
+            child_bookmark = super().get_bookmark(state, key=bookmark_key)
 
             if min_parent_bookmark:
                 min_parent_bookmark = min(min_parent_bookmark, child_bookmark)
@@ -366,12 +366,12 @@ class ParentChildBookmarkMixin:
 
         return min_parent_bookmark
 
-    def write_bookmark(self, state: Dict, stream: str, value: Any = None) -> Dict:
+    def update_bookmark(self, state: Dict, value: Any = None) -> Dict:
         """
         Write the bookmark value to the parent and all incremental children.
         """
         if self.is_selected():
-            super().write_bookmark(state, stream, value=value)
+            super().update_bookmark(state, value=value)
 
         for child in self.child_to_sync:
             if not child.is_selected():
@@ -379,7 +379,6 @@ class ParentChildBookmarkMixin:
             if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
                 continue
 
-            bookmark_key = f"{self.tap_stream_id}_{self.replication_key}"
-            super().write_bookmark(state, child.tap_stream_id, key=bookmark_key, value=value)
+            super().update_bookmark(state, value=value)
 
         return state

@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class SideConversations(PaginatedStream):
     name = "side_conversations"
     replication_method = "INCREMENTAL"

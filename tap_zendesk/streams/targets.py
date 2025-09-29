@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class Targets(PaginatedStream):
     name = "targets"
     replication_method = "FULL_TABLE"

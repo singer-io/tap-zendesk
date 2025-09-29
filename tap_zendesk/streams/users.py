@@ -2,13 +2,14 @@ from datetime import datetime, timezone
 from zenpy.lib.exception import APIException
 from tap_zendesk.streams.abstracts import (
     CursorBasedExportStream,
+    ParentChildBookmarkMixin,
     process_custom_field,
     raise_or_log_zenpy_apiexception,
     START_DATE_FORMAT
 )
 
 
-class Users(CursorBasedExportStream):
+class Users(ParentChildBookmarkMixin, CursorBasedExportStream):
     name = "users"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
@@ -35,3 +36,22 @@ class Users(CursorBasedExportStream):
         # Because API will return records from now which will be very less
         start_time = datetime.now(timezone.utc).strftime(START_DATE_FORMAT)
         self.client.search("", updated_after=start_time, updated_before='2000-01-02T00:00:00Z', type="user")
+
+
+class UserSubStreamMixin:
+    def check_access(self):
+        """
+        No-op because access is implicitly granted via parent stream.
+        """
+        return
+
+    def get_stream_endpoint(self, **kwargs) -> str:
+        """
+        Build the full API URL using the user ID from parent object.
+        """
+        parent_record = kwargs.get("parent_obj", {})
+        user_id = parent_record.get("id")
+        if user_id:
+            kwargs["user_id"] = user_id
+
+        return super().get_stream_endpoint(**kwargs)

@@ -1,8 +1,9 @@
 from tap_zendesk.streams.abstracts import (
-    PaginatedStream
+    PaginatedStream,
+    ParentChildBookmarkMixin
 )
 
-class Schedules(PaginatedStream):
+class Schedules(ParentChildBookmarkMixin, PaginatedStream):
     name = "schedules"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"

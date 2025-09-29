@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class JobStatuses(PaginatedStream):
     name = "job_statuses"
     replication_method = "FULL_TABLE"

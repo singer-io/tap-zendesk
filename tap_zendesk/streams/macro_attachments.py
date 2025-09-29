@@ -9,6 +9,7 @@ class MacroAttachments(PaginatedStream):
     endpoint = 'macros/{macro_id}/attachments'
     item_key = 'actions'
     pagination_type = "offset"
+    parent = 'macros'
 
     def check_access(self):
         '''

@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class SatisfactionRatings(PaginatedStream):
     name = "satisfaction_ratings"
     replication_method = "INCREMENTAL"

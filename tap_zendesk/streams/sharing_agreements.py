@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class SharingAgreements(PaginatedStream):
     name = "sharing_agreements"
     replication_method = "INCREMENTAL"

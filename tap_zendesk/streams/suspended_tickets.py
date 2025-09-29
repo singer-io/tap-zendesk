@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class SuspendedTickets(PaginatedStream):
     name = "suspended_tickets"
     replication_method = "INCREMENTAL"
