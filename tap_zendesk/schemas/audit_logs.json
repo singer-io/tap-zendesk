@@ -21,13 +21,13 @@
         },
         "actor_id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
         "source_id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },

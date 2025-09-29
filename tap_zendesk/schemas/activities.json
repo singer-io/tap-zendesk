@@ -9,7 +9,7 @@
         },
         "id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
@@ -27,13 +27,13 @@
         },
         "user_id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
         "actor_id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },

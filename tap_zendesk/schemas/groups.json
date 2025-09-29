@@ -39,7 +39,7 @@
     "id": {
       "type": [
         "null",
-        "string"
+        "integer"
       ]
     }
   }

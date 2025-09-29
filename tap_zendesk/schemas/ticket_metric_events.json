@@ -6,7 +6,7 @@
   "properties": {
     "id": {
       "type": [
-        "string"
+        "integer"
       ]
     },
     "instance_id": {

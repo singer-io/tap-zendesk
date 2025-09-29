@@ -3,7 +3,7 @@
     "id": {
       "type": [
         "null",
-        "string"
+        "integer"
       ]
     },
     "position": {

@@ -3,7 +3,7 @@
     "properties": {
         "author_id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
@@ -226,13 +226,13 @@
                 },
                 "source_id": {
                     "type": [
-                        "string",
+                        "integer",
                         "null"
                     ]
                 },
                 "target_id": {
                     "type": [
-                        "string",
+                        "integer",
                         "null"
                     ]
                 },
@@ -266,7 +266,7 @@
         },
         "id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },

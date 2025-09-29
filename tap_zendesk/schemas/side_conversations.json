@@ -60,7 +60,7 @@
                     },
                     "user_id": {
                         "type": [
-                            "string",
+                            "integer",
                             "null"
                         ]
                     }
@@ -94,7 +94,7 @@
         },
         "ticket_id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },

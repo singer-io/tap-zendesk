@@ -6,11 +6,11 @@
                 "string",
                 "null"
             ],
-            "format": "date"
+            "format": "date-time"
         },
         "id": {
             "type": [
-                "string",
+                "integer",
                 "null"
             ]
         },
