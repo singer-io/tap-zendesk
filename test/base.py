@@ -301,7 +301,7 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
-            "support_requests ": {
+            "support_requests": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"updated_at"},
