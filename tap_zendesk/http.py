@@ -120,7 +120,7 @@ def get_cursor_based(url, access_token, request_timeout, page_size, cursor=None,
 
         params['page[after]'] = meta.get('after_cursor')
 
-def get_offset_based(url, access_token, request_timeout, page_size=None, **kwargs):
+def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
     """
     Offset-based pagination generator.
     Yields:
