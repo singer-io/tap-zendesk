@@ -180,7 +180,7 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
-            "account_attributes_definitions": {
+            "account_attribute_definitions": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: True
@@ -215,7 +215,7 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
-            "custom_object": {
+            "custom_objects": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"updated_at"},
@@ -245,12 +245,6 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
-            "jira_links": {
-                self.PRIMARY_KEYS: {"id"},
-                self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"updated_at"},
-                self.OBEYS_START_DATE: True
-            },
             "job_statuses": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
@@ -262,24 +256,23 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
-            # "macros": already exists above
-            "macros_actions": {
+            "macro_actions": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: True
             },
-            "macros_attachments": {
+            "macro_attachments": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"created_at"},
                 self.OBEYS_START_DATE: True
             },
-            "macros_categories": {
+            "macro_categories": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: True
             },
-            "macros_definitions": {
+            "macro_definitions": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: True
@@ -290,14 +283,13 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
-            # "organizations": already exists above
-            "organizations_memberships": {
+            "organization_memberships": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
-            "organizations_subscriptions": {
+            "organization_subscriptions": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"created_at"},
@@ -309,7 +301,7 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
-            "requests": {
+            "support_requests ": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"updated_at"},
@@ -333,7 +325,7 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
-            "schedules_holidays": {
+            "schedule_holidays": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"start_date"},
@@ -374,21 +366,15 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: True
             },
-            "targets_failures": {
+            "target_failures": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"created_at"},
                 self.OBEYS_START_DATE: True
             },
-            "ticket_events_incremental": {
+            "incremental_ticket_events": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
-                self.OBEYS_START_DATE: True
-            },
-            "ticket": {
-                self.PRIMARY_KEYS: {"id"},
-                self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
             "ticket_skips": {
@@ -427,7 +413,6 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
-            # "users": already exists above
             "views": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
