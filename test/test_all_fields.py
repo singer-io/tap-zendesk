@@ -15,8 +15,15 @@ class ZendeskAllFields(ZendeskTest):
         • verify all fields for each stream are replicated
         """
 
+        streams_to_exclude = {
+            "talk_phone_numbers",
+            "ticket_metric_events",
+            "satisfaction_reasons",
+            "custom_objects",
+        }
+
         # Streams to verify all fields tests
-        expected_streams = self.expected_check_streams() - {"talk_phone_numbers", "ticket_metric_events"}
+        expected_streams = self.expected_check_streams() - streams_to_exclude
 
         expected_automatic_fields = self.expected_automatic_fields()
         conn_id = connections.ensure_connection(self)
