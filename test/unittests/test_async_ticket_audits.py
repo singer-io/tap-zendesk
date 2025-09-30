@@ -225,10 +225,8 @@ class TestASyncTicketAudits(unittest.TestCase):
     @patch("tap_zendesk.metrics.capture")
     @patch("tap_zendesk.streams.abstracts.LOGGER.info")
     @patch("tap_zendesk.streams.abstracts.Stream.is_selected")
-    @patch("tap_zendesk.http.call_api")
     def test_sync_for_deleted_tickets(
         self,
-        mock_call_api,
         mock_is_selected,
         mock_info,
         mock_capture,
@@ -251,10 +249,7 @@ class TestASyncTicketAudits(unittest.TestCase):
             {"id": 3, "generated_timestamp": 1672531200, "fields": "duplicate", "status": "deleted"},
             {"id": 4, "generated_timestamp": 1672531300, "fields": "duplicate"}
         ]
-        # mock_call_api.return_value = {
-        #     "tickets": tickets,
-        #     "next_page": None
-        # }
+
         mock_get_bookmark.return_value = bookmark
         mock_get_objects.return_value = tickets
         mock_is_selected.return_value = True

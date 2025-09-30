@@ -101,10 +101,10 @@ class Stream():
             )
         )
 
-    def update_bookmark(self, state, value):
+    def update_bookmark(self, state, value, key: Any = None):
         current_bookmark = self.get_bookmark(state)
         if value and utils.strptime_with_tz(value) > current_bookmark:
-            singer.write_bookmark(state, self.name, self.replication_key, value)
+            singer.write_bookmark(state, self.name, key or self.replication_key, value)
 
     def load_schema(self):
         schema_file = os.path.join("..", "schemas", f"{self.name}.json")
@@ -382,7 +382,7 @@ class ParentChildBookmarkMixin:
                 continue
             if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
                 continue
-
-            super().update_bookmark(state, value=value)
+            bookmark_key = f"{self.name}_{self.replication_key}"
+            super().update_bookmark(state, value=value, key=bookmark_key)
 
         return state

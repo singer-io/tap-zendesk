@@ -12,7 +12,7 @@ class MacroCategories(PaginatedStream):
 
     def modify_object(self, record, **_kwargs):
         """
-        Overriding modify_record to add `name` key in recordssss
+        Overriding modify_record to add `name` key in records
         """
         record_dict = {
             "name": record
