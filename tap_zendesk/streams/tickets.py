@@ -27,6 +27,7 @@ class Tickets(CursorBasedExportStream):
     replication_key = "generated_timestamp"
     item_key = "tickets"
     endpoint = "incremental/tickets/cursor.json"
+    children = ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'side_conversations']
 
     def sync(self, state, parent_obj: Dict = None): #pylint: disable=too-many-statements
 
