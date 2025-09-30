@@ -5,7 +5,7 @@ from tap_zendesk.streams.abstracts import (
 class OrganizationSubscriptions(PaginatedStream):
     name = "organization_subscriptions"
     replication_method = "INCREMENTAL"
-    replication_key = "updated_at"
+    replication_key = "created_at"
     key_properties = ["id"]
     endpoint = 'organization_subscriptions'
     item_key = 'organization_subscriptions'

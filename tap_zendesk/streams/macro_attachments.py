@@ -5,7 +5,7 @@ from tap_zendesk.streams.abstracts import (
 class MacroAttachments(PaginatedStream):
     name = "macro_attachments"
     replication_method = "FULL_TABLE"
-    key_properties = ["field"]
+    key_properties = ["id"]
     endpoint = 'macros/{macro_id}/attachments'
     item_key = 'actions'
     pagination_type = "offset"

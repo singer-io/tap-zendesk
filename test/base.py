@@ -181,7 +181,7 @@ class ZendeskTest(unittest.TestCase):
                 self.OBEYS_START_DATE: True
             },
             "account_attribute_definitions": {
-                self.PRIMARY_KEYS: {"id"},
+                self.PRIMARY_KEYS: set(),
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: True
             },
@@ -216,7 +216,7 @@ class ZendeskTest(unittest.TestCase):
                 self.OBEYS_START_DATE: True
             },
             "custom_objects": {
-                self.PRIMARY_KEYS: {"id"},
+                self.PRIMARY_KEYS: {"key"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
@@ -257,23 +257,22 @@ class ZendeskTest(unittest.TestCase):
                 self.OBEYS_START_DATE: True
             },
             "macro_actions": {
-                self.PRIMARY_KEYS: {"id"},
+                self.PRIMARY_KEYS: {"field"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: True
             },
             "macro_attachments": {
                 self.PRIMARY_KEYS: {"id"},
-                self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"created_at"},
+                self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: True
             },
             "macro_categories": {
-                self.PRIMARY_KEYS: {"id"},
+                self.PRIMARY_KEYS: {"name"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: True
             },
             "macro_definitions": {
-                self.PRIMARY_KEYS: {"id"},
+                self.PRIMARY_KEYS: {"subject"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: True
             },
@@ -374,7 +373,8 @@ class ZendeskTest(unittest.TestCase):
             },
             "incremental_ticket_events": {
                 self.PRIMARY_KEYS: {"id"},
-                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"created_at"},
                 self.OBEYS_START_DATE: True
             },
             "ticket_skips": {
