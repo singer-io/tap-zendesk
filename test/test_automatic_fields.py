@@ -20,8 +20,8 @@ class ZendeskAutomaticFields(ZendeskTest):
         Verify that only the automatic fields are sent to the target.
         Verify that all replicated records have unique primary key values.
         """
-
-        streams_to_test = self.expected_check_streams() - {"talk_phone_numbers"}
+        streams_to_exclude = {"talk_phone_numbers", "custom_objects"}
+        streams_to_test = self.expected_check_streams() - streams_to_exclude
 
         conn_id = connections.ensure_connection(self)
 

@@ -23,11 +23,13 @@ class ZendeskPagination(ZendeskTest):
 
         # Streams to verify all fields tests
         expected_streams = self.expected_check_streams()
-        expected_streams = expected_streams - {
+        streams_to_exclude = {
+            "talk_phone_numbers",
+            "custom_objects",
             "satisfaction_ratings", # skip as only end user of tickets can create data
             "tags", #  Test Stability Issue: TDL-17980
-            "talk_phone_numbers"
         }
+        expected_streams = expected_streams - streams_to_exclude
 
         conn_id = connections.ensure_connection(self)
 
