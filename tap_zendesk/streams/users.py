@@ -59,7 +59,6 @@ class UserSubStreamMixin:
     def get_objects(self, **kwargs):
         parent_obj = kwargs.get('parent_obj', {})
         if parent_obj.get("verified", False):
-            url = self.get_stream_endpoint(parent_obj=parent_obj)
             yield from super().get_objects(**kwargs)
         else:
             yield from []
