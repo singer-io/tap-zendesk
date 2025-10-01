@@ -55,7 +55,7 @@ class TestDiscovery(unittest.TestCase):
 
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
-        expected_call_count = 44
+        expected_call_count = 45
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
@@ -67,7 +67,7 @@ class TestDiscovery(unittest.TestCase):
         "tickets, ticket_audits, ticket_fields, ticket_forms, users, account_attribute_definitions, account_attributes, locales, " \
         "job_statuses, macro_actions, macro_categories, macro_definitions, monitored_twitter_handles, organization_memberships, " \
         "organization_subscriptions, support_requests, resource_collections, satisfaction_reasons, schedules, triggers, " \
-        "trigger_categories, views, workspaces, incremental_ticket_events. The data for these streams would not be collected " \
+        "trigger_categories, views, workspaces, incremental_ticket_events, ticket_skips. The data for these streams would not be collected " \
         "due to lack of required permission.")
 
     @patch("tap_zendesk.discover.LOGGER.warning")
@@ -96,7 +96,7 @@ class TestDiscovery(unittest.TestCase):
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
 
-        expected_call_count = 44
+        expected_call_count = 45
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
@@ -132,7 +132,7 @@ class TestDiscovery(unittest.TestCase):
         '''
 
         responses = discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
-        expected_call_count = 44
+        expected_call_count = 45
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
@@ -236,7 +236,7 @@ class TestDiscovery(unittest.TestCase):
         '''
         discover.discover_streams('dummy_client', {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date':START_DATE})
 
-        expected_call_count = 44
+        expected_call_count = 45
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
 
