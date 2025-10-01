@@ -32,6 +32,12 @@
                 "null"
             ]
         },
+        "macro_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
         "size": {
             "type": [
                 "integer",

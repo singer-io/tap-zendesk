@@ -270,6 +270,12 @@
                 "null"
             ]
         },
+        "trigger_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
         "snapshot": {
             "type": [
                 "object",
