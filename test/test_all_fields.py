@@ -14,12 +14,34 @@ class ZendeskAllFields(ZendeskTest):
         • Verify that more than just the automatic fields are replicated for each stream.
         • verify all fields for each stream are replicated
         """
-
+        # excluding the following streams due to lack of test data
         streams_to_exclude = {
             "talk_phone_numbers",
             "ticket_metric_events",
             "satisfaction_reasons",
             "custom_objects",
+            "monitored_twitter_handles",
+            "resource_collections",
+            "user_attribute_values",
+            "deleted_tickets",
+            "activities",
+            "job_statuses",
+            "side_conversations_events",
+            "schedule_holidays",
+            "schedules",
+            "macro_attachments",
+            "workspaces",
+            "targets",
+            "account_attributes",
+            "macro_categories",
+            "target_failures",
+            "sharing_agreements",
+            "dynamic_content_items",
+            "organization_subscriptions",
+            "bookmarks",
+            "side_conversations",
+            "sessions",
+            "suspended_tickets"
         }
 
         # Streams to verify all fields tests
