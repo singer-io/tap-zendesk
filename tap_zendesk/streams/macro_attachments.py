@@ -28,3 +28,12 @@ class MacroAttachments(PaginatedStream):
             kwargs["macro_id"] = macro_id
 
         return super().get_stream_endpoint(**kwargs)
+
+    def modify_object(self, record, **_kwargs):
+        """
+        Overriding modify_record to add `parent's id` key in records
+        """
+        parent_obj = _kwargs.get("parent_record", {})
+        macro_id = parent_obj.get("id")
+        record['macro_id'] = macro_id
+        return record

@@ -6,7 +6,7 @@ class TriggerRevisions(PaginatedStream):
     name = "trigger_revisions"
     replication_method = "INCREMENTAL"
     replication_key = "created_at"
-    key_properties = ["id"]
+    key_properties = ["id", "trigger_id"]
     endpoint = 'triggers/{trigger_id}/revisions'
     item_key = 'trigger_revisions'
     pagination_type = "offset"
@@ -29,3 +29,12 @@ class TriggerRevisions(PaginatedStream):
             kwargs["trigger_id"] = trigger_id
 
         return super().get_stream_endpoint(**kwargs)
+
+    def modify_object(self, record, **_kwargs):
+        """
+        Overriding modify_record to add `parent's id` key in records
+        """
+        parent_obj = _kwargs.get("parent_record", {})
+        trigger_id = parent_obj.get("id")
+        record['trigger_id'] = trigger_id
+        return record
