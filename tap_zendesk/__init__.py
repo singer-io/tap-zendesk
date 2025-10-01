@@ -40,7 +40,7 @@ SUB_STREAMS = {
     'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'side_conversations'],
     'triggers': ['trigger_revisions'],
     'macros': ['macro_attachments'],
-    'users': ['ticket_skips', 'user_identities', 'user_attribute_values'],
+    'users': ['user_identities', 'user_attribute_values'],
     'schedules': ['schedule_holidays']
 }
 

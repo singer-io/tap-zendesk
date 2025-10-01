@@ -15,7 +15,7 @@ class Users(ParentChildBookmarkMixin, CursorBasedExportStream):
     replication_key = "updated_at"
     item_key = "users"
     endpoint = "incremental/users/cursor.json"
-    children = ['ticket_skips', 'user_identities', 'user_attribute_values']
+    children = ['user_identities', 'user_attribute_values']
 
     def _add_custom_fields(self, schema):
         try:
