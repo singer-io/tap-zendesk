@@ -396,7 +396,7 @@ class ZendeskTest(unittest.TestCase):
                 self.OBEYS_START_DATE: True
             },
             "trigger_revisions": {
-                self.PRIMARY_KEYS: {"id"},
+                self.PRIMARY_KEYS: {"id", "trigger_id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"created_at"},
                 self.OBEYS_START_DATE: True
