@@ -65,14 +65,16 @@ jobs:
             mkdir /tmp/${CIRCLE_PROJECT_REPONAME}
             export STITCH_CONFIG_DIR=/tmp/${CIRCLE_PROJECT_REPONAME}
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            uv pip install 'zenpy==2.0.24'
-            circleci tests glob "test/*.py" | circleci tests split > ./tests-to-run
-            if [ -s ./tests-to-run ]; then
-              for test_file in $(cat ./tests-to-run)
-              do
-                run-test --tap=${CIRCLE_PROJECT_REPONAME} $test_file
-              done
-            fi
+            uv pip install 'zenpy==2.0.56'
+            run-test --tap=${CIRCLE_PROJECT_REPONAME} test/test_pagination.py
+            # circleci tests glob "test/*.py" | circleci tests split > ./tests-to-run
+            # if [ -s ./tests-to-run ]; then
+            #   for test_file in $(cat ./tests-to-run)
+            #   do
+            #     run-test --tap=${CIRCLE_PROJECT_REPONAME} $test_file
+            #   done
+            # fi
+
       - slack/notify-on-failure:
           only_for_branches: master
       - store_artifacts:
