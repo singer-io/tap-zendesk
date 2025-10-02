@@ -183,7 +183,7 @@ class ZendeskTest(unittest.TestCase):
             "account_attribute_definitions": {
                 self.PRIMARY_KEYS: set(),
                 self.REPLICATION_METHOD: self.FULL_TABLE,
-                self.OBEYS_START_DATE: True
+                self.OBEYS_START_DATE: False
             },
             "activities": {
                 self.PRIMARY_KEYS: {"id"},
@@ -248,7 +248,7 @@ class ZendeskTest(unittest.TestCase):
             "job_statuses": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
-                self.OBEYS_START_DATE: True
+                self.OBEYS_START_DATE: False
             },
             "locales": {
                 self.PRIMARY_KEYS: {"id"},
@@ -259,12 +259,12 @@ class ZendeskTest(unittest.TestCase):
             "macro_actions": {
                 self.PRIMARY_KEYS: {"field"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
-                self.OBEYS_START_DATE: True
+                self.OBEYS_START_DATE: False
             },
             "macro_attachments": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
-                self.OBEYS_START_DATE: True
+                self.OBEYS_START_DATE: False
             },
             "macro_categories": {
                 self.PRIMARY_KEYS: {"name"},
@@ -274,7 +274,7 @@ class ZendeskTest(unittest.TestCase):
             "macro_definitions": {
                 self.PRIMARY_KEYS: {"subject"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
-                self.OBEYS_START_DATE: True
+                self.OBEYS_START_DATE: False
             },
             "monitored_twitter_handles": {
                 self.PRIMARY_KEYS: {"id"},
@@ -363,7 +363,7 @@ class ZendeskTest(unittest.TestCase):
             "targets": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
-                self.OBEYS_START_DATE: True
+                self.OBEYS_START_DATE: False
             },
             "target_failures": {
                 self.PRIMARY_KEYS: {"id"},

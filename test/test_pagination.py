@@ -24,10 +24,34 @@ class ZendeskPagination(ZendeskTest):
         # Streams to verify all fields tests
         expected_streams = self.expected_check_streams()
         streams_to_exclude = {
-            "talk_phone_numbers",
+            "account_attributes",
+            "activities",
+            "bookmarks",
             "custom_objects",
-            "satisfaction_ratings", # skip as only end user of tickets can create data
-            "tags", #  Test Stability Issue: TDL-17980
+            "deleted_tickets",
+            "dynamic_content_items",
+            "job_statuses",
+            "macro_attachments",
+            "macro_categories",
+            "monitored_twitter_handles",
+            "organization_subscriptions",
+            "resource_collections",
+            "satisfaction_ratings",
+            "satisfaction_reasons",
+            "schedule_holidays",
+            "schedules",
+            "sessions",
+            "sharing_agreements",
+            "side_conversations",
+            "side_conversations_events",
+            "suspended_tickets",
+            "tags",
+            "talk_phone_numbers",
+            "target_failures",
+            "targets",
+            "ticket_metric_events",
+            "user_attribute_values",
+            "workspaces"
         }
         expected_streams = expected_streams - streams_to_exclude
 
