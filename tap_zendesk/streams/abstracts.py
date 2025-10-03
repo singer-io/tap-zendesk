@@ -104,13 +104,15 @@ class Stream():
 
     def update_bookmark(self, state, stream: str, value, key: Any = None):
         current_bookmark = self.get_bookmark(state, stream)
-        if value and utils.strptime_with_tz(value) > current_bookmark:
-            singer.write_bookmark(
-                state,
-                stream,
-                key or self.replication_key,
-                value
-            )
+        value_dt = utils.strptime_with_tz(value) if isinstance(value, str) else value
+        current_dt = utils.strptime_with_tz(current_bookmark) if isinstance(current_bookmark, str) else current_bookmark
+        value = max(current_dt, value_dt)
+        singer.write_bookmark(
+            state,
+            stream,
+            key or self.replication_key,
+            value.isoformat()
+        )
 
     def load_schema(self):
         schema_file = os.path.join("..", "schemas", f"{self.name}.json")
@@ -267,17 +269,23 @@ class PaginatedStream(Stream):
                     if self.is_selected():
                         self.count += 1
                         yield (self.stream, record)
-                self.update_bookmark(state, self.name, current_max_bookmark_date.isoformat())
+
+                    for child in self.child_to_sync:
+                        yield from child.sync(state=state, parent_obj=record)
+                        self.emit_sub_stream_metrics(child)
             elif self.replication_method == "FULL_TABLE":
                 if self.is_selected():
                     self.count += 1
                     yield (self.stream, record)
+
+                for child in self.child_to_sync:
+                    yield from child.sync(state=state, parent_obj=record)
+                    self.emit_sub_stream_metrics(child)
             else:
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
 
-            for child in self.child_to_sync:
-                yield from child.sync(state=state, parent_obj=record)
-                self.emit_sub_stream_metrics(child)
+        if self.replication_method == "INCREMENTAL":
+            self.update_bookmark(state, self.name, current_max_bookmark_date.isoformat())
 
 class CursorBasedExportStream(Stream):
     endpoint = None
@@ -318,17 +326,22 @@ class CursorBasedExportStream(Stream):
                     if self.is_selected():
                         self.count += 1
                         yield (self.stream, record)
-                self.update_bookmark(state, self.name, current_max_bookmark_date.isoformat())
+
+                    for child in self.child_to_sync:
+                        yield from child.sync(state=state, parent_obj=record)
+                        self.emit_sub_stream_metrics(child)
             elif self.replication_method == "FULL_TABLE":
                 if self.is_selected():
                     self.count += 1
                     yield (self.stream, record)
+
+                for child in self.child_to_sync:
+                    yield from child.sync(state=state, parent_obj=record)
+                    self.emit_sub_stream_metrics(child)
             else:
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
-
-            for child in self.child_to_sync:
-                yield from child.sync(state=state, parent_obj=record)
-                self.emit_sub_stream_metrics(child)
+        if self.replication_method == "INCREMENTAL":
+            self.update_bookmark(state, self.name, current_max_bookmark_date.isoformat())
 
 def raise_or_log_zenpy_apiexception(schema, stream, e):
     # There are multiple tiers of Zendesk accounts. Some of them have
@@ -392,7 +405,22 @@ class ParentChildBookmarkMixin:
                 continue
             if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
                 continue
-            bookmark_key = f"{self.name}_{self.replication_key}"
-            super().update_bookmark(state, child.name, value=value, key=bookmark_key)
+
+            parent_bookmark_key = f"{self.name}_{self.replication_key}"
+            super().update_bookmark(
+                state,
+                stream=child.name,
+                value=value,
+                key=parent_bookmark_key
+            )
+
+            child_bookmarks = state.get("bookmarks", {}).get(child.name, {})
+            if child.replication_key not in child_bookmarks:
+                super().update_bookmark(
+                    state,
+                    stream=child.name,
+                    value=self.config["start_date"],
+                    key=child.replication_key
+                )
 
         return state
