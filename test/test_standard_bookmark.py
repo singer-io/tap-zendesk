@@ -182,7 +182,7 @@ class ZendeskBookMark(ZendeskTest):
                             replication_key_value = datetime.utcfromtimestamp(replication_key_value).strftime('%Y-%m-%dT%H:%M:%SZ')
 
                         self.assertGreaterEqual(replication_key_value, simulated_bookmark_value,
-                                                msg="Second sync records do not repect the previous bookmark.")
+                                                msg="Second sync records do not respect the previous bookmark.")
 
                         # Verify the second sync bookmark value is the max replication key value for a given stream
                         self.assertLessEqual(replication_key_value, second_bookmark_value_utc,

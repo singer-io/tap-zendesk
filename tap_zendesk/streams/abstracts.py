@@ -254,24 +254,38 @@ class PaginatedStream(Stream):
                     else replication_value
                 )
 
-                if replication_datetime >= bookmark_date:
-                    current_max_bookmark_date = max(
-                        current_max_bookmark_date, replication_datetime
-                    )
-                    if self.is_selected():
-                        self.count += 1
-                        yield (self.stream, record)
-                    self.update_bookmark(state, current_max_bookmark_date.isoformat())
+                # if replication_datetime >= bookmark_date:
+                #     current_max_bookmark_date = max(
+                #         current_max_bookmark_date, replication_datetime
+                #     )
+                #     if self.is_selected():
+                #         self.count += 1
+                #         yield (self.stream, record)
+                #     self.update_bookmark(state, current_max_bookmark_date.isoformat())
+
+                if replication_datetime < bookmark_date:
+                    continue
+
+                current_max_bookmark_date = max(current_max_bookmark_date, replication_datetime)
+                self.update_bookmark(state, current_max_bookmark_date.isoformat())
+
+                if self.is_selected():
+                    self.count += 1
+                    yield (self.stream, record)
+
+                for child in self.child_to_sync:
+                    yield from child.sync(state=state, parent_obj=record)
+                    self.emit_sub_stream_metrics(child)
             elif self.replication_method == "FULL_TABLE":
                 if self.is_selected():
                     self.count += 1
                     yield (self.stream, record)
+
+                for child in self.child_to_sync:
+                    yield from child.sync(state=state, parent_obj=record)
+                    self.emit_sub_stream_metrics(child)
             else:
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
-
-            for child in self.child_to_sync:
-                yield from child.sync(state=state, parent_obj=record)
-                self.emit_sub_stream_metrics(child)
 
 class CursorBasedExportStream(Stream):
     endpoint = None
@@ -304,22 +318,46 @@ class CursorBasedExportStream(Stream):
                     if isinstance(replication_value, str)
                     else replication_value
                 )
-                if replication_datetime >= bookmark_date:
-                    current_max_bookmark_date = max(
-                            current_max_bookmark_date, replication_datetime
-                        )
-                    if self.is_selected():
-                        yield (self.stream, record)
+            #     if replication_datetime >= bookmark_date:
+            #         current_max_bookmark_date = max(
+            #                 current_max_bookmark_date, replication_datetime
+            #             )
+            #         if self.is_selected():
+            #             yield (self.stream, record)
+            #     self.update_bookmark(state, current_max_bookmark_date.isoformat())
+            # elif self.replication_method == "FULL_TABLE":
+            #     if self.is_selected():
+            #         yield (self.stream, record)
+            # else:
+            #     raise ValueError(f"Unknown replication method: {self.replication_method}")
+
+            # for child in self.child_to_sync:
+            #     yield from child.sync(state=state, parent_obj=record)
+            #     self.emit_sub_stream_metrics(child)
+
+                if replication_datetime < bookmark_date:
+                    continue
+
+                current_max_bookmark_date = max(current_max_bookmark_date, replication_datetime)
                 self.update_bookmark(state, current_max_bookmark_date.isoformat())
+
+                if self.is_selected():
+                    self.count += 1
+                    yield (self.stream, record)
+
+                for child in self.child_to_sync:
+                    yield from child.sync(state=state, parent_obj=record)
+                    self.emit_sub_stream_metrics(child)
             elif self.replication_method == "FULL_TABLE":
                 if self.is_selected():
+                    self.count += 1
                     yield (self.stream, record)
+
+                for child in self.child_to_sync:
+                    yield from child.sync(state=state, parent_obj=record)
+                    self.emit_sub_stream_metrics(child)
             else:
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
-
-            for child in self.child_to_sync:
-                yield from child.sync(state=state, parent_obj=record)
-                self.emit_sub_stream_metrics(child)
 
 def raise_or_log_zenpy_apiexception(schema, stream, e):
     # There are multiple tiers of Zendesk accounts. Some of them have
@@ -376,9 +414,7 @@ class ParentChildBookmarkMixin:
         Write the bookmark value to the parent and all incremental children.
         """
         if self.is_selected():
-            current_bookmark = self.get_bookmark(state)
-            if value and utils.strptime_with_tz(value) > current_bookmark:
-                singer.update_bookmark(state, value=value)
+            super().update_bookmark(state, value=value)
 
         for child in self.child_to_sync:
             if not child.is_selected():
