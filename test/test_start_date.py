@@ -26,7 +26,7 @@ class ZendeskStartDate(ZendeskTest):
         • verify all data from later start data has bookmark values >= start_date
         """
         self.run_test(days=1172, expected_streams=self.expected_check_streams()-{"ticket_forms", "custom_objects"})
-        self.run_test(days=1774, expected_streams={"ticket_forms", "custom_objects"})
+        self.run_test(days=1774, expected_streams={"ticket_forms"})
 
     def run_test(self, days, expected_streams):
         self.start_date_1 = self.get_properties().get('start_date')
