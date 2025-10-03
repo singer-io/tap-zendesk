@@ -376,7 +376,9 @@ class ParentChildBookmarkMixin:
         Write the bookmark value to the parent and all incremental children.
         """
         if self.is_selected():
-            super().update_bookmark(state, value=value)
+            current_bookmark = self.get_bookmark(state)
+            if value and utils.strptime_with_tz(value) > current_bookmark:
+                singer.update_bookmark(state, value=value)
 
         for child in self.child_to_sync:
             if not child.is_selected():
