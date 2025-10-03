@@ -15,6 +15,6 @@ class SatisfactionRatings(PaginatedStream):
         Overriding Update params for the stream
         """
         state = kwargs.get("state")
-        bookmark = self.get_bookmark(state)
+        bookmark = self.get_bookmark(state, self.name)
         epoch_bookmark = int(bookmark.timestamp())
         self.params.update({'start_time': epoch_bookmark})

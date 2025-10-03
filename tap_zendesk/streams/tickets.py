@@ -31,7 +31,7 @@ class Tickets(CursorBasedExportStream):
 
     def sync(self, state, parent_obj: Dict = None): #pylint: disable=too-many-statements
 
-        bookmark = self.get_bookmark(state)
+        bookmark = self.get_bookmark(state, self.name)
 
         # Fetch tickets with side loaded metrics
         # https://developer.zendesk.com/documentation/ticketing/using-the-zendesk-api/side_loading/#supported-endpoints
@@ -56,7 +56,7 @@ class Tickets(CursorBasedExportStream):
 
             generated_timestamp_dt = datetime.fromtimestamp(ticket.get('generated_timestamp'), tz=timezone.utc).replace(tzinfo=pytz.UTC)
 
-            self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
+            self.update_bookmark(state, self.name, utils.strftime(generated_timestamp_dt))
 
             ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
             # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync

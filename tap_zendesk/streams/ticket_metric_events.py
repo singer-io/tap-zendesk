@@ -12,7 +12,7 @@ class TicketMetricEvents(Stream):
     count = 0
 
     def sync(self, state):
-        bookmark = self.get_bookmark(state)
+        bookmark = self.get_bookmark(state, self.name)
         start = bookmark - datetime.timedelta(seconds=1)
 
         epoch_start = int(utils.now().timestamp())
@@ -21,7 +21,7 @@ class TicketMetricEvents(Stream):
         for event in ticket_metric_events:
             self.count += 1
             if bookmark < utils.strptime_with_tz(event.time):
-                self.update_bookmark(state, event.time)
+                self.update_bookmark(state, self.name, event.time)
             if parsed_start <= event.time:
                 yield (self.stream, event)
 

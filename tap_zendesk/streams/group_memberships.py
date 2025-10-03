@@ -14,7 +14,7 @@ class GroupMemberships(PaginatedStream):
     pagination_type = "cursor"
 
     def sync(self, state, parent_obj: Dict = None):
-        bookmark = self.get_bookmark(state)
+        bookmark = self.get_bookmark(state, self.name)
         memberships = self.get_objects()
 
         for membership in memberships:
@@ -25,7 +25,7 @@ class GroupMemberships(PaginatedStream):
                     # NB: We don't trust that the records come back ordered by
                     # updated_at (we've observed out-of-order records),
                     # so we can't save state until we've seen all records
-                    self.update_bookmark(state, membership['updated_at'])
+                    self.update_bookmark(state, self.name, membership['updated_at'])
                     yield (self.stream, membership)
             else:
                 if membership['id']:

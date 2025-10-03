@@ -30,10 +30,10 @@ class Organizations(Stream):
         return schema
 
     def sync(self, state):
-        bookmark = self.get_bookmark(state)
+        bookmark = self.get_bookmark(state, self.name)
         organizations = self.client.organizations.incremental(start_time=bookmark)
         for organization in organizations:
-            self.update_bookmark(state, organization.updated_at)
+            self.update_bookmark(state, self.name, organization.updated_at)
             yield (self.stream, organization)
 
     def check_access(self):

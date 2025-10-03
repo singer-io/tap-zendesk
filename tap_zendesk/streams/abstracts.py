@@ -92,19 +92,25 @@ class Stream():
         else:
             self.page_size = DEFAULT_PAGE_SIZE
 
-    def get_bookmark(self, state, key: Any = None):
+    def get_bookmark(self, state, stream: str, key: Any = None):
         return utils.strptime_with_tz(
             singer.get_bookmark(
-                state, self.name,
+                state,
+                stream,
                 key or self.replication_key,
                 self.config["start_date"]
             )
         )
 
-    def update_bookmark(self, state, value, key: Any = None):
-        current_bookmark = self.get_bookmark(state)
+    def update_bookmark(self, state, stream: str, value, key: Any = None):
+        current_bookmark = self.get_bookmark(state, stream)
         if value and utils.strptime_with_tz(value) > current_bookmark:
-            singer.write_bookmark(state, self.name, key or self.replication_key, value)
+            singer.write_bookmark(
+                state,
+                stream,
+                key or self.replication_key,
+                value
+            )
 
     def load_schema(self):
         schema_file = os.path.join("..", "schemas", f"{self.name}.json")
@@ -235,7 +241,7 @@ class PaginatedStream(Stream):
         """
         Implementation for `type: Paginated` stream.
         """
-        bookmark_date = self.get_bookmark(state)
+        bookmark_date = self.get_bookmark(state, self.name)
         current_max_bookmark_date = bookmark_date
         self.update_params(state=state)
 
@@ -254,20 +260,11 @@ class PaginatedStream(Stream):
                     else replication_value
                 )
 
-                # if replication_datetime >= bookmark_date:
-                #     current_max_bookmark_date = max(
-                #         current_max_bookmark_date, replication_datetime
-                #     )
-                #     if self.is_selected():
-                #         self.count += 1
-                #         yield (self.stream, record)
-                #     self.update_bookmark(state, current_max_bookmark_date.isoformat())
-
                 if replication_datetime < bookmark_date:
                     continue
 
                 current_max_bookmark_date = max(current_max_bookmark_date, replication_datetime)
-                self.update_bookmark(state, current_max_bookmark_date.isoformat())
+                self.update_bookmark(state, self.name, current_max_bookmark_date.isoformat())
 
                 if self.is_selected():
                     self.count += 1
@@ -300,7 +297,7 @@ class CursorBasedExportStream(Stream):
             yield from page[self.item_key]
 
     def sync(self, state, parent_obj: Dict = None):
-        bookmark_date = self.get_bookmark(state)
+        bookmark_date = self.get_bookmark(state, self.name)
         current_max_bookmark_date = bookmark_date
         epoch_bookmark = int(bookmark_date.timestamp())
         records = self.get_objects(epoch_bookmark)
@@ -318,28 +315,12 @@ class CursorBasedExportStream(Stream):
                     if isinstance(replication_value, str)
                     else replication_value
                 )
-            #     if replication_datetime >= bookmark_date:
-            #         current_max_bookmark_date = max(
-            #                 current_max_bookmark_date, replication_datetime
-            #             )
-            #         if self.is_selected():
-            #             yield (self.stream, record)
-            #     self.update_bookmark(state, current_max_bookmark_date.isoformat())
-            # elif self.replication_method == "FULL_TABLE":
-            #     if self.is_selected():
-            #         yield (self.stream, record)
-            # else:
-            #     raise ValueError(f"Unknown replication method: {self.replication_method}")
-
-            # for child in self.child_to_sync:
-            #     yield from child.sync(state=state, parent_obj=record)
-            #     self.emit_sub_stream_metrics(child)
 
                 if replication_datetime < bookmark_date:
                     continue
 
                 current_max_bookmark_date = max(current_max_bookmark_date, replication_datetime)
-                self.update_bookmark(state, current_max_bookmark_date.isoformat())
+                self.update_bookmark(state, self.name, current_max_bookmark_date.isoformat())
 
                 if self.is_selected():
                     self.count += 1
@@ -386,12 +367,12 @@ class ParentChildBookmarkMixin:
     """
     Mixin to extend bookmark handling for streams with child streams.
     """
-    def get_bookmark(self, state: Dict) -> int:
+    def get_bookmark(self, state: Dict, stream: str) -> int:
         """
         Get the minimum bookmark value among the parent and its incremental children,
         excluding full-table replication children.
         """
-        min_parent_bookmark = super().get_bookmark(state) if self.is_selected() else ""
+        min_parent_bookmark = super().get_bookmark(state, stream) if self.is_selected() else ""
 
         for child in self.child_to_sync:
             if not child.is_selected():
@@ -400,7 +381,7 @@ class ParentChildBookmarkMixin:
                 continue
 
             bookmark_key = f"{self.name}_{self.replication_key}"
-            child_bookmark = super().get_bookmark(state, key=bookmark_key)
+            child_bookmark = super().get_bookmark(state, child.name, key=bookmark_key)
 
             if min_parent_bookmark:
                 min_parent_bookmark = min(min_parent_bookmark, child_bookmark)
@@ -409,12 +390,12 @@ class ParentChildBookmarkMixin:
 
         return min_parent_bookmark
 
-    def update_bookmark(self, state: Dict, value: Any = None) -> Dict:
+    def update_bookmark(self, state: Dict, stream: str, value: Any = None) -> Dict:
         """
         Write the bookmark value to the parent and all incremental children.
         """
         if self.is_selected():
-            super().update_bookmark(state, value=value)
+            super().update_bookmark(state, stream, value=value)
 
         for child in self.child_to_sync:
             if not child.is_selected():
@@ -422,6 +403,6 @@ class ParentChildBookmarkMixin:
             if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
                 continue
             bookmark_key = f"{self.name}_{self.replication_key}"
-            super().update_bookmark(state, value=value, key=bookmark_key)
+            super().update_bookmark(state, child.name, value=value, key=bookmark_key)
 
         return state
