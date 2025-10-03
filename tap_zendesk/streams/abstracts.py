@@ -304,11 +304,12 @@ class CursorBasedExportStream(Stream):
                     if isinstance(replication_value, str)
                     else replication_value
                 )
-                current_max_bookmark_date = max(
-                        current_max_bookmark_date, replication_datetime
-                    )
-                if self.is_selected():
-                    yield (self.stream, record)
+                if replication_datetime >= bookmark_date:
+                    current_max_bookmark_date = max(
+                            current_max_bookmark_date, replication_datetime
+                        )
+                    if self.is_selected():
+                        yield (self.stream, record)
                 self.update_bookmark(state, current_max_bookmark_date.isoformat())
             elif self.replication_method == "FULL_TABLE":
                 if self.is_selected():

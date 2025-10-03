@@ -25,7 +25,43 @@ class ZendeskStartDate(ZendeskTest):
         • verify that each stream has less records than the earlier start date sync
         • verify all data from later start data has bookmark values >= start_date
         """
-        self.run_test(days=1172, expected_streams=self.expected_check_streams()-{"ticket_forms", "custom_objects"})
+        # due to lack of test data
+        streams_to_exclude = {
+            "ticket_forms",
+            "account_attributes",
+            "activities",
+            "bookmarks",
+            "custom_objects",
+            "deleted_tickets",
+            "dynamic_content_items",
+            "job_statuses",
+            "macro_attachments",
+            "macro_categories",
+            "monitored_twitter_handles",
+            "organization_subscriptions",
+            "resource_collections",
+            "satisfaction_ratings",
+            "satisfaction_reasons",
+            "schedule_holidays",
+            "schedules",
+            "sessions",
+            "sharing_agreements",
+            "side_conversations",
+            "side_conversations_events",
+            "suspended_tickets",
+            "tags",
+            "talk_phone_numbers",
+            "target_failures",
+            "targets",
+            "ticket_metric_events",
+            "user_attribute_values",
+            "workspaces",
+            "locales",
+            "trigger_categories",
+            "deleted_users"
+        }
+
+        self.run_test(days=1172, expected_streams=self.expected_check_streams()-streams_to_exclude)
         self.run_test(days=1774, expected_streams={"ticket_forms"})
 
     def run_test(self, days, expected_streams):
