@@ -10,5 +10,5 @@ class Triggers(ParentChildBookmarkMixin, PaginatedStream):
     key_properties = ["id"]
     endpoint = 'triggers'
     item_key = 'triggers'
-    pagination_type = "cursor"
+    pagination_type = "offset"
     children = ['trigger_revisions']
