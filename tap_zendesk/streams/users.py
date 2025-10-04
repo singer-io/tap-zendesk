@@ -2,14 +2,14 @@ from datetime import datetime, timezone
 from zenpy.lib.exception import APIException
 from tap_zendesk.streams.abstracts import (
     CursorBasedExportStream,
-    ParentChildBookmarkMixin,
+    # ParentChildBookmarkMixin,
     process_custom_field,
     raise_or_log_zenpy_apiexception,
     START_DATE_FORMAT
 )
 
 
-class Users(ParentChildBookmarkMixin, CursorBasedExportStream):
+class Users(CursorBasedExportStream):
     name = "users"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"

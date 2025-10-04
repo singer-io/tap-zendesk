@@ -1,9 +1,9 @@
 from tap_zendesk.streams.abstracts import (
     PaginatedStream,
-    ParentChildBookmarkMixin
+    # ParentChildBookmarkMixin
 )
 
-class Triggers(ParentChildBookmarkMixin, PaginatedStream):
+class Triggers(PaginatedStream):
     name = "triggers"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
