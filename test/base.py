@@ -5,6 +5,8 @@ from datetime import datetime as dt, timezone
 from datetime import timedelta
 import dateutil.parser
 
+from singer import utils
+
 from tap_tester import connections, menagerie, runner, LOGGER
 from tap_tester.base_case import BaseCase as tt_base
 
@@ -55,7 +57,7 @@ class ZendeskTest(unittest.TestCase):
 
     def get_properties(self, original: bool = True):
         return_value = {
-            "start_date" : "2024-01-01T00:00:00Z",
+            "start_date" : "2025-01-01T00:00:00Z",
             "subdomain": "rjmdev",
             "marketplace_app_id": int(os.getenv("TAP_ZENDESK_MARKETPLACE_APP_ID")) or 0,
             "marketplace_name": os.getenv("TAP_ZENDESK_MARKETPLACE_NAME") or "",
@@ -659,7 +661,8 @@ class ZendeskTest(unittest.TestCase):
         a string formatted utc datetime,
         in order to compare aginast json formatted datetime values
         """
-        date_object = dateutil.parser.parse(date_str)
+        # date_object = dateutil.parser.parse(date_str)
+        date_object = utils.strptime_with_tz(date_str) if isinstance(date_str, str) else date_str
         if date_object.tzinfo != timezone.utc:
             date_object = date_object.astimezone(timezone.utc)
         return dt.strftime(date_object, "%Y-%m-%dT%H:%M:%SZ")
