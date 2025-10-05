@@ -256,8 +256,6 @@ class PaginatedStream(Stream):
         Implementation for `type: Paginated` stream.
         """
         bookmark_date = self.get_bookmark(state, self.name)
-        LOGGER.info("Start Date: %s - %s", {self.name}, {self.config.get("start_date")})
-        LOGGER.info("Get Bookmark for: %s - %s", {self.name}, {bookmark_date})
         current_max_bookmark_date = bookmark_date
         self.update_params(state=state)
 
@@ -299,7 +297,6 @@ class PaginatedStream(Stream):
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
 
         if self.replication_method == "INCREMENTAL":
-            LOGGER.info("Setting Bookmark for: %s - %s", self.name, current_max_bookmark_date)
             self.update_bookmark(state, self.name, current_max_bookmark_date)
 
 class CursorBasedExportStream(Stream):
@@ -316,7 +313,6 @@ class CursorBasedExportStream(Stream):
 
     def sync(self, state, parent_obj: Dict = None):
         bookmark_date = self.get_bookmark(state, self.name)
-        LOGGER.info("Get Bookmark for: %s - %s", self.name, bookmark_date)
         current_max_bookmark_date = bookmark_date
         epoch_bookmark = int(bookmark_date.timestamp())
         records = self.get_objects(epoch_bookmark)
@@ -357,7 +353,6 @@ class CursorBasedExportStream(Stream):
             else:
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
         if self.replication_method == "INCREMENTAL":
-            LOGGER.info("Setting Bookmark for: %s - %s", self.name, current_max_bookmark_date)
             self.update_bookmark(state, self.name, current_max_bookmark_date)
 
 def raise_or_log_zenpy_apiexception(schema, stream, e):
@@ -387,29 +382,6 @@ class ParentChildBookmarkMixin:
     """
     Mixin to extend bookmark handling for streams with child streams.
     """
-    # def get_bookmark(self, state: Dict, stream: str) -> int:
-    #     """
-    #     Get the minimum bookmark value among the parent and its incremental children,
-    #     excluding full-table replication children.
-    #     """
-    #     min_parent_bookmark = super().get_bookmark(state, stream) if self.is_selected() else ""
-
-    #     for child in self.child_to_sync:
-    #         if not child.is_selected():
-    #             continue
-    #         if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
-    #             continue
-
-    #         bookmark_key = f"{self.name}_{self.replication_key}"
-    #         child_bookmark = super().get_bookmark(state, child.name, key=bookmark_key)
-
-    #         if min_parent_bookmark:
-    #             min_parent_bookmark = min(min_parent_bookmark, child_bookmark)
-    #         else:
-    #             min_parent_bookmark = child_bookmark
-
-    #     return min_parent_bookmark
-
     def update_bookmark(self, state: Dict, stream: str, value: Any = None) -> Dict:
         """
         Write the bookmark value to the parent and all incremental children.
@@ -422,15 +394,6 @@ class ParentChildBookmarkMixin:
                 continue
             if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
                 continue
-
-            # parent_bookmark_key = f"{self.name}_{self.replication_key}"
-            # LOGGER.info("Parent Child Setting Bookmark for: %s - %s ",parent_bookmark_key, value)
-            # super().update_bookmark(
-            #     state,
-            #     stream=child.name,
-            #     value=value,
-            #     key=parent_bookmark_key
-            # )
 
             child_bookmarks = state.get("bookmarks", {}).get(child.name, {})
             if child.replication_key not in child_bookmarks:

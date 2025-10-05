@@ -1,10 +1,9 @@
 import unittest
 import os
 import backoff
-from datetime import datetime as dt
+from datetime import datetime as dt, timezone
 from datetime import timedelta
 import dateutil.parser
-import pytz
 
 from tap_tester import connections, menagerie, runner, LOGGER
 from tap_tester.base_case import BaseCase as tt_base
@@ -661,8 +660,9 @@ class ZendeskTest(unittest.TestCase):
         in order to compare aginast json formatted datetime values
         """
         date_object = dateutil.parser.parse(date_str)
-        date_object_utc = date_object.astimezone(tz=pytz.UTC)
-        return dt.strftime(date_object_utc, "%Y-%m-%dT%H:%M:%SZ")
+        if date_object.tzinfo != timezone.utc:
+            date_object = date_object.astimezone(timezone.utc)
+        return dt.strftime(date_object, "%Y-%m-%dT%H:%M:%SZ")
 
     def max_bookmarks_by_stream(self, sync_records):
         """

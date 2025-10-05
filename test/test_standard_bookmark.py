@@ -57,7 +57,19 @@ class ZendeskBookMark(ZendeskTest):
             "targets",
             "ticket_metric_events",
             "user_attribute_values",
-            "workspaces"
+            "workspaces",
+            "brands",
+            "ticket_skips",
+            "groups",
+            "user_identities",
+            "views",
+            "automations",
+            "custom_roles",
+            "recipient_addresses",
+            "trigger_categories",
+            "organization_memberships",
+            "macros",
+            "ticket_fields"
         }
         expected_streams = self.expected_check_streams() - streams_to_exclude
         expected_replication_keys = self.expected_replication_keys()
