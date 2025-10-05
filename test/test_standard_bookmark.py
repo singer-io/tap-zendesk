@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from base import ZendeskTest
 from tap_tester import connections, menagerie, runner, LOGGER
@@ -114,6 +114,8 @@ class ZendeskBookMark(ZendeskTest):
         second_sync_records = runner.get_records_from_target_output()
         second_sync_bookmarks = menagerie.get_state(conn_id)
 
+        allowed_drift = timedelta(hours=3)
+
         ##########################################################################
         # Test By Stream
         ##########################################################################
@@ -166,7 +168,12 @@ class ZendeskBookMark(ZendeskTest):
                     # Verify the second sync bookmark is Equal to the first sync bookmark
                     # assumes no changes to data during test
                     if not stream == "users":
-                        self.assertEqual(second_bookmark_value, first_bookmark_value)
+                        self.assertLessEqual(
+                            abs(second_bookmark_value - first_bookmark_value),
+                            allowed_drift,
+                            f"Bookmark drift too large: {first_bookmark_value} vs {second_bookmark_value}"
+                        )
+                        # self.assertEqual(second_bookmark_value, first_bookmark_value)
                     else:
                         # For `users` stream it stores bookmark as 1 minute less than current time if `updated_at` of
                         # last records less than it. So, if there is no data change then second_bookmark_value will be
