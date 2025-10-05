@@ -1,9 +1,9 @@
 from tap_zendesk.streams.abstracts import (
-    PaginatedStream
+    PaginatedStream, ChildBookmarkMixin
 )
 from tap_zendesk.streams.users import UserSubStreamMixin
 
-class UserIdentities(UserSubStreamMixin, PaginatedStream):
+class UserIdentities(UserSubStreamMixin, ChildBookmarkMixin, PaginatedStream):
     name = "user_identities"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
@@ -12,3 +12,4 @@ class UserIdentities(UserSubStreamMixin, PaginatedStream):
     item_key = 'identities'
     pagination_type = "cursor"
     parent = "users"
+    bookmark_value = None

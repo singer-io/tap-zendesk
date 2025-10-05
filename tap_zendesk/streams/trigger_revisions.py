@@ -1,8 +1,9 @@
 from tap_zendesk.streams.abstracts import (
-    PaginatedStream
+    PaginatedStream,
+    ChildBookmarkMixin
 )
 
-class TriggerRevisions(PaginatedStream):
+class TriggerRevisions(ChildBookmarkMixin, PaginatedStream):
     name = "trigger_revisions"
     replication_method = "INCREMENTAL"
     replication_key = "created_at"
@@ -11,6 +12,7 @@ class TriggerRevisions(PaginatedStream):
     item_key = 'trigger_revisions'
     pagination_type = "offset"
     parent = "triggers"
+    bookmark_value = None
 
     def check_access(self):
         '''

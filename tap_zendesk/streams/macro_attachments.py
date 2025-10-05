@@ -1,8 +1,8 @@
 from tap_zendesk.streams.abstracts import (
-    PaginatedStream
+    PaginatedStream, ChildBookmarkMixin
 )
 
-class MacroAttachments(PaginatedStream):
+class MacroAttachments(ChildBookmarkMixin, PaginatedStream):
     name = "macro_attachments"
     replication_method = "FULL_TABLE"
     key_properties = ["id"]
@@ -10,6 +10,7 @@ class MacroAttachments(PaginatedStream):
     item_key = 'actions'
     pagination_type = "offset"
     parent = 'macros'
+    bookmark_value = None
 
     def check_access(self):
         '''

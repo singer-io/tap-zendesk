@@ -1,9 +1,10 @@
 from tap_zendesk.streams.abstracts import (
-    PaginatedStream
+    PaginatedStream,
+    ChildBookmarkMixin
 )
 from tap_zendesk.streams.users import UserSubStreamMixin
 
-class UserAttributeValues(UserSubStreamMixin, PaginatedStream):
+class UserAttributeValues(UserSubStreamMixin, ChildBookmarkMixin, PaginatedStream):
     name = "user_attribute_values"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
@@ -12,6 +13,7 @@ class UserAttributeValues(UserSubStreamMixin, PaginatedStream):
     item_key = 'attribute_values'
     pagination_type = "offset"
     parent = "users"
+    bookmark_value = None
 
     def modify_object(self, record, **_kwargs):
         """

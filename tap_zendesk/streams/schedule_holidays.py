@@ -1,8 +1,9 @@
 from tap_zendesk.streams.abstracts import (
-    PaginatedStream
+    PaginatedStream,
+    ChildBookmarkMixin
 )
 
-class ScheduleHolidays(PaginatedStream):
+class ScheduleHolidays(ChildBookmarkMixin, PaginatedStream):
     name = "schedule_holidays"
     replication_method = "INCREMENTAL"
     replication_key = "start_date"
@@ -11,6 +12,7 @@ class ScheduleHolidays(PaginatedStream):
     item_key = 'schedules'
     pagination_type = "offset"
     parent = 'schedules'
+    bookmark_value = None
 
     def check_access(self):
         '''

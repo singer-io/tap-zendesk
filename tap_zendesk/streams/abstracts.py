@@ -103,7 +103,14 @@ class Stream():
         )
 
     def update_bookmark(self, state, stream: str, value, key: Any = None):
-        current_bookmark = self.get_bookmark(state, stream)
+        current_bookmark = utils.strptime_with_tz(
+            singer.get_bookmark(
+                state,
+                stream,
+                key or self.replication_key,
+                self.config["start_date"]
+            )
+        )
         value_dt = utils.strptime_with_tz(value) if isinstance(value, str) else value
         current_dt = utils.strptime_with_tz(current_bookmark) if isinstance(current_bookmark, str) else current_bookmark
         value = max(current_dt, value_dt)
@@ -244,6 +251,8 @@ class PaginatedStream(Stream):
         Implementation for `type: Paginated` stream.
         """
         bookmark_date = self.get_bookmark(state, self.name)
+        LOGGER.info("Start Date: %s - %s", {self.name}, {self.config.get("start_date")})
+        LOGGER.info("Get Bookmark for: %s - %s", {self.name}, {bookmark_date})
         current_max_bookmark_date = bookmark_date
         self.update_params(state=state)
 
@@ -285,6 +294,7 @@ class PaginatedStream(Stream):
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
 
         if self.replication_method == "INCREMENTAL":
+            LOGGER.info("Setting Bookmark for: %s - %s", self.name, current_max_bookmark_date.isoformat())
             self.update_bookmark(state, self.name, current_max_bookmark_date.isoformat())
 
 class CursorBasedExportStream(Stream):
@@ -301,6 +311,7 @@ class CursorBasedExportStream(Stream):
 
     def sync(self, state, parent_obj: Dict = None):
         bookmark_date = self.get_bookmark(state, self.name)
+        LOGGER.info("Get Bookmark for: %s - %s", self.name, bookmark_date)
         current_max_bookmark_date = bookmark_date
         epoch_bookmark = int(bookmark_date.timestamp())
         records = self.get_objects(epoch_bookmark)
@@ -341,6 +352,7 @@ class CursorBasedExportStream(Stream):
             else:
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
         if self.replication_method == "INCREMENTAL":
+            LOGGER.info("Setting Bookmark for: %s - %s", self.name, current_max_bookmark_date.isoformat())
             self.update_bookmark(state, self.name, current_max_bookmark_date.isoformat())
 
 def raise_or_log_zenpy_apiexception(schema, stream, e):
@@ -407,6 +419,7 @@ class ParentChildBookmarkMixin:
                 continue
 
             parent_bookmark_key = f"{self.name}_{self.replication_key}"
+            LOGGER.info("Parent Child Setting Bookmark for: %s - %s ",parent_bookmark_key, value)
             super().update_bookmark(
                 state,
                 stream=child.name,
@@ -424,3 +437,13 @@ class ParentChildBookmarkMixin:
                 )
 
         return state
+
+class ChildBookmarkMixin:
+    def get_bookmark(self, state: Dict, stream: Any = None) -> int:
+        """
+        Return initial bookmark value only for the child stream.
+        """
+        if not self.bookmark_value:
+            self.bookmark_value = super().get_bookmark(state, stream)
+
+        return self.bookmark_value

@@ -56,7 +56,7 @@ class ZendeskTest(unittest.TestCase):
 
     def get_properties(self, original: bool = True):
         return_value = {
-            "start_date" : "2017-01-01T00:00:00Z",
+            "start_date" : "2024-01-01T00:00:00Z",
             "subdomain": "rjmdev",
             "marketplace_app_id": int(os.getenv("TAP_ZENDESK_MARKETPLACE_APP_ID")) or 0,
             "marketplace_name": os.getenv("TAP_ZENDESK_MARKETPLACE_NAME") or "",

@@ -155,8 +155,6 @@ class ZendeskBookMark(ZendeskTest):
                     # assumes no changes to data during test
                     if not stream == "users":
                         self.assertEqual(second_bookmark_value, first_bookmark_value)
-                    elif stream == "user_identities":
-                        self.assertLessEqual(second_bookmark_value, first_bookmark_value)
                     else:
                         # For `users` stream it stores bookmark as 1 minute less than current time if `updated_at` of
                         # last records less than it. So, if there is no data change then second_bookmark_value will be
