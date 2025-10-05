@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import timezone
 from typing import Dict, Any
 from urllib.parse import urljoin
 from zenpy.lib.exception import APIException
@@ -93,7 +94,7 @@ class Stream():
             self.page_size = DEFAULT_PAGE_SIZE
 
     def get_bookmark(self, state, stream: str, key: Any = None):
-        current_bookmark = utils.strptime_with_tz(
+        return utils.strptime_with_tz(
             singer.get_bookmark(
                 state,
                 stream,
@@ -101,11 +102,6 @@ class Stream():
                 self.config["start_date"]
             )
         )
-        start_date = self.config.get("start_date")
-        value_dt = utils.strptime_with_tz(start_date) if isinstance(start_date, str) else start_date
-        current_dt = utils.strptime_with_tz(current_bookmark) if isinstance(current_bookmark, str) else current_bookmark
-        value = max(current_dt, value_dt)
-        return value
 
     def update_bookmark(self, state, stream: str, value, key: Any = None):
         current_bookmark = utils.strptime_with_tz(
@@ -118,13 +114,16 @@ class Stream():
         )
         value_dt = utils.strptime_with_tz(value) if isinstance(value, str) else value
         current_dt = utils.strptime_with_tz(current_bookmark) if isinstance(current_bookmark, str) else current_bookmark
-        LOGGER.info("In Update bookmark: %s - %s", value_dt, current_dt)
         value = max(current_dt, value_dt)
+        if value.tzinfo != timezone.utc:
+            value = value.astimezone(timezone.utc)
+
+        formatted_value = value.strftime('%Y-%m-%dT%H:%M:%SZ')
         singer.write_bookmark(
             state,
             stream,
             key or self.replication_key,
-            value.isoformat()
+            formatted_value
         )
 
     def load_schema(self):
@@ -300,8 +299,8 @@ class PaginatedStream(Stream):
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
 
         if self.replication_method == "INCREMENTAL":
-            LOGGER.info("Setting Bookmark for: %s - %s", self.name, current_max_bookmark_date.isoformat())
-            self.update_bookmark(state, self.name, current_max_bookmark_date.isoformat())
+            LOGGER.info("Setting Bookmark for: %s - %s", self.name, current_max_bookmark_date)
+            self.update_bookmark(state, self.name, current_max_bookmark_date)
 
 class CursorBasedExportStream(Stream):
     endpoint = None
@@ -358,8 +357,8 @@ class CursorBasedExportStream(Stream):
             else:
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
         if self.replication_method == "INCREMENTAL":
-            LOGGER.info("Setting Bookmark for: %s - %s", self.name, current_max_bookmark_date.isoformat())
-            self.update_bookmark(state, self.name, current_max_bookmark_date.isoformat())
+            LOGGER.info("Setting Bookmark for: %s - %s", self.name, current_max_bookmark_date)
+            self.update_bookmark(state, self.name, current_max_bookmark_date)
 
 def raise_or_log_zenpy_apiexception(schema, stream, e):
     # There are multiple tiers of Zendesk accounts. Some of them have
