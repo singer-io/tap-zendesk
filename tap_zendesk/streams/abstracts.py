@@ -93,7 +93,7 @@ class Stream():
             self.page_size = DEFAULT_PAGE_SIZE
 
     def get_bookmark(self, state, stream: str, key: Any = None):
-        return utils.strptime_with_tz(
+        current_bookmark = utils.strptime_with_tz(
             singer.get_bookmark(
                 state,
                 stream,
@@ -101,6 +101,11 @@ class Stream():
                 self.config["start_date"]
             )
         )
+        start_date = self.config.get("start_date")
+        value_dt = utils.strptime_with_tz(start_date) if isinstance(start_date, str) else start_date
+        current_dt = utils.strptime_with_tz(current_bookmark) if isinstance(current_bookmark, str) else current_bookmark
+        value = max(current_dt, value_dt)
+        return value
 
     def update_bookmark(self, state, stream: str, value, key: Any = None):
         current_bookmark = utils.strptime_with_tz(
@@ -113,6 +118,7 @@ class Stream():
         )
         value_dt = utils.strptime_with_tz(value) if isinstance(value, str) else value
         current_dt = utils.strptime_with_tz(current_bookmark) if isinstance(current_bookmark, str) else current_bookmark
+        LOGGER.info("In Update bookmark: %s - %s", value_dt, current_dt)
         value = max(current_dt, value_dt)
         singer.write_bookmark(
             state,
@@ -382,28 +388,28 @@ class ParentChildBookmarkMixin:
     """
     Mixin to extend bookmark handling for streams with child streams.
     """
-    def get_bookmark(self, state: Dict, stream: str) -> int:
-        """
-        Get the minimum bookmark value among the parent and its incremental children,
-        excluding full-table replication children.
-        """
-        min_parent_bookmark = super().get_bookmark(state, stream) if self.is_selected() else ""
+    # def get_bookmark(self, state: Dict, stream: str) -> int:
+    #     """
+    #     Get the minimum bookmark value among the parent and its incremental children,
+    #     excluding full-table replication children.
+    #     """
+    #     min_parent_bookmark = super().get_bookmark(state, stream) if self.is_selected() else ""
 
-        for child in self.child_to_sync:
-            if not child.is_selected():
-                continue
-            if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
-                continue
+    #     for child in self.child_to_sync:
+    #         if not child.is_selected():
+    #             continue
+    #         if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
+    #             continue
 
-            bookmark_key = f"{self.name}_{self.replication_key}"
-            child_bookmark = super().get_bookmark(state, child.name, key=bookmark_key)
+    #         bookmark_key = f"{self.name}_{self.replication_key}"
+    #         child_bookmark = super().get_bookmark(state, child.name, key=bookmark_key)
 
-            if min_parent_bookmark:
-                min_parent_bookmark = min(min_parent_bookmark, child_bookmark)
-            else:
-                min_parent_bookmark = child_bookmark
+    #         if min_parent_bookmark:
+    #             min_parent_bookmark = min(min_parent_bookmark, child_bookmark)
+    #         else:
+    #             min_parent_bookmark = child_bookmark
 
-        return min_parent_bookmark
+    #     return min_parent_bookmark
 
     def update_bookmark(self, state: Dict, stream: str, value: Any = None) -> Dict:
         """
@@ -418,14 +424,14 @@ class ParentChildBookmarkMixin:
             if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
                 continue
 
-            parent_bookmark_key = f"{self.name}_{self.replication_key}"
-            LOGGER.info("Parent Child Setting Bookmark for: %s - %s ",parent_bookmark_key, value)
-            super().update_bookmark(
-                state,
-                stream=child.name,
-                value=value,
-                key=parent_bookmark_key
-            )
+            # parent_bookmark_key = f"{self.name}_{self.replication_key}"
+            # LOGGER.info("Parent Child Setting Bookmark for: %s - %s ",parent_bookmark_key, value)
+            # super().update_bookmark(
+            #     state,
+            #     stream=child.name,
+            #     value=value,
+            #     key=parent_bookmark_key
+            # )
 
             child_bookmarks = state.get("bookmarks", {}).get(child.name, {})
             if child.replication_key not in child_bookmarks:
