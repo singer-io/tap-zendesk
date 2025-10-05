@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from dateutil.parser import isoparse
 
 from base import ZendeskTest
 from tap_tester import connections, menagerie, runner, LOGGER
@@ -164,12 +165,14 @@ class ZendeskBookMark(ZendeskTest):
                     # Verify the second sync sets a bookmark of the expected form
                     self.assertIsNotNone(second_bookmark_key_value)
                     self.assertIsNotNone(second_bookmark_value)
+                    first_bookmark_dt = isoparse(first_bookmark_value)
+                    second_bookmark_dt = isoparse(second_bookmark_value)
 
                     # Verify the second sync bookmark is Equal to the first sync bookmark
                     # assumes no changes to data during test
                     if not stream == "users":
                         self.assertLessEqual(
-                            abs(second_bookmark_value - first_bookmark_value),
+                            abs(second_bookmark_dt - first_bookmark_dt),
                             allowed_drift,
                             f"Bookmark drift too large: {first_bookmark_value} vs {second_bookmark_value}"
                         )
