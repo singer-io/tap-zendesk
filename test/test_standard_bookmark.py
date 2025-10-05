@@ -70,7 +70,10 @@ class ZendeskBookMark(ZendeskTest):
             "trigger_categories",
             "organization_memberships",
             "macros",
-            "ticket_fields"
+            "ticket_fields",
+            "group_memberships",
+            "ticket_forms",
+            "support_requests"
         }
         expected_streams = self.expected_check_streams() - streams_to_exclude
         expected_replication_keys = self.expected_replication_keys()
@@ -176,7 +179,6 @@ class ZendeskBookMark(ZendeskTest):
                             allowed_drift,
                             f"Bookmark drift too large: {first_bookmark_value} vs {second_bookmark_value}"
                         )
-                        # self.assertEqual(second_bookmark_value, first_bookmark_value)
                     else:
                         # For `users` stream it stores bookmark as 1 minute less than current time if `updated_at` of
                         # last records less than it. So, if there is no data change then second_bookmark_value will be
