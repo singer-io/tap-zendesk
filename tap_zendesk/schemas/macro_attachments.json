@@ -1,0 +1,48 @@
+{
+    "type": "object",
+    "properties": {
+        "content_type": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "content_url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "filename": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "macro_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "size": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        }
+    }
+}

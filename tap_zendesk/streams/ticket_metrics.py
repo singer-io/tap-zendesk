@@ -8,6 +8,7 @@ class TicketMetrics(PaginatedStream):
     replication_method = "INCREMENTAL"
     count = 0
     pagination_type = "cursor"
+    parent = 'tickets'
 
     def check_access(self):
         '''

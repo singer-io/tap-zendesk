@@ -2,7 +2,6 @@ from tap_zendesk.streams.abstracts import (
     PaginatedStream
 )
 
-
 class Groups(PaginatedStream):
     name = "groups"
     replication_method = "INCREMENTAL"
