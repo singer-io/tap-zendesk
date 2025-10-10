@@ -204,6 +204,7 @@ class TestASyncTicketAudits(unittest.TestCase):
 
         # Create an instance of the Tickets class
         instance = streams.Tickets(None, {})
+        instance.is_selected = MagicMock(return_value=True)
         audits_stream = streams.TicketAudits(None, {})
         comments_stream = streams.TicketComments(None, {})
         instance.audits_stream = audits_stream
@@ -248,22 +249,30 @@ class TestASyncTicketAudits(unittest.TestCase):
             {"id": 3, "generated_timestamp": 1672531200, "fields": "duplicate", "status": "deleted"},
             {"id": 4, "generated_timestamp": 1672531300, "fields": "duplicate"}
         ]
+
         mock_get_bookmark.return_value = bookmark
         mock_get_objects.return_value = tickets
         mock_is_selected.return_value = True
         streams.tickets.AUDITS_REQUEST_PER_MINUTE = 4
         streams.tickets.CONCURRENCY_LIMIT = 2
+        config = {
+            'start_date': '2024-01-01T00:00:00Z',
+            'subdomain': 'dummy',
+            'access_token': 'dummy token'
+        }
 
         # Create an instance of the Tickets class
-        instance = streams.Tickets(None, {})
+        instance = streams.Tickets(None, config)
+        instance.is_selected = MagicMock(return_value=True)
         instance.emit_sub_stream_metrics = MagicMock(return_value=None)
         instance.sync_ticket_audits_and_comments = MagicMock(return_value=[
             (['audit1', 'audit2'], ['comment1', 'comment2']),
             (['audit3'], ['comment3']),
         ])
 
-        # Run the sync method
-        result = list(instance.sync(state))
+        with patch("tap_zendesk.streams.side_conversations.SideConversations.sync", return_value=[]):
+            # Run the sync method
+            result = list(instance.sync(state))
 
         # Assertions
         self.assertEqual(mock_write_state.call_count, 2)
@@ -313,16 +322,21 @@ class TestASyncTicketAudits(unittest.TestCase):
         mock_is_selected.return_value = True
         streams.tickets.CONCURRENCY_LIMIT = 2
         streams.tickets.AUDITS_REQUEST_PER_MINUTE = 4
+        config = {
+            'start_date': '2024-01-01T00:00:00Z',
+            'subdomain': '34',
+            'access_token': 'df'
+        }
         # Create an instance of the Tickets class
-        instance = streams.Tickets(None, {})
+        instance = streams.Tickets(None, config)
         instance.emit_sub_stream_metrics = MagicMock(return_value=None)
         instance.sync_ticket_audits_and_comments = MagicMock(return_value=[
             (['audit1', 'audit2'], ['comment1', 'comment2']),
             (['audit3', 'audit4'], ['comment3', 'comment4']),
         ])
 
-        # Run the sync method
-        result = list(instance.sync(state))
+        with patch("tap_zendesk.streams.side_conversations.SideConversations.sync", return_value=[]):
+            result = list(instance.sync(state))
 
         # Assertions
         self.assertEqual(mock_write_state.call_count, 5)

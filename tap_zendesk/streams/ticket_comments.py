@@ -5,6 +5,7 @@ class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
     count = 0
+    parent = 'tickets'
 
     def check_access(self):
         '''

@@ -1,20 +1,21 @@
 from datetime import datetime, timezone
-import singer
 from zenpy.lib.exception import APIException
 from tap_zendesk.streams.abstracts import (
     CursorBasedExportStream,
+    ParentChildBookmarkMixin,
     process_custom_field,
     raise_or_log_zenpy_apiexception,
     START_DATE_FORMAT
 )
 
 
-class Users(CursorBasedExportStream):
+class Users(ParentChildBookmarkMixin, CursorBasedExportStream):
     name = "users"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
     item_key = "users"
     endpoint = "incremental/users/cursor.json"
+    children = ['user_identities', 'user_attribute_values']
 
     def _add_custom_fields(self, schema):
         try:
@@ -27,17 +28,6 @@ class Users(CursorBasedExportStream):
 
         return schema
 
-    def sync(self, state):
-        bookmark = self.get_bookmark(state)
-        epoch_bookmark = int(bookmark.timestamp())
-        users = self.get_objects(epoch_bookmark)
-
-        for user in users:
-            self.update_bookmark(state, user["updated_at"])
-            yield (self.stream, user)
-
-        singer.write_state(state)
-
     def check_access(self):
         '''
         Check whether the permission was given to access stream resources or not.
@@ -46,3 +36,29 @@ class Users(CursorBasedExportStream):
         # Because API will return records from now which will be very less
         start_time = datetime.now(timezone.utc).strftime(START_DATE_FORMAT)
         self.client.search("", updated_after=start_time, updated_before='2000-01-02T00:00:00Z', type="user")
+
+
+class UserSubStreamMixin:
+    def check_access(self):
+        """
+        No-op because access is implicitly granted via parent stream.
+        """
+        return
+
+    def get_stream_endpoint(self, **kwargs) -> str:
+        """
+        Build the full API URL using the user ID from parent object.
+        """
+        parent_record = kwargs.get("parent_obj", {})
+        user_id = parent_record.get("id")
+        if user_id:
+            kwargs["user_id"] = user_id
+
+        return super().get_stream_endpoint(**kwargs)
+
+    def get_objects(self, **kwargs):
+        parent_obj = kwargs.get('parent_obj', {})
+        if parent_obj.get("verified", False):
+            yield from super().get_objects(**kwargs)
+        else:
+            yield from []

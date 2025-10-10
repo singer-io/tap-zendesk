@@ -14,6 +14,7 @@ class TicketAudits(Stream):
     count = 0
     endpoint='tickets/{ticket_id}/audits.json'
     item_key='audits'
+    parent = 'tickets'
 
     async def sync_in_bulk(self, ticket_ids, comments_stream):
         """

@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 import time
 import asyncio
+from typing import Dict
 import pytz
 import singer
 from singer import utils
-from singer.metrics import Point
 from tap_zendesk import http
 from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk.streams.abstracts import (
@@ -18,6 +18,7 @@ from tap_zendesk.streams.abstracts import (
 from tap_zendesk.streams.ticket_audits import TicketAudits
 from tap_zendesk.streams.ticket_metrics import TicketMetrics
 from tap_zendesk.streams.ticket_comments import TicketComments
+from tap_zendesk.streams.side_conversations import SideConversations
 
 
 class Tickets(CursorBasedExportStream):
@@ -26,18 +27,11 @@ class Tickets(CursorBasedExportStream):
     replication_key = "generated_timestamp"
     item_key = "tickets"
     endpoint = "incremental/tickets/cursor.json"
+    children = ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'side_conversations']
 
-    def emit_sub_stream_metrics(self, sub_stream):
-        if sub_stream.is_selected():
-            singer.metrics.log(LOGGER, Point(metric_type='counter',
-                                                metric=singer.metrics.Metric.record_count,
-                                                value=sub_stream.count,
-                                                tags={'endpoint':sub_stream.stream.tap_stream_id}))
-            sub_stream.count = 0
+    def sync(self, state, parent_obj: Dict = None): #pylint: disable=too-many-statements
 
-    def sync(self, state): #pylint: disable=too-many-statements
-
-        bookmark = self.get_bookmark(state)
+        bookmark = self.get_bookmark(state, self.name)
 
         # Fetch tickets with side loaded metrics
         # https://developer.zendesk.com/documentation/ticketing/using-the-zendesk-api/side_loading/#supported-endpoints
@@ -46,9 +40,13 @@ class Tickets(CursorBasedExportStream):
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
         comments_stream = TicketComments(self.client, self.config)
+        side_conversations_stream = SideConversations(self.client, self.config)
 
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
+
+        if side_conversations_stream.is_selected():
+            LOGGER.info("Syncing side_conversations_stream per ticket...")
 
         ticket_ids = []
         counter = 0
@@ -58,11 +56,12 @@ class Tickets(CursorBasedExportStream):
 
             generated_timestamp_dt = datetime.fromtimestamp(ticket.get('generated_timestamp'), tz=timezone.utc).replace(tzinfo=pytz.UTC)
 
-            self.update_bookmark(state, utils.strftime(generated_timestamp_dt))
+            self.update_bookmark(state, self.name, utils.strftime(generated_timestamp_dt))
 
             ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
             # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
-            yield (self.stream, ticket)
+            if self.is_selected():
+                yield (self.stream, ticket)
 
             # Skip deleted tickets because they don't have audits or comments
             if ticket.get('status') == 'deleted':
@@ -72,6 +71,9 @@ class Tickets(CursorBasedExportStream):
                 zendesk_metrics.capture('ticket_metric')
                 metrics_stream.count+=1
                 yield (metrics_stream.stream, ticket["metric_set"])
+
+            if side_conversations_stream.is_selected():
+                yield from side_conversations_stream.sync(state=state, parent_obj=ticket)
 
             # Check if the number of ticket IDs has reached the batch size.
             ticket_ids.append(ticket["id"])
@@ -115,6 +117,7 @@ class Tickets(CursorBasedExportStream):
         self.emit_sub_stream_metrics(audits_stream)
         self.emit_sub_stream_metrics(metrics_stream)
         self.emit_sub_stream_metrics(comments_stream)
+        self.emit_sub_stream_metrics(side_conversations_stream)
         singer.write_state(state)
 
     def sync_ticket_audits_and_comments(self, comments_stream, audits_stream, ticket_ids):

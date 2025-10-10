@@ -173,6 +173,257 @@ class ZendeskTest(unittest.TestCase):
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
                 self.OBEYS_START_DATE: False
+            },
+            "account_attributes": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "account_attribute_definitions": {
+                self.PRIMARY_KEYS: set(),
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
+            },
+            "activities": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "audit_logs": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"created_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "automations": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "bookmarks": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"created_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "brands": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "custom_objects": {
+                self.PRIMARY_KEYS: {"key"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "custom_roles": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "deleted_tickets": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"deleted_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "deleted_users": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "dynamic_content_items": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "job_statuses": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
+            },
+            "locales": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "macro_actions": {
+                self.PRIMARY_KEYS: {"field"},
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
+            },
+            "macro_attachments": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
+            },
+            "macro_categories": {
+                self.PRIMARY_KEYS: {"name"},
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: True
+            },
+            "macro_definitions": {
+                self.PRIMARY_KEYS: {"subject"},
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
+            },
+            "monitored_twitter_handles": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "organization_memberships": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "organization_subscriptions": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"created_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "recipient_addresses": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "support_requests": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "resource_collections": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "satisfaction_reasons": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "schedules": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "schedule_holidays": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"start_date"},
+                self.OBEYS_START_DATE: True
+            },
+            "sessions": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"last_seen_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "sharing_agreements": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "side_conversations": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "side_conversations_events": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"created_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "suspended_tickets": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "targets": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
+            },
+            "target_failures": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"created_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "incremental_ticket_events": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"created_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "ticket_skips": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "trigger_categories": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "triggers": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "trigger_revisions": {
+                self.PRIMARY_KEYS: {"id", "trigger_id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"created_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "user_attribute_values": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "user_identities": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "views": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "workspaces": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated_at"},
+                self.OBEYS_START_DATE: True
             }
         }
 

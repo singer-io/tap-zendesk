@@ -26,6 +26,8 @@ class ZendeskAllStreams(ZendeskTest):
             "satisfaction_ratings",
             "tags",
             "ticket_metrics",
+            "incremental_ticket_events",
+            "views"
         }
 
 
@@ -42,6 +44,8 @@ class ZendeskAllStreams(ZendeskTest):
             "satisfaction_ratings": {"id"},
             "tags": {"name"},
             "ticket_metrics": {"id"},
+            "incremental_ticket_events": {"id"},
+            "views": {"id"}
         }
 
 
