@@ -1,10 +1,15 @@
 import os
 import json
+from datetime import timezone
+from typing import Dict, Any
 from urllib.parse import urljoin
 from zenpy.lib.exception import APIException
 import singer
-from singer import metadata
-from singer import utils
+from singer import (
+    metadata,
+    utils
+)
+from singer.metrics import Point
 from tap_zendesk import http
 
 
@@ -61,12 +66,16 @@ class Stream():
     endpoint = None
     request_timeout = None
     page_size = None
+    parent = ""
+    children = []
+    count = 0
 
     def __init__(self, client=None, config=None):
         self.client = client
         self.config = config
         self.metadata = None
         self.params = {}
+        self.child_to_sync = []
         # Set and pass request timeout to config param `request_timeout` value.
         config_request_timeout = self.config.get('request_timeout')
         if config_request_timeout and float(config_request_timeout):
@@ -84,13 +93,38 @@ class Stream():
         else:
             self.page_size = DEFAULT_PAGE_SIZE
 
-    def get_bookmark(self, state):
-        return utils.strptime_with_tz(singer.get_bookmark(state, self.name, self.replication_key))
+    def get_bookmark(self, state, stream: str, key: Any = None):
+        return utils.strptime_with_tz(
+            singer.get_bookmark(
+                state,
+                stream,
+                key or self.replication_key,
+                self.config["start_date"]
+            )
+        )
 
-    def update_bookmark(self, state, value):
-        current_bookmark = self.get_bookmark(state)
-        if value and utils.strptime_with_tz(value) > current_bookmark:
-            singer.write_bookmark(state, self.name, self.replication_key, value)
+    def update_bookmark(self, state, stream: str, value, key: Any = None):
+        current_bookmark = utils.strptime_with_tz(
+            singer.get_bookmark(
+                state,
+                stream,
+                key or self.replication_key,
+                self.config["start_date"]
+            )
+        )
+        value_dt = utils.strptime_with_tz(value) if isinstance(value, str) else value
+        current_dt = utils.strptime_with_tz(current_bookmark) if isinstance(current_bookmark, str) else current_bookmark
+        value = max(current_dt, value_dt)
+        if value.tzinfo != timezone.utc:
+            value = value.astimezone(timezone.utc)
+
+        formatted_value = value.strftime('%Y-%m-%dT%H:%M:%SZ')
+        singer.write_bookmark(
+            state,
+            stream,
+            key or self.replication_key,
+            formatted_value
+        )
 
     def load_schema(self):
         schema_file = os.path.join("..", "schemas", f"{self.name}.json")
@@ -107,6 +141,10 @@ class Stream():
 
         mdata = metadata.write(mdata, (), 'table-key-properties', self.key_properties)
         mdata = metadata.write(mdata, (), 'forced-replication-method', self.replication_method)
+
+        parent_tap_stream_id = getattr(self, "parent", None)
+        if parent_tap_stream_id:
+            mdata = metadata.write(mdata, (), 'parent-tap-stream-id', parent_tap_stream_id)
 
         if self.replication_key:
             mdata = metadata.write(mdata, (), 'valid-replication-keys', [self.replication_key])
@@ -150,13 +188,40 @@ class Stream():
             raise ValueError(f"Missing required placeholder in config: {e}") from e
         return urljoin(base_url + '/', endpoint_path.lstrip('/'))
 
+    def modify_object(self, record: Dict, **_kwargs) -> Dict:
+        """
+        Modify the record before writing to the stream
+        """
+        return record
+
+    def get_nested_value(self, data, key_path, default=None):
+        """
+        Recursively get a value from nested dicts using dot-separated key path.
+        """
+        keys = key_path.split(".")
+        for key in keys:
+            if isinstance(data, dict):
+                data = data.get(key, default)
+            else:
+                return default
+        return data
+
+    def emit_sub_stream_metrics(self, sub_stream):
+        if sub_stream.is_selected():
+            singer.metrics.log(LOGGER, Point(metric_type='counter',
+                                                metric=singer.metrics.Metric.record_count,
+                                                value=sub_stream.count,
+                                                tags={'endpoint':sub_stream.stream.tap_stream_id}))
+            sub_stream.count = 0
+
 class PaginatedStream(Stream):
     pagination_type = None
     item_key = None
     endpoint = None
 
     def get_objects(self, **kwargs):
-        url = self.get_stream_endpoint()
+        parent_obj = kwargs.get('parent_obj', {})
+        url = self.get_stream_endpoint(parent_obj=parent_obj)
 
         pagination_methods = {
             "cursor": http.get_cursor_based,
@@ -176,31 +241,63 @@ class PaginatedStream(Stream):
         )
 
         for page in pages:
-            yield from page[self.item_key]
+            raw_records = self.get_nested_value(page, self.item_key, [])
+            if isinstance(raw_records, dict):
+                yield from [raw_records]
 
-    def sync(self, state):
+            elif isinstance(raw_records, list):
+                yield from raw_records
+
+            else:
+                yield from []
+
+    def sync(self, state: Dict, parent_obj: Dict = None):
         """
-        Implementation for `type: CursorBasedStream` stream.
+        Implementation for `type: Paginated` stream.
         """
+        bookmark_date = self.get_bookmark(state, self.name)
+        current_max_bookmark_date = bookmark_date
         self.update_params(state=state)
-        records = self.get_objects(params=self.params)
 
-        for record in records:
+        for record in self.get_objects(params=self.params, parent_obj=parent_obj):
+            record = self.modify_object(record, parent_record=parent_obj)
             if self.replication_method == "INCREMENTAL":
                 replication_value = record.get(self.replication_key)
                 if replication_value is None:
                     raise ValueError(
                         f"Record has missing replication key '{self.replication_key}': {record}"
                     )
-                bookmark = self.get_bookmark(state)
-                if utils.strptime_with_tz(replication_value) >= bookmark:
-                    self.update_bookmark(state, replication_value)
-                    yield (self.stream, record)
+
+                replication_datetime = (
+                    utils.strptime_with_tz(replication_value)
+                    if isinstance(replication_value, str)
+                    else replication_value
+                )
+
+                if replication_datetime >= bookmark_date:
+                    current_max_bookmark_date = max(
+                        current_max_bookmark_date, replication_datetime
+                    )
+                    if self.is_selected():
+                        self.count += 1
+                        yield (self.stream, record)
+
+                    for child in self.child_to_sync:
+                        yield from child.sync(state=state, parent_obj=record)
+                        self.emit_sub_stream_metrics(child)
             elif self.replication_method == "FULL_TABLE":
-                yield (self.stream, record)
+                if self.is_selected():
+                    self.count += 1
+                    yield (self.stream, record)
+
+                for child in self.child_to_sync:
+                    yield from child.sync(state=state, parent_obj=record)
+                    self.emit_sub_stream_metrics(child)
             else:
                 raise ValueError(f"Unknown replication method: {self.replication_method}")
 
+        if self.replication_method == "INCREMENTAL":
+            self.update_bookmark(state, self.name, current_max_bookmark_date)
 
 class CursorBasedExportStream(Stream):
     endpoint = None
@@ -211,10 +308,52 @@ class CursorBasedExportStream(Stream):
         Retrieve objects from the incremental exports endpoint using cursor based pagination
         '''
         url = self.get_stream_endpoint()
-        # Pass `request_timeout` parameter
         for page in http.get_incremental_export(url, self.config['access_token'], self.request_timeout, start_time, side_load):
             yield from page[self.item_key]
 
+    def sync(self, state, parent_obj: Dict = None):
+        bookmark_date = self.get_bookmark(state, self.name)
+        current_max_bookmark_date = bookmark_date
+        epoch_bookmark = int(bookmark_date.timestamp())
+        records = self.get_objects(epoch_bookmark)
+
+        for record in records:
+            record = self.modify_object(record, parent_record=parent_obj)
+            if self.replication_method == "INCREMENTAL":
+                replication_value = record.get(self.replication_key)
+                if replication_value is None:
+                    raise ValueError(
+                        f"Record has missing replication key '{self.replication_key}': {record}"
+                    )
+                replication_datetime = (
+                    utils.strptime_with_tz(replication_value)
+                    if isinstance(replication_value, str)
+                    else replication_value
+                )
+
+                if replication_datetime >= bookmark_date:
+                    current_max_bookmark_date = max(
+                        current_max_bookmark_date, replication_datetime
+                    )
+                    if self.is_selected():
+                        self.count += 1
+                        yield (self.stream, record)
+
+                    for child in self.child_to_sync:
+                        yield from child.sync(state=state, parent_obj=record)
+                        self.emit_sub_stream_metrics(child)
+            elif self.replication_method == "FULL_TABLE":
+                if self.is_selected():
+                    self.count += 1
+                    yield (self.stream, record)
+
+                for child in self.child_to_sync:
+                    yield from child.sync(state=state, parent_obj=record)
+                    self.emit_sub_stream_metrics(child)
+            else:
+                raise ValueError(f"Unknown replication method: {self.replication_method}")
+        if self.replication_method == "INCREMENTAL":
+            self.update_bookmark(state, self.name, current_max_bookmark_date)
 
 def raise_or_log_zenpy_apiexception(schema, stream, e):
     # There are multiple tiers of Zendesk accounts. Some of them have
@@ -238,3 +377,41 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
         return schema
     else:
         raise e
+
+class ParentChildBookmarkMixin:
+    """
+    Mixin to extend bookmark handling for streams with child streams.
+    """
+    def update_bookmark(self, state: Dict, stream: str, value: Any = None) -> Dict:
+        """
+        Write the bookmark value to the parent and all incremental children.
+        """
+        if self.is_selected():
+            super().update_bookmark(state, stream, value=value)
+
+        for child in self.child_to_sync:
+            if not child.is_selected():
+                continue
+            if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
+                continue
+
+            child_bookmarks = state.get("bookmarks", {}).get(child.name, {})
+            if child.replication_key not in child_bookmarks:
+                super().update_bookmark(
+                    state,
+                    stream=child.name,
+                    value=self.config["start_date"],
+                    key=child.replication_key
+                )
+
+        return state
+
+class ChildBookmarkMixin:
+    def get_bookmark(self, state: Dict, stream: Any = None) -> int:
+        """
+        Return initial bookmark value only for the child stream.
+        """
+        if not self.bookmark_value:
+            self.bookmark_value = super().get_bookmark(state, stream)
+
+        return self.bookmark_value

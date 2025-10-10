@@ -8,7 +8,7 @@ class TicketForms(Stream):
     replication_key = "updated_at"
 
     def sync(self, state):
-        bookmark = self.get_bookmark(state)
+        bookmark = self.get_bookmark(state, self.name)
 
         forms = self.client.ticket_forms()
         for form in forms:
@@ -16,7 +16,7 @@ class TicketForms(Stream):
                 # NB: We don't trust that the records come back ordered by
                 # updated_at (we've observed out-of-order records),
                 # so we can't save state until we've seen all records
-                self.update_bookmark(state, form.updated_at)
+                self.update_bookmark(state, self.name, form.updated_at)
                 yield (self.stream, form)
 
     def check_access(self):

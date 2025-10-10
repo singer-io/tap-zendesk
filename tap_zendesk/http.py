@@ -132,7 +132,7 @@ def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
     headers = build_headers(access_token=access_token, additional_headers=custom_headers)
     next_url = url
     params = {
-        'page[size]': page_size,
+        "per_page": page_size,
         **query_params
     }
 
@@ -147,8 +147,8 @@ def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
         response_json = response.json()
         yield response_json
 
-        next_url = response_json.get('next_page')
-        params = None  # Clear params after first request
+        next_url = response_json.get('next_page') or response_json.get('after_url')
+        params = None
 
 async def raise_for_error_for_async(response):
     """
@@ -291,3 +291,35 @@ def get_incremental_export(url, access_token, request_timeout, start_time, side_
             'cursor': cursor,
             'include': side_load
         }
+
+def get_incremental_export_offset(url, access_token, request_timeout, page_size, start_time):
+    """
+    Generator to handle Zendesk's incremental export API using offset pagination.
+    """
+    headers = build_headers(access_token=access_token)
+    next_url = url
+
+    if not isinstance(start_time, int):
+        start_time = int(start_time.timestamp())
+
+    params = {
+        'start_time': start_time,
+        'per_page': page_size
+    }
+
+    while next_url:
+        response = call_api(
+            next_url,
+            request_timeout,
+            params=params if next_url == url else None,
+            headers=headers
+        )
+
+        response_json = response.json()
+        yield response_json
+
+        if response_json.get('end_of_stream'):
+            break
+
+        next_url = response_json.get('next_page') or response_json.get('after_url')
+        params = None
