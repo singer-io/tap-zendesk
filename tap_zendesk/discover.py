@@ -3,7 +3,7 @@ import json
 import singer
 import zenpy
 from tap_zendesk.streams import STREAMS
-from tap_zendesk.http import ZendeskForbiddenError
+from tap_zendesk.exceptions import ZendeskForbiddenError
 
 LOGGER = singer.get_logger()
 

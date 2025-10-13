@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='tap-zendesk',
       version='2.6.4',
@@ -10,11 +10,11 @@ setup(name='tap-zendesk',
       classifiers=['Programming Language :: Python :: 3 :: Only'],
       py_modules=['tap_zendesk'],
       install_requires=[
-          'singer-python==6.0.1',
-          'zenpy==2.0.24',
+          'singer-python==6.1.1',
+          'zenpy==2.0.56',
           'backoff==2.2.1',
           'requests==2.32.4',
-          'aiohttp==3.11.11'
+          'aiohttp==3.12.15'
       ],
       extras_require={
           'dev': [
@@ -30,6 +30,6 @@ setup(name='tap-zendesk',
           [console_scripts]
           tap-zendesk=tap_zendesk:main
       ''',
-      packages=['tap_zendesk'],
+      packages=find_packages(),
       include_package_data=True,
 )

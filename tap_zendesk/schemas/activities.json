@@ -1,0 +1,111 @@
+{
+    "type": "object",
+    "properties": {
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "title": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "verb": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "user_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "actor_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "object": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "properties": {
+                "comment": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "value": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "public": {
+                            "type": [
+                                "boolean",
+                                "null"
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "target": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "properties": {
+                "ticket": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "id": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        },
+                        "subject": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

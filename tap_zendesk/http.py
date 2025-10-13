@@ -6,6 +6,11 @@ import singer
 from requests.exceptions import Timeout, HTTPError, ChunkedEncodingError, ConnectionError
 from aiohttp import ContentTypeError
 from urllib3.exceptions import ProtocolError
+from tap_zendesk.exceptions import (
+    ERROR_CODE_EXCEPTION_MAPPING,
+    ZendeskError,
+    ZendeskBackoffError
+)
 
 
 LOGGER = singer.get_logger()
@@ -14,95 +19,8 @@ DEFAULT_WAIT = 60
 # Default wait time for backoff for conflict error
 DEFAULT_WAIT_FOR_CONFLICT_ERROR = 10
 
-class ZendeskError(Exception):
-    def __init__(self, message=None, response=None):
-        super().__init__(message)
-        self.message = message
-        self.response = response
+BASE_URL = "https://{subdomain}.zendesk.com/api/v2/"
 
-class ZendeskBackoffError(ZendeskError):
-    pass
-
-class ZendeskBadRequestError(ZendeskError):
-    pass
-
-class ZendeskUnauthorizedError(ZendeskError):
-    pass
-
-class ZendeskForbiddenError(ZendeskError):
-    pass
-
-class ZendeskNotFoundError(ZendeskError):
-    pass
-
-class ZendeskConflictError(ZendeskBackoffError):
-    pass
-
-class ZendeskUnprocessableEntityError(ZendeskError):
-    pass
-
-class ZendeskRateLimitError(ZendeskBackoffError):
-    pass
-
-class ZendeskInternalServerError(ZendeskBackoffError):
-    pass
-
-class ZendeskNotImplementedError(ZendeskBackoffError):
-    pass
-
-class ZendeskBadGatewayError(ZendeskBackoffError):
-    pass
-
-class ZendeskServiceUnavailableError(ZendeskBackoffError):
-    pass
-
-ERROR_CODE_EXCEPTION_MAPPING = {
-    400: {
-        "raise_exception": ZendeskBadRequestError,
-        "message": "A validation exception has occurred."
-    },
-    401: {
-        "raise_exception": ZendeskUnauthorizedError,
-        "message": "The access token provided is expired, revoked, malformed or invalid for other reasons."
-    },
-    403: {
-        "raise_exception": ZendeskForbiddenError,
-        "message": "You are missing the following required scopes: read"
-    },
-    404: {
-        "raise_exception": ZendeskNotFoundError,
-        "message": "The resource you have specified cannot be found."
-    },
-    409: {
-        "raise_exception": ZendeskConflictError,
-        "message": "The API request cannot be completed because the requested operation would conflict with an existing item."
-    },
-    422: {
-        "raise_exception": ZendeskUnprocessableEntityError,
-        "message": "The request content itself is not processable by the server."
-    },
-    429: {
-        "raise_exception": ZendeskRateLimitError,
-        "message": "The API rate limit for your organisation/application pairing has been exceeded."
-    },
-    500: {
-        "raise_exception": ZendeskInternalServerError,
-        "message": "The server encountered an unexpected condition which prevented" \
-            " it from fulfilling the request."
-    },
-    501: {
-        "raise_exception": ZendeskNotImplementedError,
-        "message": "The server does not support the functionality required to fulfill the request."
-    },
-    502: {
-        "raise_exception": ZendeskBadGatewayError,
-        "message": "Server received an invalid response."
-    },
-    503: {
-        "raise_exception": ZendeskServiceUnavailableError,
-        "message": "API service is currently unavailable."
-    }
-}
 def is_fatal(exception):
     status_code = exception.response.status_code
 
@@ -139,6 +57,20 @@ def raise_for_error(response):
             response.status_code, {}).get("raise_exception", ZendeskError)
         raise exc(message, response) from None
 
+def build_headers(access_token: str, additional_headers: dict = None) -> dict:
+    """
+    Build standard headers for API requests with optional overrides.
+    """
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+
+    if additional_headers:
+        headers.update(additional_headers)
+
+    return headers
 
 @backoff.on_exception(backoff.expo,
                       (HTTPError, ZendeskError), # Added support of backoff for all unhandled status codes.
@@ -154,64 +86,69 @@ def call_api(url, request_timeout, params, headers):
     return response
 
 def get_cursor_based(url, access_token, request_timeout, page_size, cursor=None, **kwargs):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-        **kwargs.get('headers', {})
-    }
+    """
+    Cursor-based pagination generator.
+    Yields:
+        dict: Response JSON for each page.
+    """
+    custom_headers = kwargs.pop('headers', {})
+    query_params = kwargs.pop('params', {})
 
+    headers = build_headers(access_token=access_token, additional_headers=custom_headers)
     params = {
         'page[size]': page_size,
-        **kwargs.get('params', {})
+        **query_params
     }
 
     if cursor:
         params['page[after]'] = cursor
-    response = call_api(url, request_timeout, params=params, headers=headers)
-    response_json = response.json()
 
-    yield response_json
-
-    has_more = response_json['meta']['has_more']
-
-    while has_more:
-        cursor = response_json['meta']['after_cursor']
-        params['page[after]'] = cursor
-
-        response = call_api(url, request_timeout, params=params, headers=headers)
+    while True:
+        response = call_api(
+            url,
+            request_timeout,
+            params=params,
+            headers=headers
+        )
         response_json = response.json()
 
         yield response_json
-        has_more = response_json['meta']['has_more']
+
+        meta = response_json.get('meta', {})
+        if not meta.get('has_more'):
+            break
+
+        params['page[after]'] = meta.get('after_cursor')
 
 def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-        **kwargs.get('headers', {})
-    }
+    """
+    Offset-based pagination generator.
+    Yields:
+        dict: Parsed JSON response from each page.
+    """
+    custom_headers = kwargs.pop('headers', {})
+    query_params = kwargs.pop('params', {})
 
+    headers = build_headers(access_token=access_token, additional_headers=custom_headers)
+    next_url = url
     params = {
-        'per_page': page_size,
-        **kwargs.get('params', {})
+        "per_page": page_size,
+        **query_params
     }
-
-    response = call_api(url, request_timeout, params=params, headers=headers)
-    response_json = response.json()
-
-    yield response_json
-
-    next_url = response_json.get('next_page')
 
     while next_url:
-        response = call_api(next_url, request_timeout, params=None, headers=headers)
+        response = call_api(
+            next_url,
+            request_timeout,
+            params=params if next_url == url else None,
+            headers=headers
+        )
+
         response_json = response.json()
-
         yield response_json
-        next_url = response_json.get('next_page')
 
+        next_url = response_json.get('next_page') or response_json.get('after_url')
+        params = None
 
 async def raise_for_error_for_async(response):
     """
@@ -291,21 +228,17 @@ async def call_api_async(session, url, request_timeout, params, headers):
 
         return response_json
 
-
 async def paginate_ticket_audits(session, url, access_token, request_timeout, page_size, **kwargs):
     """
     Paginate through the ticket audits API endpoint and return the aggregated results
     """
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-        **kwargs.get('headers', {})
-    }
+    custom_headers = kwargs.pop('headers', {})
+    query_params = kwargs.pop('params', {})
 
+    headers = build_headers(access_token=access_token, additional_headers=custom_headers)
     params = {
         'per_page': page_size,
-        **kwargs.get('params', {})
+        **query_params
     }
 
     # Make the initial asynchronous API call
@@ -329,38 +262,64 @@ async def paginate_ticket_audits(session, url, access_token, request_timeout, pa
     return final_response
 
 def get_incremental_export(url, access_token, request_timeout, start_time, side_load):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer {}'.format(access_token),
-    }
-
-    params = {'start_time': start_time}
+    """
+    Generator to handle Zendesk's incremental export API.
+    """
+    headers = build_headers(access_token=access_token)
 
     if not isinstance(start_time, int):
-        params = {'start_time': start_time.timestamp()}
-    params['include'] = side_load
+        start_time = int(start_time.timestamp())
 
-    response = call_api(url, request_timeout, params=params, headers=headers)
-    response_json = response.json()
+    params = {
+        'start_time': start_time,
+        'include': side_load
+    }
 
-    yield response_json
-
-    end_of_stream = response_json.get('end_of_stream')
-
-    while not end_of_stream:
-        cursor = response_json['after_cursor']
-
-        params = {'cursor': cursor, "include": side_load}
-        # Replaced below line of code with call_api method
-        # response = requests.get(url, params=params, headers=headers)
-        # response.raise_for_status()
-        # Because it doing the same as call_api. So, now error handling will work properly with backoff
-        # as earlier backoff was not possible
+    while True:
         response = call_api(url, request_timeout, params=params, headers=headers)
-
         response_json = response.json()
-
         yield response_json
 
-        end_of_stream = response_json.get('end_of_stream')
+        if response_json.get('end_of_stream'):
+            break
+
+        cursor = response_json.get('after_cursor')
+        if not cursor:
+            raise ValueError("Missing 'after_cursor' in response during pagination.")
+
+        params = {
+            'cursor': cursor,
+            'include': side_load
+        }
+
+def get_incremental_export_offset(url, access_token, request_timeout, page_size, start_time):
+    """
+    Generator to handle Zendesk's incremental export API using offset pagination.
+    """
+    headers = build_headers(access_token=access_token)
+    next_url = url
+
+    if not isinstance(start_time, int):
+        start_time = int(start_time.timestamp())
+
+    params = {
+        'start_time': start_time,
+        'per_page': page_size
+    }
+
+    while next_url:
+        response = call_api(
+            next_url,
+            request_timeout,
+            params=params if next_url == url else None,
+            headers=headers
+        )
+
+        response_json = response.json()
+        yield response_json
+
+        if response_json.get('end_of_stream'):
+            break
+
+        next_url = response_json.get('next_page') or response_json.get('after_url')
+        params = None
