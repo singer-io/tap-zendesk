@@ -58,7 +58,8 @@ class ZendeskStartDate(ZendeskTest):
             "workspaces",
             "locales",
             "trigger_categories",
-            "deleted_users"
+            "deleted_users",
+            "views"
         }
 
         self.run_test(days=1172, expected_streams=self.expected_check_streams()-streams_to_exclude)
