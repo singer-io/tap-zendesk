@@ -304,29 +304,34 @@ async def paginate_ticket_audits(session, url, access_token, request_timeout, pa
     }
 
     params = {
-        'per_page': page_size,
+        'page[size]': page_size,
         **kwargs.get('params', {})
     }
 
-    # Make the initial asynchronous API call
-    final_response = await call_api_async(session, url, request_timeout, params=params, headers=headers)
+    initial_response = await call_api_async(session, url, request_timeout, params=params, headers=headers)
 
-    next_url = final_response.get('next_page')
+    has_more = initial_response['meta']['has_more']
 
-    # Fetch next pages of results.
-    while next_url:
+    if has_more:
+        cursor = initial_response['meta']['after_cursor']
+        params['page[after]'] = cursor
 
-        # An asynchronous API call to fetch the next page of results.
-        response = await call_api_async(session, next_url, request_timeout, params=None, headers=headers)
+    while has_more:
 
-        # Extend the final response with the audits from the current page.
-        final_response["audits"].extend(response["audits"])
+        response = await call_api_async(session, url, request_timeout, params=params, headers=headers)
 
-        # Get the URL for the next page
-        next_url = response.get('next_page')
+        initial_response["audits"].extend(response["audits"])
+        has_more = response['meta']['has_more']
 
-    # Return the final aggregated response
-    return final_response
+        if has_more:
+            try:
+                cursor = response['meta']['after_cursor']
+                params['page[after]'] = cursor
+            except KeyError:
+                LOGGER.info("Cursor not found, stopping pagination.")
+                has_more = False
+
+    return initial_response
 
 def get_incremental_export(url, access_token, request_timeout, start_time, side_load):
     headers = {
