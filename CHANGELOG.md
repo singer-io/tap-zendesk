@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.8.0
+  * Added multiple new streams [#176](https://github.com/singer-io/tap-zendesk/pull/176)
+
 ## 2.7.0
   * Add Cursor Pagination for ticket Audits [#163](https://github.com/singer-io/tap-zendesk/pull/163)
 
