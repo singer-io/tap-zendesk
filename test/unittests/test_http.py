@@ -881,12 +881,39 @@ class TestAPIAsync(unittest.TestCase):
         page_size = 2
         first_page = {
             "audits": [{"id": 1}, {"id": 2}],
-            "next_page": "https://api.example.com/resource?per_page=2",
+            "meta": {
+                "has_more": True,
+                "after_cursor": "page_cursor_after==",
+                "before_cursor": "page_cursor_before=="
+            },
+            "links":{
+                "prev":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[before]=page_cursor_before==&page[size]=100",
+                "next":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[after]=page_cursor_after==&page[size]=100"
+            }
         }
-        second_page = {"audits": [{"id": 3}, {"id": 4}], "next_page": None}
+        second_page = {
+            "audits": [{"id": 3}, {"id": 4}],
+            "meta": {
+                "has_more": False,
+                "after_cursor": "page_cursor_after==",
+                "before_cursor": "page_cursor_before=="
+            },
+            "links":{
+                "prev":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[before]=page_cursor_before==&page[size]=100",
+                "next":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[after]=page_cursor_after==&page[size]=100"
+            }
+        }
         expected_result = {
             "audits": [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 4}],
-            "next_page": "https://api.example.com/resource?per_page=2",
+            "meta": {
+                "has_more": True,
+                "after_cursor": "page_cursor_after==",
+                "before_cursor": "page_cursor_before=="
+            },
+            "links":{
+                "prev":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[before]=page_cursor_before==&page[size]=100",
+                "next":"https://example.zendesk.com/api/v2/tickets/example/audits.json?page[after]=page_cursor_after==&page[size]=100"
+            }
         }
         mock_first_response = AsyncMock()
         mock_first_response.status = 200

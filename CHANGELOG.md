@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.7.0
+  * Add Cursor Pagination for ticket Audits [#163](https://github.com/singer-io/tap-zendesk/pull/163)
+
 ## 2.6.4
   * Bump dependency versions for twistlock compliance [#159](https://github.com/singer-io/tap-zendesk/pull/159)
 
