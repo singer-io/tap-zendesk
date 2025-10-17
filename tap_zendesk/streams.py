@@ -676,6 +676,64 @@ class SLAPolicies(Stream):
         '''
         self.client.sla_policies()
 
+class CustomStatuses(Stream):
+    name = "custom_statuses"
+    replication_method = "FULL_TABLE"
+    endpoint = 'https://{}.zendesk.com/api/v2/custom_statuses'
+
+    def get_objects(self):
+        '''
+        Retrieve custom status objects using next_page URL pagination
+        '''
+        # Start with the initial endpoint
+        url = self.endpoint.format(self.config['subdomain'])
+        auth_headers = http.build_auth_headers(self.config)
+        params = {'per_page': self.page_size}
+        
+        while url:
+            # Make API call - always pass params (empty dict for next_page URLs)
+            current_params = params if params is not None else {}
+            response = http.call_api(url, self.request_timeout, params=current_params, headers={**HEADERS, **auth_headers})
+            
+            response_json = response.json()
+            
+            # Check if this page has any custom statuses
+            statuses_in_page = response_json.get('custom_statuses', [])
+            if not statuses_in_page:
+                # No statuses in this page, stop pagination
+                LOGGER.info("No more custom statuses found, ending pagination")
+                break
+            
+            # Yield custom statuses from current page
+            yield from statuses_in_page
+            
+            # Get next page URL for pagination
+            next_url = response_json.get('next_page')
+            
+            # Stop if no next_page or if it's the same as current URL
+            if not next_url or next_url == url:
+                break
+                
+            url = next_url
+            params = None  # Clear params for subsequent requests since next_page URL contains everything
+
+    def sync(self, state): # pylint: disable=unused-argument
+        custom_statuses = self.get_objects()
+        
+        for status in custom_statuses:
+            yield (self.stream, status)
+
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        auth_headers = http.build_auth_headers(self.config)
+        
+        # Make a test call with per_page=1 to check access
+        params = {'per_page': 1}
+        http.call_api(url, self.request_timeout, params=params, headers={**HEADERS, **auth_headers})
+
 class Calls(Stream):
     name = "calls"
     replication_method = "INCREMENTAL"
@@ -762,6 +820,7 @@ STREAMS = {
     "ticket_metrics": TicketMetrics,
     "ticket_metric_events": TicketMetricEvents,
     "sla_policies": SLAPolicies,
+    "custom_statuses": CustomStatuses,
     "talk_phone_numbers": TalkPhoneNumbers,
     "calls": Calls,
 }
