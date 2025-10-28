@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.7.1
+  * Update dependencies [#177](https://github.com/singer-io/tap-zendesk/pull/177)
+
 ## 2.7.0
   * Add Cursor Pagination for ticket Audits [#163](https://github.com/singer-io/tap-zendesk/pull/163)
 
