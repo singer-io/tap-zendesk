@@ -141,12 +141,6 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """We mock request method to raise a `Timeout` and expect the tap to retry this up to 5 times when `request_timeout` does not passed,
         """
         mock_get.side_effect = requests.exceptions.Timeout
-        # cursor_based_stream = abstracts.CursorBasedStream(config={'subdomain': '34', 'access_token': 'df'})
-        # cursor_based_stream.endpoint = 'endpoint_path'
-        # try:
-        #     responses = list(cursor_based_stream.get_objects())
-        # except requests.exceptions.Timeout as e:
-        #     pass
 
         paginated_stream = abstracts.PaginatedStream(config={'subdomain': '34', 'access_token': 'df'})
         paginated_stream.endpoint = 'endpoint_path'

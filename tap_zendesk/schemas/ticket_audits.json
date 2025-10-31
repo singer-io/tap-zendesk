@@ -647,7 +647,7 @@
     "id": {
       "type": [
         "null",
-        "string"
+        "integer"
       ]
     },
     "created_at": {
