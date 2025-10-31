@@ -101,11 +101,6 @@ class TestDiscovery(unittest.TestCase):
         self.assertEqual(expected_call_count, actual_call_count)
 
         # Verifying the logger message
-        # mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): "\
-        #     "groups, users, organizations, ticket_audits, ticket_fields, ticket_forms, group_memberships, macros, "\
-        #     "satisfaction_ratings, tags, sla_policies. The data for these streams would not be collected due to "\
-        #     "lack of required permission.")
-
         mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): " \
         "activities, audit_logs, automations, bookmarks, brands, custom_objects, custom_roles, deleted_tickets, deleted_users, " \
         "dynamic_content_items, groups, group_memberships, macros, organizations, satisfaction_ratings, sessions, " \
