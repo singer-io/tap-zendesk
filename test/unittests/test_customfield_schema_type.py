@@ -1,6 +1,6 @@
 import types
 import unittest
-from tap_zendesk.streams import process_custom_field
+from tap_zendesk.streams.abstracts import process_custom_field
 
 
 class TestCustomFieldSchemaDiscovery(unittest.TestCase):

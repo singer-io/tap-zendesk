@@ -1,12 +1,28 @@
 import unittest
-from unittest.mock import AsyncMock, Mock, patch
-from tap_zendesk import http, streams
 import requests
+from unittest.mock import AsyncMock, Mock, patch
 from urllib3.exceptions import ProtocolError
 from requests.exceptions import ChunkedEncodingError, ConnectionError
 import asyncio
 from aiohttp import ClientSession
 import zenpy
+from tap_zendesk import http
+from tap_zendesk.streams import abstracts
+from tap_zendesk.exceptions import (
+    ZendeskBadRequestError,
+    ZendeskUnauthorizedError,
+    ZendeskNotFoundError,
+    ZendeskConflictError,
+    ZendeskUnprocessableEntityError,
+    ZendeskInternalServerError,
+    ZendeskNotImplementedError,
+    ZendeskBadGatewayError,
+    ZendeskError,
+    ZendeskServiceUnavailableError,
+    ZendeskRateLimitError,
+    ZendeskBackoffError
+)
+
 
 
 class Mockresponse:
@@ -162,7 +178,7 @@ class TestBackoff(unittest.TestCase):
                                                       page_size=PAGE_SIZE)
             ]
 
-        except http.ZendeskBadRequestError as e:
+        except ZendeskBadRequestError as e:
             expected_error_message = (
                 "HTTP-error-code: 400, Error: A validation exception has occurred."
             )
@@ -188,7 +204,7 @@ class TestBackoff(unittest.TestCase):
                                                       page_size=PAGE_SIZE)
             ]
 
-        except http.ZendeskBadRequestError as e:
+        except ZendeskBadRequestError as e:
             expected_error_message = (
                 "HTTP-error-code: 400, Error: Couldn't authenticate you"
             )
@@ -210,7 +226,7 @@ class TestBackoff(unittest.TestCase):
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
             ]
-        except http.ZendeskUnauthorizedError as e:
+        except ZendeskUnauthorizedError as e:
             expected_error_message = (
                 "HTTP-error-code: 401, Error: The access token provided is expired, revoked,"
                 " malformed or invalid for other reasons."
@@ -233,7 +249,7 @@ class TestBackoff(unittest.TestCase):
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
             ]
-        except http.ZendeskNotFoundError as e:
+        except ZendeskNotFoundError as e:
             expected_error_message = "HTTP-error-code: 404, Error: The resource you have specified cannot be found."
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
@@ -247,7 +263,7 @@ class TestBackoff(unittest.TestCase):
         Test that `request` method retry 409 error 10 times
         """
 
-        with self.assertRaises(http.ZendeskConflictError) as e:
+        with self.assertRaises(ZendeskConflictError) as e:
             responses = [
                 response
                 for response in http.get_cursor_based(url="some_url",
@@ -273,7 +289,7 @@ class TestBackoff(unittest.TestCase):
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
             ]
-        except http.ZendeskUnprocessableEntityError as e:
+        except ZendeskUnprocessableEntityError as e:
             expected_error_message = "HTTP-error-code: 422, Error: The request content itself is not processable by the server."
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
@@ -297,7 +313,7 @@ class TestBackoff(unittest.TestCase):
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
             ]
-        except http.ZendeskInternalServerError as e:
+        except ZendeskInternalServerError as e:
             expected_error_message = (
                 "HTTP-error-code: 500, Error: The server encountered an unexpected condition which prevented"
                 " it from fulfilling the request."
@@ -324,7 +340,7 @@ class TestBackoff(unittest.TestCase):
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
             ]
-        except http.ZendeskNotImplementedError as e:
+        except ZendeskNotImplementedError as e:
             expected_error_message = "HTTP-error-code: 501, Error: The server does not support the functionality required to fulfill the request."
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
@@ -348,7 +364,7 @@ class TestBackoff(unittest.TestCase):
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
             ]
-        except http.ZendeskBadGatewayError as e:
+        except ZendeskBadGatewayError as e:
             expected_error_message = (
                 "HTTP-error-code: 502, Error: Server received an invalid response."
             )
@@ -372,20 +388,20 @@ class TestBackoff(unittest.TestCase):
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
             ]
-        except http.ZendeskError as e:
+        except ZendeskError as e:
             expected_error_message = "HTTP-error-code: 444, Error: Unknown Error"
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
 
         self.assertEqual(mock_get.call_count, 1)
 
-    @patch("tap_zendesk.streams.LOGGER.warning")
+    @patch("tap_zendesk.streams.abstracts.LOGGER.warning")
     def test_raise_or_log_zenpy_apiexception(self, mocked_logger, mock_sleep):
         schema = {}
         stream = "test_stream"
         error_string = '{"error": "Forbidden", "description": "You are missing the following required scopes: read"}'
         e = zenpy.lib.exception.APIException(error_string)
-        streams.raise_or_log_zenpy_apiexception(schema, stream, e)
+        abstracts.raise_or_log_zenpy_apiexception(schema, stream, e)
         # Verify the raise_or_log_zenpy_apiexception Log expected message
         mocked_logger.assert_called_with(
             "The account credentials supplied do not have access to `%s` custom fields.",
@@ -436,7 +452,7 @@ class TestBackoff(unittest.TestCase):
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
             ]
-        except http.ZendeskError as e:
+        except ZendeskError as e:
             expected_error_message = "HTTP-error-code: 524, Error: Unknown Error"
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
@@ -460,7 +476,7 @@ class TestBackoff(unittest.TestCase):
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
             ]
-        except http.ZendeskError as e:
+        except ZendeskError as e:
             expected_error_message = "HTTP-error-code: 520, Error: Unknown Error"
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
@@ -484,7 +500,7 @@ class TestBackoff(unittest.TestCase):
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
             ]
-        except http.ZendeskServiceUnavailableError as e:
+        except ZendeskServiceUnavailableError as e:
             expected_error_message = (
                 "HTTP-error-code: 503, Error: API service is currently unavailable."
             )
@@ -670,7 +686,7 @@ class TestAPIAsync(unittest.TestCase):
 
         async def run_test():
             async with ClientSession() as session:
-                with self.assertRaises(http.ZendeskRateLimitError) as context:
+                with self.assertRaises(ZendeskRateLimitError) as context:
                     await http.call_api_async(session, url, 10, {}, {})
                 self.assertEqual(mock_sleep.call_count, 5)
                 self.assertEqual(
@@ -731,7 +747,7 @@ class TestAPIAsync(unittest.TestCase):
 
         async def run_test():
             async with ClientSession() as session:
-                with self.assertRaises(http.ZendeskConflictError) as context:
+                with self.assertRaises(ZendeskConflictError) as context:
                     await http.call_api_async(session, url, 10, {}, {})
                 self.assertEqual(mock_sleep.call_count, 5)
                 self.assertEqual(
@@ -764,7 +780,7 @@ class TestAPIAsync(unittest.TestCase):
 
         async def run_test():
             async with ClientSession() as session:
-                with self.assertRaises(http.ZendeskInternalServerError) as context:
+                with self.assertRaises(ZendeskInternalServerError) as context:
                     await http.call_api_async(session, url, 10, {}, {})
                 self.assertEqual('HTTP-error-code: 500, Error: Internal Server Error', str(context.exception))
                 self.assertEqual(mock_sleep.call_count, 5)
@@ -794,7 +810,7 @@ class TestAPIAsync(unittest.TestCase):
 
         async def run_test():
             async with ClientSession() as session:
-                with self.assertRaises(http.ZendeskBadGatewayError) as context:
+                with self.assertRaises(ZendeskBadGatewayError) as context:
                     await http.call_api_async(session, url, 10, {}, {})
                 self.assertEqual('HTTP-error-code: 502, Error: Bad Gateway Error', str(context.exception))
                 self.assertEqual(mock_sleep.call_count, 5)
@@ -824,7 +840,7 @@ class TestAPIAsync(unittest.TestCase):
 
         async def run_test():
             async with ClientSession() as session:
-                with self.assertRaises(http.ZendeskBackoffError) as context:
+                with self.assertRaises(ZendeskBackoffError) as context:
                     await http.call_api_async(session, url, 10, {}, {})
                 self.assertEqual('HTTP-error-code: 524, Error: Unknown Error', str(context.exception))
                 self.assertEqual(mock_sleep.call_count, 5)
@@ -848,7 +864,7 @@ class TestAPIAsync(unittest.TestCase):
 
         async def run_test():
             async with ClientSession() as session:
-                with self.assertRaises(http.ZendeskBadRequestError) as context:
+                with self.assertRaises(ZendeskBadRequestError) as context:
                     await http.call_api_async(session, url, 10, {}, {})
                 self.assertEqual('HTTP-error-code: 400, Error: Bad Request', str(context.exception))
                 self.assertEqual(mock_sleep.call_count, 0)

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.8.0
+  * Added multiple new streams [#176](https://github.com/singer-io/tap-zendesk/pull/176)
+
 ## 2.7.1
   * Update dependencies [#177](https://github.com/singer-io/tap-zendesk/pull/177)
 
