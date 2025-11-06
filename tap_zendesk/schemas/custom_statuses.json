@@ -1,0 +1,100 @@
+{
+    "type": [
+        "null",
+        "object"
+    ],
+    "properties": {
+        "id": {
+            "type": [
+                "null",
+                "integer"
+            ]
+        },
+        "status_category": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "agent_label": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "raw_agent_label": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "end_user_label": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "raw_end_user_label": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "description": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "raw_description": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "end_user_description": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "raw_end_user_description": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "active": {
+            "type": [
+                "null",
+                "boolean"
+            ]
+        },
+        "default": {
+            "type": [
+                "null",
+                "boolean"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "date-time"
+        },
+        "updated_at": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "date-time"
+        },
+        "url": {
+            "type": [
+                "null",
+                "string"
+            ]
+        }
+    }
+}

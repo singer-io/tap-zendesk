@@ -131,9 +131,9 @@ class Stream():
         Check whether the permission was given to access stream resources or not.
         '''
         url = self.endpoint.format(self.config['subdomain'])
-        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+        headers = {**HEADERS, **http.build_auth_headers(self.config)}
 
-        http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+        http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=headers)
 
 class CursorBasedStream(Stream):
     item_key = None
@@ -145,7 +145,8 @@ class CursorBasedStream(Stream):
         '''
         url = self.endpoint.format(self.config['subdomain'])
         # Pass `request_timeout` parameter
-        for page in http.get_cursor_based(url, self.config['access_token'], self.request_timeout, self.page_size, **kwargs):
+        auth_headers = http.build_auth_headers(self.config)
+        for page in http.get_cursor_based(url, self.config.get('access_token'), self.request_timeout, self.page_size, headers=auth_headers, **kwargs):
             yield from page[self.item_key]
 
 class CursorBasedExportStream(Stream):
@@ -158,7 +159,8 @@ class CursorBasedExportStream(Stream):
         '''
         url = self.endpoint.format(self.config['subdomain'])
         # Pass `request_timeout` parameter
-        for page in http.get_incremental_export(url, self.config['access_token'], self.request_timeout, start_time, side_load):
+        auth_headers = http.build_auth_headers(self.config)
+        for page in http.get_incremental_export(url, self.config.get('access_token'), self.request_timeout, start_time, side_load, headers=auth_headers):
             yield from page[self.item_key]
 
 
@@ -274,9 +276,9 @@ class Tickets(CursorBasedExportStream):
 
         bookmark = self.get_bookmark(state)
 
-        # Fetch tickets with side loaded metrics
+        # Fetch tickets with side loaded metrics and custom statuses
         # https://developer.zendesk.com/documentation/ticketing/using-the-zendesk-api/side_loading/#supported-endpoints
-        tickets = self.get_objects(bookmark, side_load='metric_sets')
+        tickets = self.get_objects(bookmark, side_load='metric_sets,custom_statuses')
 
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
@@ -373,9 +375,9 @@ class Tickets(CursorBasedExportStream):
         url = self.endpoint.format(self.config['subdomain'])
         # Convert start_date parameter to timestamp to pass with request param
         start_time = datetime.datetime.strptime(self.config['start_date'], START_DATE_FORMAT).timestamp()
-        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+        headers = {**HEADERS, **http.build_auth_headers(self.config)}
 
-        http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=HEADERS)
+        http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=headers)
 
 
 class TicketAudits(Stream):
@@ -399,7 +401,8 @@ class TicketAudits(Stream):
     async def get_objects(self, session, ticket_id):
         url = self.endpoint.format(self.config['subdomain'], ticket_id)
         # Fetch the ticket audits using pagination
-        records = await http.paginate_ticket_audits(session, url, self.config['access_token'], self.request_timeout, self.page_size)
+        auth_headers = http.build_auth_headers(self.config)
+        records = await http.paginate_ticket_audits(session, url, self.config.get('access_token'), self.request_timeout, self.page_size, headers=auth_headers)
 
         return records[self.item_key]
 
@@ -445,9 +448,9 @@ class TicketAudits(Stream):
         '''
 
         url = self.endpoint.format(self.config['subdomain'], '1')
-        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
+        headers = {**HEADERS, **http.build_auth_headers(self.config)}
         try:
-            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=headers)
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
             pass
@@ -673,6 +676,192 @@ class SLAPolicies(Stream):
         '''
         self.client.sla_policies()
 
+class CustomStatuses(Stream):
+    name = "custom_statuses"
+    replication_method = "FULL_TABLE"
+    endpoint = 'https://{}.zendesk.com/api/v2/custom_statuses'
+
+    def get_objects(self):
+        '''
+        Retrieve custom status objects using next_page URL pagination
+        '''
+        # Start with the initial endpoint
+        url = self.endpoint.format(self.config['subdomain'])
+        auth_headers = http.build_auth_headers(self.config)
+        params = {'per_page': self.page_size}
+        
+        while url:
+            # Make API call - always pass params (empty dict for next_page URLs)
+            current_params = params if params is not None else {}
+            response = http.call_api(url, self.request_timeout, params=current_params, headers={**HEADERS, **auth_headers})
+            
+            response_json = response.json()
+            
+            # Check if this page has any custom statuses
+            statuses_in_page = response_json.get('custom_statuses', [])
+            if not statuses_in_page:
+                # No statuses in this page, stop pagination
+                LOGGER.info("No more custom statuses found, ending pagination")
+                break
+            
+            # Yield custom statuses from current page
+            yield from statuses_in_page
+            
+            # Get next page URL for pagination
+            next_url = response_json.get('next_page')
+            
+            # Stop if no next_page or if it's the same as current URL
+            if not next_url or next_url == url:
+                break
+                
+            url = next_url
+            params = None  # Clear params for subsequent requests since next_page URL contains everything
+
+    def sync(self, state): # pylint: disable=unused-argument
+        custom_statuses = self.get_objects()
+        
+        for status in custom_statuses:
+            yield (self.stream, status)
+
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        auth_headers = http.build_auth_headers(self.config)
+        
+        # Make a test call with per_page=1 to check access
+        params = {'per_page': 1}
+        http.call_api(url, self.request_timeout, params=params, headers={**HEADERS, **auth_headers})
+
+class TicketFormStatuses(Stream):
+    name = "ticket_form_statuses"
+    replication_method = "FULL_TABLE"
+    endpoint = 'https://{}.zendesk.com/api/v2/ticket_form_statuses'
+
+    def get_objects(self):
+        '''
+        Retrieve ticket form status objects using next_page URL pagination
+        '''
+        # Start with the initial endpoint
+        url = self.endpoint.format(self.config['subdomain'])
+        auth_headers = http.build_auth_headers(self.config)
+        params = {'per_page': self.page_size}
+        
+        while url:
+            # Make API call - always pass params (empty dict for next_page URLs)
+            current_params = params if params is not None else {}
+            response = http.call_api(url, self.request_timeout, params=current_params, headers={**HEADERS, **auth_headers})
+            
+            response_json = response.json()
+            
+            # Check if this page has any ticket form statuses
+            statuses_in_page = response_json.get('ticket_form_statuses', [])
+            if not statuses_in_page:
+                # No statuses in this page, stop pagination
+                LOGGER.info("No more ticket form statuses found, ending pagination")
+                break
+            
+            # Yield ticket form statuses from current page
+            yield from statuses_in_page
+            
+            # Get next page URL for pagination
+            next_url = response_json.get('next_page')
+            
+            # Stop if no next_page or if it's the same as current URL
+            if not next_url or next_url == url:
+                break
+                
+            url = next_url
+            params = None  # Clear params for subsequent requests since next_page URL contains everything
+
+    def sync(self, state): # pylint: disable=unused-argument
+        ticket_form_statuses = self.get_objects()
+        
+        for status in ticket_form_statuses:
+            yield (self.stream, status)
+
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        auth_headers = http.build_auth_headers(self.config)
+        
+        # Make a test call with per_page=1 to check access
+        params = {'per_page': 1}
+        http.call_api(url, self.request_timeout, params=params, headers={**HEADERS, **auth_headers})
+
+class Calls(Stream):
+    name = "calls"
+    replication_method = "INCREMENTAL"
+    replication_key = "updated_at"
+    endpoint = "https://{}.zendesk.com/api/v2/channels/voice/stats/incremental/calls.json"
+
+    def get_objects(self, start_time):
+        '''
+        Retrieve call objects from the incremental calls endpoint using next_page URL pagination
+        '''
+        # Convert datetime to timestamp if needed
+        if not isinstance(start_time, int):
+            start_time = int(start_time.timestamp())
+        
+        # Start with the initial URL
+        url = self.endpoint.format(self.config['subdomain'])
+        auth_headers = http.build_auth_headers(self.config)
+        params = {'start_time': start_time, 'per_page': self.page_size}
+        
+        while url:
+            # Make API call - always pass params (empty dict for next_page URLs)
+            current_params = params if params is not None else {}
+            response = http.call_api(url, self.request_timeout, params=current_params, headers={**HEADERS, **auth_headers})
+            
+            response_json = response.json()
+            
+            # Check if this page has any calls
+            calls_in_page = response_json.get('calls', [])
+            if not calls_in_page:
+                # No calls in this page, stop pagination
+                LOGGER.info("No more calls found, ending pagination")
+                break
+            
+            # Yield calls from current page
+            yield from calls_in_page
+            
+            # Get next page URL for pagination
+            next_url = response_json.get('next_page')
+            
+            # Stop if no next_page or if it's the same as current URL
+            if not next_url or next_url == url:
+                break
+                
+            url = next_url
+            params = None  # Clear params for subsequent requests since next_page URL contains everything
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+        calls = self.get_objects(bookmark)
+        
+        for call in calls:
+            # Use updated_at as replication key, fallback to created_at if not available
+            replication_key_value = call.get(self.replication_key) or call.get('created_at')
+            if replication_key_value:
+                self.update_bookmark(state, replication_key_value)
+            yield (self.stream, call)
+
+        singer.write_state(state)
+
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = self.endpoint.format(self.config['subdomain'])
+        # Use recent timestamp to reduce API call burden at discovery time
+        start_time = int(datetime.datetime.utcnow().timestamp()) - 86400  # 24 hours ago
+        headers = {**HEADERS, **http.build_auth_headers(self.config)}
+        
+        http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1}, headers=headers)
+
 STREAMS = {
     "tickets": Tickets,
     "groups": Groups,
@@ -689,5 +878,8 @@ STREAMS = {
     "ticket_metrics": TicketMetrics,
     "ticket_metric_events": TicketMetricEvents,
     "sla_policies": SLAPolicies,
+    "custom_statuses": CustomStatuses,
+    "ticket_form_statuses": TicketFormStatuses,
     "talk_phone_numbers": TalkPhoneNumbers,
+    "calls": Calls,
 }
