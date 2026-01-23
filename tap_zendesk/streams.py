@@ -553,6 +553,34 @@ class SatisfactionRatings(CursorBasedStream):
                 self.update_bookmark(state, rating['updated_at'])
                 yield (self.stream, rating)
 
+class CSATSurveyResponses(CursorBasedStream):
+    name = "csat_survey_responses"
+    replication_method = "INCREMENTAL"
+    replication_key = "created_at"
+    endpoint = "https://{}.zendesk.com/api/v2/guide/survey_responses"
+    item_key = "survey_responses"
+
+    def sync(self, state):
+        #Incremental sync using filter[created_at_start]
+        bookmark = self.get_bookmark(state)
+        start_epoch = int(bookmark.timestamp())
+        params = {"filter[created_at_start]": start_epoch}
+        responses = self.get_objects(params=params)
+        for response in responses:
+            # Survey responses do not have a top-level updated_at.
+            # derive created_at from the answers block.
+            created_at = None
+            for answer in response.get("answers", []):
+                answer_created_at = (
+                        answer.get("updated_at")
+                        or answer.get("created_at"))
+                if answer_created_at:
+                    parsed = utils.strptime_with_tz(answer_created_at)
+                    if not created_at or parsed > created_at:
+                        created_at = parsed
+            if created_at and created_at >= bookmark:
+                self.update_bookmark(state, created_at.isoformat())
+                yield (self.stream, response)
 
 class Groups(CursorBasedStream):
     name = "groups"
@@ -816,5 +844,7 @@ STREAMS = {
     "talk_phone_numbers": TalkPhoneNumbers,
     "custom_roles": CustomRoles,
     "ticket_conversation_logs": TicketConversationLogs,
+    "csat_survey_responses": CSATSurveyResponses,
 }
+
 
