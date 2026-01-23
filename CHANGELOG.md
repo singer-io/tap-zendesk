@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.7.2
+  * Update aiohttp for twistlock [#178](https://github.com/singer-io/tap-zendesk/pull/178)
+
 ## 2.7.1
   * Update dependencies [#177](https://github.com/singer-io/tap-zendesk/pull/177)
 
