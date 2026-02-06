@@ -286,15 +286,13 @@
             "type": [
                 "string",
                 "null"
-            ],
-            "format": "date-time"
+            ]
         },
         "post_call_summary_created": {
             "type": [
                 "string",
                 "null"
-            ],
-            "format": "date-time"
+            ]
         },
         "call_id": {
             "type": [
