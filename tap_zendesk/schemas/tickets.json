@@ -133,6 +133,12 @@
         "string"
       ]
     },
+    "custom_status_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
     "updated_at": {
       "type": [
         "null",
