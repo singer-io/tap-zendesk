@@ -1,142 +1,48 @@
 {
-  "type": [
-    "null",
-    "object"
-  ],
+  "type": ["null", "object"],
   "properties": {
-    "id": {
-      "type": [
-        "null",
-        "string"
-      ]
+    "id": { "type": ["null", "string"] },
+    "expires_at": { "type": ["null", "string"], "format": "date-time" },
+    "responder_id": { "type": ["null", "string"] },
+
+    "subject_zrns": {
+      "type": ["null", "array"],
+      "items": { "type": ["null", "string"] }
     },
-    "expires_at": {
-      "type": [
-        "null",
-        "string"
-      ],
-      "format": "date-time"
-    },
-    "responder_id": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "survey": {
-      "type": [
-        "null",
-        "object"
-      ],
-      "properties": {
-        "id": {
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "version": {
-          "type": [
-            "null",
-            "integer"
-          ]
-        },
-        "state": {
-          "type": [
-            "null",
-            "string"
-          ]
-        }
-      }
-    },
+
     "subjects": {
-      "type": [
-        "null",
-        "array"
-      ],
+      "type": ["null", "array"],
       "items": {
-        "type": [
-          "null",
-          "object"
-        ],
+        "type": ["null", "object"],
         "properties": {
-          "id": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "type": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "zrn": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
+          "id": { "type": ["null", "string"] },
+          "type": { "type": ["null", "string"] },
+          "zrn": { "type": ["null", "string"] }
         }
       }
     },
+
+    "survey": {
+      "type": ["null", "object"],
+      "properties": {
+        "id": { "type": ["null", "string"] },
+        "version": { "type": ["null", "integer"] },
+        "state": { "type": ["null", "string"] }
+      }
+    },
+
     "answers": {
-      "type": [
-        "null",
-        "array"
-      ],
+      "type": ["null", "array"],
       "items": {
-        "type": [
-          "null",
-          "object"
-        ],
+        "type": ["null", "object"],
         "properties": {
-          "id": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "type": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "rating": {
-            "type": [
-              "null",
-              "integer"
-            ]
-          },
-          "rating_category": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "good | bad | neutral"
-          },
-          "comment": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "created_at": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          }
+          "id": { "type": ["null", "string"] },
+          "type": { "type": ["null", "string"] },
+          "rating": { "type": ["null", "integer"] },
+          "rating_category": { "type": ["null", "string"], "description": "good | bad | neutral" },
+          "comment": { "type": ["null", "string"] },
+          "created_at": { "type": ["null", "string"], "format": "date-time" },
+          "updated_at": { "type": ["null", "string"], "format": "date-time" }
         }
       }
     }

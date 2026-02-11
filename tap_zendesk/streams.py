@@ -553,34 +553,101 @@ class SatisfactionRatings(CursorBasedStream):
                 self.update_bookmark(state, rating['updated_at'])
                 yield (self.stream, rating)
 
-class CSATSurveyResponses(CursorBasedStream):
+class CSATSurveyResponses(Stream):
     name = "csat_survey_responses"
     replication_method = "INCREMENTAL"
-    replication_key = "created_at"
+    replication_key = "updated_at"
     endpoint = "https://{}.zendesk.com/api/v2/guide/survey_responses"
     item_key = "survey_responses"
 
+    CSAT_MAX_PAGE_SIZE = 50
+
+    def _headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f'Bearer {self.config["access_token"]}',
+        }
+
+    def get_objects(self, params=None):
+        url = self.endpoint.format(self.config["subdomain"])
+        after = None
+
+        while True:
+            page_params = dict(params) if params else {}
+
+            # Zendesk constraint: page[size] must be <= 50 for this endpoint
+            page_params["page[size]"] = min(self.page_size, self.CSAT_MAX_PAGE_SIZE)
+
+            if after:
+                page_params["page[after]"] = after
+
+            resp = http.call_api(
+                url,
+                self.request_timeout,
+                params=page_params,
+                headers=self._headers(),
+            )
+            data = resp.json() or {}
+
+            for obj in data.get(self.item_key, []) or []:
+                yield obj
+
+            meta = data.get("meta") or {}
+            after = meta.get("after_cursor")
+            if not meta.get("has_more") or not after:
+                break
+
+    def _replication_dt(self, response):
+        """Pick the best timestamp to drive incremental state."""
+        latest_dt = None
+
+        # 1) Answers timestamps
+        for ans in (response.get("answers") or []):
+            ts = ans.get("updated_at") or ans.get("created_at")
+            if ts:
+                dt = utils.strptime_with_tz(ts)
+                if latest_dt is None or dt > latest_dt:
+                    latest_dt = dt
+
+        # 2) Top-level timestamps if present
+        if latest_dt is None:
+            ts = response.get("updated_at") or response.get("created_at")
+            if ts:
+                latest_dt = utils.strptime_with_tz(ts)
+
+        # 3) Fallback: expires_at
+        if latest_dt is None and response.get("expires_at"):
+            latest_dt = utils.strptime_with_tz(response["expires_at"])
+
+        return latest_dt
+
     def sync(self, state):
-        #Incremental sync using filter[created_at_start]
         bookmark = self.get_bookmark(state)
-        start_epoch = int(bookmark.timestamp())
-        params = {"filter[created_at_start]": start_epoch}
-        responses = self.get_objects(params=params)
-        for response in responses:
-            # Survey responses do not have a top-level updated_at.
-            # derive created_at from the answers block.
-            created_at = None
-            for answer in response.get("answers", []):
-                answer_created_at = (
-                        answer.get("updated_at")
-                        or answer.get("created_at"))
-                if answer_created_at:
-                    parsed = utils.strptime_with_tz(answer_created_at)
-                    if not created_at or parsed > created_at:
-                        created_at = parsed
-            if created_at and created_at >= bookmark:
-                self.update_bookmark(state, created_at.isoformat())
+
+        # Buffer by 1 second to avoid missing boundary records
+        start_dt = bookmark - datetime.timedelta(seconds=1)
+        start_epoch = int(start_dt.timestamp())
+
+        # Use the server-side filter for scalable incremental pulls
+        params = {
+            "filter[created_at_start]": start_epoch
+        }
+
+        for response in self.get_objects(params=params):
+            rep_dt = self._replication_dt(response)
+            if rep_dt and rep_dt >= bookmark:
+                self.update_bookmark(state, utils.strftime(rep_dt))
                 yield (self.stream, response)
+
+    def check_access(self):
+        url = self.endpoint.format(self.config["subdomain"])
+        http.call_api(
+            url,
+            self.request_timeout,
+            params={"page[size]": 1},
+            headers=self._headers(),
+        )
 
 class Groups(CursorBasedStream):
     name = "groups"
