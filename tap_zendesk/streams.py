@@ -673,6 +673,37 @@ class SLAPolicies(Stream):
         '''
         self.client.sla_policies()
 
+class CustomTicketStatuses(Stream):
+    name = "custom_ticket_statuses"
+    replication_method = "FULL_TABLE"
+    key_properties = ["id"]
+
+    def sync(self, state): # pylint: disable=unused-argument
+        url = 'https://{}.zendesk.com/api/v2/custom_statuses'.format(self.config['subdomain'])
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer {}'.format(self.config["access_token"]),
+        }
+        
+        response = http.call_api(url, self.request_timeout, params={}, headers=headers)
+        response_json = response.json()
+        
+        for status in response_json.get('custom_statuses', []):
+            yield (self.stream, status)
+
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        url = 'https://{}.zendesk.com/api/v2/custom_statuses'.format(self.config['subdomain'])
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer {}'.format(self.config["access_token"]),
+        }
+        http.call_api(url, self.request_timeout, params={}, headers=headers)
+
 STREAMS = {
     "tickets": Tickets,
     "groups": Groups,
@@ -690,4 +721,5 @@ STREAMS = {
     "ticket_metric_events": TicketMetricEvents,
     "sla_policies": SLAPolicies,
     "talk_phone_numbers": TalkPhoneNumbers,
+    "custom_ticket_statuses": CustomTicketStatuses,
 }
