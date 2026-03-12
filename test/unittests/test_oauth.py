@@ -1,5 +1,4 @@
 import unittest
-import datetime
 from unittest.mock import patch
 
 from tap_zendesk.oauth import (
@@ -7,7 +6,7 @@ from tap_zendesk.oauth import (
     _refresh_access_token,
     ACCESS_TOKEN_EXPIRES_IN
 )
-
+from tap_zendesk.http import ZendeskError
 
 # ---------------------------------------------------------------------------
 # Helper: mock response object matching requests.Response interface
@@ -136,6 +135,6 @@ class TestRefreshAccessTokenAPI(unittest.TestCase):
     @patch('tap_zendesk.oauth.requests.post')
     def test_400_bad_request(self, mock_post):
         mock_post.return_value = MockResponse(400, text='{"error": "invalid_grant"}')
-        with self.assertRaises(Exception) as ctx:
+        with self.assertRaises(ZendeskError) as ctx:
             _refresh_access_token(self.BASE_CONFIG)
         self.assertIn('400', str(ctx.exception))

@@ -1,17 +1,10 @@
 """
-OAuth token management for Zendesk API.
+On every session, new access_token and refresh_token values are generated
+via the refresh_token grant type, and the updated tokens are persisted back to the config file.
 
-Handles refreshing access_token and refresh_token according to Zendesk's
-OAuth token expiration policy:
-  - access_token: max 172,800 seconds (2 days / 48 hours)
+When the access_token and refresh_token are renewed, the old tokens are invalidated and cannot be used again.
 
-Zendesk docs: https://developer.zendesk.com/api-reference/ticketing/oauth/grant_type_tokens/
-
-On every session a new access_token and refresh_token is generated 
-via the refresh_token grant type and the updated tokens are persisted back to the config file.
-
-When renew access_token and refresh_token, the old tokens are invalidated and cannot be used again.
-Backward compatible: when refresh_token is absent from config, nothing happens.
+Backward compatibility: if refresh_token is absent from the config, token refresh is skipped.
 """
 
 import json
@@ -51,6 +44,17 @@ def _refresh_access_token(config):
                 response.status_code, response.text))
 
     token_data = response.json()
+
+   # Validate that the expected fields are present in the token response
+    missing_fields = [
+        field for field in ("access_token", "refresh_token")
+        if field not in token_data
+    ]
+    if missing_fields:
+        raise ZendeskError(
+            "OAuth token refresh response missing required field(s) {}.".format(", ".join(missing_fields))
+        )
+
     LOGGER.info("Successfully refreshed access_token.")
     return token_data
 
