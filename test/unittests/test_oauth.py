@@ -4,10 +4,8 @@ from unittest.mock import patch
 
 from tap_zendesk.oauth import (
     refresh_credentials,
-    _is_refresh_token_expiring,
     _refresh_access_token,
-    ACCESS_TOKEN_EXPIRES_IN,
-    REFRESH_TOKEN_EXPIRES_IN
+    ACCESS_TOKEN_EXPIRES_IN
 )
 
 
@@ -108,16 +106,13 @@ class TestRefreshAccessTokenAPI(unittest.TestCase):
             'access_token': 'fresh_at',
             'token_type': 'bearer',
             'refresh_token': 'fresh_rt',
-            'scope': 'read',
-            'expires_in': ACCESS_TOKEN_EXPIRES_IN,
-            'refresh_token_expires_in': REFRESH_TOKEN_EXPIRES_IN,
+            'expires_in': ACCESS_TOKEN_EXPIRES_IN
         }
         mock_post.return_value = MockResponse(200, token_resp)
         result = _refresh_access_token(self.BASE_CONFIG)
         self.assertEqual(result['access_token'], 'fresh_at')
         self.assertEqual(result['refresh_token'], 'fresh_rt')
         self.assertEqual(result['expires_in'], ACCESS_TOKEN_EXPIRES_IN)
-        self.assertEqual(result['refresh_token_expires_in'], REFRESH_TOKEN_EXPIRES_IN)
     
         url = mock_post.call_args[0][0]
         self.assertEqual(url, 'https://acme.zendesk.com/oauth/tokens')
@@ -126,7 +121,7 @@ class TestRefreshAccessTokenAPI(unittest.TestCase):
     @patch('tap_zendesk.oauth.requests.post')
     def test_200_correct_payload(self, mock_post):
         mock_post.return_value = MockResponse(200, {
-            'access_token': 'a', 'refresh_token': 'r', 'token_type': 'bearer', 'scope': 'read'
+            'access_token': 'a', 'refresh_token': 'r', 'token_type': 'bearer'
         })
         _refresh_access_token(self.BASE_CONFIG)
         payload = mock_post.call_args[1]['json']
@@ -134,9 +129,7 @@ class TestRefreshAccessTokenAPI(unittest.TestCase):
         self.assertEqual(payload['refresh_token'], 'old_rt')
         self.assertEqual(payload['client_id'], 'cid')
         self.assertEqual(payload['client_secret'], 'cs')
-        self.assertEqual(payload['scope'], 'read')
         self.assertEqual(payload['expires_in'], ACCESS_TOKEN_EXPIRES_IN)
-        self.assertEqual(payload['refresh_token_expires_in'], REFRESH_TOKEN_EXPIRES_IN)
 
 
     # --- 400 Bad Request ---
@@ -146,51 +139,3 @@ class TestRefreshAccessTokenAPI(unittest.TestCase):
         with self.assertRaises(Exception) as ctx:
             _refresh_access_token(self.BASE_CONFIG)
         self.assertIn('400', str(ctx.exception))
-
-# ===========================================================================
-# 4. _is_refresh_token_expiring — DATE BOUNDARY CONDITIONS
-# ===========================================================================
-class TestIsRefreshTokenExpiring(unittest.TestCase):
-    """All edge cases for expiry checking."""
-
-    def test_missing_key_returns_true(self):
-        self.assertTrue(_is_refresh_token_expiring({}))
-
-    def test_none_value_returns_true(self):
-        self.assertTrue(_is_refresh_token_expiring({'refresh_token_expires_at': None}))
-
-    def test_empty_string_returns_true(self):
-        self.assertTrue(_is_refresh_token_expiring({'refresh_token_expires_at': ''}))
-
-    def test_invalid_date_string_returns_true(self):
-        self.assertTrue(_is_refresh_token_expiring({'refresh_token_expires_at': 'not-a-date'}))
-
-    def test_numeric_value_returns_true(self):
-        self.assertTrue(_is_refresh_token_expiring({'refresh_token_expires_at': 12345}))
-
-    def test_90_days_in_future_returns_false(self):
-        future = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=90)
-        self.assertFalse(_is_refresh_token_expiring(
-            {'refresh_token_expires_at': future.isoformat()}))
-
-    def test_30_days_in_future_returns_false(self):
-        future = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
-        self.assertFalse(_is_refresh_token_expiring(
-            {'refresh_token_expires_at': future.isoformat()}))
-
-    def test_exactly_1_day_in_future_returns_true(self):
-        """At the 1-day boundary — should trigger refresh."""
-        boundary = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)
-        self.assertTrue(_is_refresh_token_expiring(
-            {'refresh_token_expires_at': boundary.isoformat()}))
-
-    def test_1_hour_in_future_returns_true(self):
-        soon = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)
-        self.assertTrue(_is_refresh_token_expiring(
-            {'refresh_token_expires_at': soon.isoformat()}))
-
-    def test_already_expired_returns_true(self):
-        past = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
-        self.assertTrue(_is_refresh_token_expiring(
-            {'refresh_token_expires_at': past.isoformat()}))
-

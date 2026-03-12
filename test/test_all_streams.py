@@ -49,7 +49,7 @@ class ZendeskAllStreams(ZendeskTest):
         # Zenpy client credentials to connect to API
         creds = {
             'email': 'dev@stitchdata.com',
-            'password': os.getenv('TAP_ZENDESK_API_PASSWORD'),
+            'token': os.getenv('TAP_ZENDESK_API_TOKEN'),
             'subdomain': self.get_properties()['subdomain'],
         }
 
@@ -79,7 +79,7 @@ class ZendeskAllStreams(ZendeskTest):
         # Zenpy client credentials to connect to API
         creds = {
             'email': 'dev@stitchdata.com',
-            'password': os.getenv('TAP_ZENDESK_API_PASSWORD'),
+            'token': os.getenv('TAP_ZENDESK_API_TOKEN'),
             'subdomain': self.get_properties()['subdomain'],
         }
 
