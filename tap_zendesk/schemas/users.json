@@ -292,13 +292,7 @@
         "boolean"
       ]
     },
-    "user_fields": {
-      "type": [
-        "null",
-        "object"
-      ],
-      "additionalProperties": true
-    },
+    "user_fields": {},
     "last_login_at": {
       "type": [
         "null",
