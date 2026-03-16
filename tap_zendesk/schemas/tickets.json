@@ -149,8 +149,10 @@
               "integer"
             ]
           },
-          "value": { "type": ["null", "string", "boolean", "integer", "number", "array", "object"] },
-          "properties": {}
+          "value": {
+            "type": ["null", "string", "boolean", "integer", "number", "array", "object"],
+            "properties": {}
+          }
         },
         "type": [
           "null",
