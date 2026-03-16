@@ -187,7 +187,8 @@
         "type": [
           "null",
           "object"
-        ]
+        ],
+        "properties": {}
       }
     },
     "sub_type_id": {
