@@ -1,11 +1,5 @@
 {
   "properties": {
-    "metric": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
     "id": {
       "type": [
         "null",
