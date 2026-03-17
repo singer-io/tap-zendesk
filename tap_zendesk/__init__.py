@@ -13,6 +13,7 @@ from singer import metadata, metrics as singer_metrics
 import backoff
 from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk.discover import discover_streams
+from tap_zendesk.oauth import refresh_credentials
 from tap_zendesk.streams import STREAMS
 from tap_zendesk.sync import sync_stream
 
@@ -215,12 +216,20 @@ def get_session(config):
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
+    dev_mode = getattr(parsed_args, 'dev', False)
+    if dev_mode:
+        LOGGER.warning("Executing Tap in Dev mode")
+
     # Set request timeout to config param `request_timeout` value.
     config_request_timeout = parsed_args.config.get('request_timeout')
     if config_request_timeout and float(config_request_timeout):
         request_timeout = float(config_request_timeout)
     else:
         request_timeout = REQUEST_TIMEOUT  # If value is 0, "0", "" or not passed then it sets default to 300 seconds.
+
+    config_path = parsed_args.config_path
+    parsed_args.config = refresh_credentials(parsed_args.config, config_path, dev_mode=dev_mode)
+
     # OAuth has precedence
     creds = oauth_auth(parsed_args) or api_token_auth(parsed_args)
     session = get_session(parsed_args.config)

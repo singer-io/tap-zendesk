@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.0
+  * Handle Oauth token expiry [#182](https://github.com/singer-io/tap-zendesk/pull/182)
+  * Implement dev mode
+
 ## 2.7.2
   * Update aiohttp for twistlock [#178](https://github.com/singer-io/tap-zendesk/pull/178)
 

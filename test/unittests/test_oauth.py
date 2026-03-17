@@ -1,0 +1,189 @@
+import datetime
+import unittest
+from unittest.mock import patch
+
+from tap_zendesk.oauth import (
+    refresh_credentials,
+    _refresh_access_token,
+    ACCESS_TOKEN_EXPIRES_IN,
+    _is_access_token_expiring
+)
+from tap_zendesk.http import ZendeskError
+
+# ---------------------------------------------------------------------------
+# Helper: mock response object matching requests.Response interface
+# ---------------------------------------------------------------------------
+class MockResponse:
+    def __init__(self, status_code, json_data=None, text=''):
+        self.status_code = status_code
+        self._json = json_data
+        self.text = text
+
+    def json(self):
+        if self._json is None:
+            raise ValueError("No JSON")
+        return self._json
+
+
+# ===========================================================================
+# 1. BACKWARD COMPATIBILITY
+# ===========================================================================
+class TestBackwardCompatibility(unittest.TestCase):
+    """Config without refresh_token should pass through untouched."""
+
+    def test_no_refresh_token_access_token_only(self):
+        """Legacy OAuth: access_token present, no refresh_token."""
+        config = {
+            'subdomain': 'acme',
+            'access_token': 'legacy_at',
+            'start_date': '2024-01-01T00:00:00Z',
+        }
+        result = refresh_credentials(config, '/tmp/fake.json')
+        self.assertEqual(result['access_token'], 'legacy_at')
+        self.assertNotIn('refresh_token', result)
+
+    def test_api_token_email_auth(self):
+        """email+api_token auth has no access_token — should skip entirely."""
+        config = {
+            'subdomain': 'acme',
+            'email': 'agent@acme.com',
+            'api_token': 'zd_api_token_123',
+            'start_date': '2024-01-01T00:00:00Z',
+        }
+        result = refresh_credentials(config, '/tmp/fake.json')
+        self.assertEqual(result, config)
+        self.assertNotIn('access_token', result)
+        self.assertNotIn('refresh_token', result)
+
+    def test_empty_config_only_required_keys(self):
+        """Minimal config with only required keys."""
+        config = {
+            'subdomain': 'acme',
+            'start_date': '2024-01-01T00:00:00Z',
+        }
+        result = refresh_credentials(config, '/tmp/fake.json')
+        self.assertEqual(result, config)
+
+
+# ===========================================================================
+# 2. DEV MODE
+# ===========================================================================
+class TestDevMode(unittest.TestCase):
+    """--dev flag: reuse existing tokens, no API calls."""
+
+    @patch('tap_zendesk.oauth._write_config')
+    @patch('tap_zendesk.oauth.requests.post')
+    def test_dev_mode_returns_existing_tokens(self, mock_post, mock_write_config):
+        config = {
+            'subdomain': 'acme',
+            'access_token': 'dev_at',
+            'refresh_token': 'dev_rt',
+            'client_id': 'cid',
+            'client_secret': 'cs',
+        }
+        result = refresh_credentials(config, '/tmp/fake.json', dev_mode=True)
+        self.assertEqual(result['access_token'], 'dev_at')
+        self.assertEqual(result['refresh_token'], 'dev_rt')
+        mock_post.assert_not_called()
+        mock_write_config.assert_not_called()
+
+# ===========================================================================
+# 3. _refresh_access_token — API BEHAVIOUR SCENARIOS
+# ===========================================================================
+class TestRefreshAccessTokenAPI(unittest.TestCase):
+    """Test every HTTP response scenario from Zendesk /oauth/tokens."""
+
+    BASE_CONFIG = {
+        'subdomain': 'acme',
+        'refresh_token': 'old_rt',
+        'client_id': 'cid',
+        'client_secret': 'cs',
+    }
+
+    # --- 200 OK: normal success ---
+    @patch('tap_zendesk.oauth.requests.post')
+    def test_200_success_returns_token_data(self, mock_post):
+        token_resp = {
+            'access_token': 'fresh_at',
+            'token_type': 'bearer',
+            'refresh_token': 'fresh_rt',
+            'expires_in': ACCESS_TOKEN_EXPIRES_IN
+        }
+        mock_post.return_value = MockResponse(200, token_resp)
+        result = _refresh_access_token(self.BASE_CONFIG)
+        self.assertEqual(result['access_token'], 'fresh_at')
+        self.assertEqual(result['refresh_token'], 'fresh_rt')
+        self.assertEqual(result['expires_in'], ACCESS_TOKEN_EXPIRES_IN)
+    
+        url = mock_post.call_args[0][0]
+        self.assertEqual(url, 'https://acme.zendesk.com/oauth/tokens')
+
+    # --- 200 OK: verify request payload ---
+    @patch('tap_zendesk.oauth.requests.post')
+    def test_200_correct_payload(self, mock_post):
+        mock_post.return_value = MockResponse(200, {
+            'access_token': 'a', 'refresh_token': 'r', 'token_type': 'bearer'
+        })
+        _refresh_access_token(self.BASE_CONFIG)
+        payload = mock_post.call_args[1]['json']
+        self.assertEqual(payload['grant_type'], 'refresh_token')
+        self.assertEqual(payload['refresh_token'], 'old_rt')
+        self.assertEqual(payload['client_id'], 'cid')
+        self.assertEqual(payload['client_secret'], 'cs')
+        self.assertEqual(payload['expires_in'], ACCESS_TOKEN_EXPIRES_IN)
+
+
+    # --- 400 Bad Request ---
+    @patch('tap_zendesk.oauth.requests.post')
+    def test_400_bad_request(self, mock_post):
+        mock_post.return_value = MockResponse(400, text='{"error": "invalid_grant"}')
+        with self.assertRaises(ZendeskError) as ctx:
+            _refresh_access_token(self.BASE_CONFIG)
+        self.assertIn('400', str(ctx.exception))
+
+# ===========================================================================
+# 4. _is_access_token_expiring — DATE BOUNDARY CONDITIONS
+# ===========================================================================
+class TestIsAccessTokenExpiring(unittest.TestCase):
+    """All edge cases for expiry checking."""
+
+    def test_missing_key_returns_true(self):
+        self.assertTrue(_is_access_token_expiring({}))
+
+    def test_none_value_returns_true(self):
+        self.assertTrue(_is_access_token_expiring({'access_token_expires_at': None}))
+
+    def test_empty_string_returns_true(self):
+        self.assertTrue(_is_access_token_expiring({'access_token_expires_at': ''}))
+
+    def test_invalid_date_string_returns_true(self):
+        self.assertTrue(_is_access_token_expiring({'access_token_expires_at': 'not-a-date'}))
+
+    def test_numeric_value_returns_true(self):
+        self.assertTrue(_is_access_token_expiring({'access_token_expires_at': 12345}))
+
+    def test_48_hours_in_future_returns_false(self):
+        future = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=48)
+        self.assertFalse(_is_access_token_expiring(
+            {'access_token_expires_at': future.isoformat()}))
+
+    def test_24_hours_in_future_returns_false(self):
+        future = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
+        self.assertFalse(_is_access_token_expiring(
+            {'access_token_expires_at': future.isoformat()}))
+
+    def test_exactly_30_minutes_in_future_returns_true(self):
+        """At the 30-minute boundary — should trigger refresh."""
+        boundary = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=30)
+        self.assertTrue(_is_access_token_expiring(
+            {'access_token_expires_at': boundary.isoformat()}))
+
+    def test_1_minute_in_future_returns_true(self):
+        soon = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=1)
+        self.assertTrue(_is_access_token_expiring(
+            {'access_token_expires_at': soon.isoformat()}))
+
+    def test_already_expired_returns_true(self):
+        past = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=1)
+        self.assertTrue(_is_access_token_expiring(
+            {'access_token_expires_at': past.isoformat()}))
