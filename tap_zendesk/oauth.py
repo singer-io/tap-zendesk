@@ -15,7 +15,6 @@ Zendesk docs: https://developer.zendesk.com/api-reference/ticketing/oauth/grant_
 
 import json
 import datetime
-from logging import config
 import requests
 import singer
 from tap_zendesk.http import ZendeskError
@@ -31,12 +30,12 @@ ACCESS_TOKEN_EXPIRES_IN = 172800
 # Renew access_token 30 minutes before its expiry
 ACCESS_TOKEN_RENEWAL_BUFFER_MINUTES = 30
 
-def _is_access_token_expiring(config):
+def _is_access_token_expiring(_config):
     """
     Check whether the access_token is within 30 minutes of its expiry.
     If 'access_token_expires_at' is not stored in config, assume it needs refreshing.
     """
-    expires_at_str = config.get('access_token_expires_at')
+    expires_at_str = _config.get('access_token_expires_at')
     if not expires_at_str:
         LOGGER.info("No 'access_token_expires_at' in config. Will refresh the access_token.")
         return True
@@ -56,19 +55,19 @@ def _is_access_token_expiring(config):
 
     return False
 
-def _refresh_access_token(config):
+def _refresh_access_token(_config):
     """
     POST to Zendesk /oauth/tokens with grant_type=refresh_token.
     Returns the full token response dict.
     """
-    subdomain = config['subdomain']
+    subdomain = _config['subdomain']
     url = TOKEN_REFRESH_URL.format(subdomain=subdomain)
 
     payload = {
         'grant_type': 'refresh_token',
-        'refresh_token': config['refresh_token'],
-        'client_id': config['client_id'],
-        'client_secret': config['client_secret'],
+        'refresh_token': _config['refresh_token'],
+        'client_id': _config['client_id'],
+        'client_secret': _config['client_secret'],
         'expires_in': ACCESS_TOKEN_EXPIRES_IN
     }
 
@@ -95,50 +94,50 @@ def _refresh_access_token(config):
     return token_data
 
 
-def _write_config(config_path, config):
+def _write_config(config_path, _config):
     """
     Write updated config back to the config file.
     """
     with open(config_path, encoding='utf-8') as file:
         disk_config = json.load(file)
 
-    disk_config['refresh_token'] = config['refresh_token']
-    disk_config['access_token'] = config['access_token']
+    disk_config['refresh_token'] = _config['refresh_token']
+    disk_config['access_token'] = _config['access_token']
 
     with open(config_path, 'w', encoding='utf-8') as file:
         json.dump(disk_config, file, indent=2)
 
 
-def refresh_credentials(config, config_path, dev_mode=False):
+def refresh_credentials(_config, config_path, dev_mode=False):
     """
     Main entry point for OAuth credential management.
     """
 
     if dev_mode:
-        return config
+        return _config
 
     # api_token/email auth doesn't use access_token/refresh_token, so skip
-    if 'access_token' not in config:
-        return config
+    if 'access_token' not in _config:
+        return _config
 
     # Backward compatibility: no refresh_token means legacy flow — do nothing
-    if 'refresh_token' not in config:
-        return config
+    if 'refresh_token' not in _config:
+        return _config
 
-    if not _is_access_token_expiring(config):
-        return config
+    if not _is_access_token_expiring(_config):
+        return _config
 
-    token_data = _refresh_access_token(config)
+    token_data = _refresh_access_token(_config)
 
-    config['access_token'] = token_data['access_token']
-    config['refresh_token'] = token_data['refresh_token']
+    _config['access_token'] = token_data['access_token']
+    _config['refresh_token'] = token_data['refresh_token']
 
     # Compute and store access_token_expires_at
     expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
         seconds=ACCESS_TOKEN_EXPIRES_IN)
-    config['access_token_expires_at'] = expires_at.isoformat()
+    _config['access_token_expires_at'] = expires_at.isoformat()
 
     # Persist updated tokens back to config file
-    _write_config(config_path, config)
+    _write_config(config_path, _config)
 
-    return config
+    return _config
