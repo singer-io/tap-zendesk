@@ -1,10 +1,12 @@
+import datetime
 import unittest
 from unittest.mock import patch
 
 from tap_zendesk.oauth import (
     refresh_credentials,
     _refresh_access_token,
-    ACCESS_TOKEN_EXPIRES_IN
+    ACCESS_TOKEN_EXPIRES_IN,
+    _is_access_token_expiring
 )
 from tap_zendesk.http import ZendeskError
 
@@ -138,3 +140,50 @@ class TestRefreshAccessTokenAPI(unittest.TestCase):
         with self.assertRaises(ZendeskError) as ctx:
             _refresh_access_token(self.BASE_CONFIG)
         self.assertIn('400', str(ctx.exception))
+
+# ===========================================================================
+# 4. _is_access_token_expiring — DATE BOUNDARY CONDITIONS
+# ===========================================================================
+class TestIsAccessTokenExpiring(unittest.TestCase):
+    """All edge cases for expiry checking."""
+
+    def test_missing_key_returns_true(self):
+        self.assertTrue(_is_access_token_expiring({}))
+
+    def test_none_value_returns_true(self):
+        self.assertTrue(_is_access_token_expiring({'access_token_expires_at': None}))
+
+    def test_empty_string_returns_true(self):
+        self.assertTrue(_is_access_token_expiring({'access_token_expires_at': ''}))
+
+    def test_invalid_date_string_returns_true(self):
+        self.assertTrue(_is_access_token_expiring({'access_token_expires_at': 'not-a-date'}))
+
+    def test_numeric_value_returns_true(self):
+        self.assertTrue(_is_access_token_expiring({'access_token_expires_at': 12345}))
+
+    def test_48_hours_in_future_returns_false(self):
+        future = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=48)
+        self.assertFalse(_is_access_token_expiring(
+            {'access_token_expires_at': future.isoformat()}))
+
+    def test_24_hours_in_future_returns_false(self):
+        future = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
+        self.assertFalse(_is_access_token_expiring(
+            {'access_token_expires_at': future.isoformat()}))
+
+    def test_exactly_30_minutes_in_future_returns_true(self):
+        """At the 30-minute boundary — should trigger refresh."""
+        boundary = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=30)
+        self.assertTrue(_is_access_token_expiring(
+            {'access_token_expires_at': boundary.isoformat()}))
+
+    def test_1_minute_in_future_returns_true(self):
+        soon = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=1)
+        self.assertTrue(_is_access_token_expiring(
+            {'access_token_expires_at': soon.isoformat()}))
+
+    def test_already_expired_returns_true(self):
+        past = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=1)
+        self.assertTrue(_is_access_token_expiring(
+            {'access_token_expires_at': past.isoformat()}))
