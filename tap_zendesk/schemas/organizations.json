@@ -35,7 +35,13 @@
         "boolean"
       ]
     },
-    "organization_fields": {},
+    "organization_fields": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {}
+    },
     "notes": {
       "type": [
         "null",
