@@ -98,3 +98,5 @@ config.json
 .autoenv.zsh
 
 *~
+
+.venv

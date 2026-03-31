@@ -92,6 +92,27 @@
         ]
       }
     },
+    "end_user_conditions": {
+      "type": [
+          "null",
+          "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "integer"
+        ]
+      }
+    },
+    "agent_conditions": {
+      "items": {
+        "$ref": "shared/ticket_agent_conditions.json"
+      },
+      "type": [
+        "null",
+        "array"
+      ]
+    },
     "ticket_field_ids": {
       "type": [
           "null",
@@ -104,10 +125,12 @@
         ]
       }
     }
-
   },
   "type": [
     "null",
     "object"
+  ],
+  "tap_schema_dependencies": [
+    "ticket_agent_conditions"
   ]
 }

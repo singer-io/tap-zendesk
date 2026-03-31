@@ -76,6 +76,12 @@
         "string"
       ]
     },
+    "iana_time_zone": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
     "restricted_agent": {
       "type": [
         "null",

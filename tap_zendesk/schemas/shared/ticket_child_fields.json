@@ -1,0 +1,26 @@
+{
+  "properties": {
+    "id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "is_required": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "required_on_statuses": {
+      "$ref": "shared/ticket_required_on_statuses.json"
+    }
+  },
+  "type": [
+    "null",
+    "object"
+  ],
+  "tap_schema_dependencies": [
+    "ticket_required_on_statuses"
+  ]
+}

@@ -36,6 +36,18 @@
         "boolean"
       ]
     },
+    "description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "default": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
     "id": {
       "type": [
         "null",

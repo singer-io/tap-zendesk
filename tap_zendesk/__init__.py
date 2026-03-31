@@ -81,7 +81,7 @@ def get_selected_streams(catalog):
 
 
 SUB_STREAMS = {
-    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments']
+    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'ticket_metric_event', 'ticket_conversation_logs']
 }
 
 

@@ -1,0 +1,26 @@
+{
+  "properties": {
+    "statuses": {
+      "items": {
+        "type": [
+          "null",
+          "string"
+        ]
+      },
+      "type": [
+        "null",
+        "array"
+      ]
+    },
+    "type": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "type": [
+    "null",
+    "object"
+  ]
+}

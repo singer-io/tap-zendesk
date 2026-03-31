@@ -40,6 +40,12 @@
         "string"
       ]
     },
+    "value": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
     "sla": {
       "type": [
         "null",

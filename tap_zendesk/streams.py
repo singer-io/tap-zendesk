@@ -281,6 +281,7 @@ class Tickets(CursorBasedExportStream):
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
         comments_stream = TicketComments(self.client, self.config)
+        conversation_logs_stream = TicketConversationLogs(self.client, self.config)
 
         def emit_sub_stream_metrics(sub_stream):
             if sub_stream.is_selected():
@@ -327,6 +328,14 @@ class Tickets(CursorBasedExportStream):
                         yield audit
                     for comment in comments:
                         yield comment
+                
+                # Process conversation logs in batches
+                if conversation_logs_stream.is_selected():
+                    conversation_records = conversation_logs_stream.sync_in_bulk(ticket_ids)
+                    for conversation_log_batch in conversation_records:
+                        for conversation_log in conversation_log_batch:
+                            yield conversation_log
+                
                 # Reset the list of ticket IDs after processing the batch.
                 ticket_ids = []
                 # Write state after processing the batch.
@@ -354,10 +363,18 @@ class Tickets(CursorBasedExportStream):
                     yield audit
                 for comment in comments:
                     yield comment
+            
+            # Process remaining conversation logs
+            if conversation_logs_stream.is_selected():
+                conversation_records = conversation_logs_stream.sync_in_bulk(ticket_ids)
+                for conversation_log_batch in conversation_records:
+                    for conversation_log in conversation_log_batch:
+                        yield conversation_log
 
         emit_sub_stream_metrics(audits_stream)
         emit_sub_stream_metrics(metrics_stream)
         emit_sub_stream_metrics(comments_stream)
+        emit_sub_stream_metrics(conversation_logs_stream)
         singer.write_state(state)
 
     def sync_ticket_audits_and_comments(self, comments_stream, audits_stream, ticket_ids):
@@ -536,6 +553,101 @@ class SatisfactionRatings(CursorBasedStream):
                 self.update_bookmark(state, rating['updated_at'])
                 yield (self.stream, rating)
 
+class CSATSurveyResponses(Stream):
+    name = "csat_survey_responses"
+    replication_method = "INCREMENTAL"
+    replication_key = "updated_at"
+    endpoint = "https://{}.zendesk.com/api/v2/guide/survey_responses"
+    item_key = "survey_responses"
+
+    CSAT_MAX_PAGE_SIZE = 50
+
+    def _headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f'Bearer {self.config["access_token"]}',
+        }
+
+    def get_objects(self, params=None):
+        url = self.endpoint.format(self.config["subdomain"])
+        after = None
+
+        while True:
+            page_params = dict(params) if params else {}
+
+            # Zendesk constraint: page[size] must be <= 50 for this endpoint
+            page_params["page[size]"] = min(self.page_size, self.CSAT_MAX_PAGE_SIZE)
+
+            if after:
+                page_params["page[after]"] = after
+
+            resp = http.call_api(
+                url,
+                self.request_timeout,
+                params=page_params,
+                headers=self._headers(),
+            )
+            data = resp.json() or {}
+
+            for obj in data.get(self.item_key, []) or []:
+                yield obj
+
+            meta = data.get("meta") or {}
+            after = meta.get("after_cursor")
+            if not meta.get("has_more") or not after:
+                break
+
+    def _replication_dt(self, response):
+        """Pick the best timestamp to drive incremental state."""
+        latest_dt = None
+
+        # 1) Answers timestamps
+        for ans in (response.get("answers") or []):
+            ts = ans.get("updated_at") or ans.get("created_at")
+            if ts:
+                dt = utils.strptime_with_tz(ts)
+                if latest_dt is None or dt > latest_dt:
+                    latest_dt = dt
+
+        # 2) Top-level timestamps if present
+        if latest_dt is None:
+            ts = response.get("updated_at") or response.get("created_at")
+            if ts:
+                latest_dt = utils.strptime_with_tz(ts)
+
+        # 3) Fallback: expires_at
+        if latest_dt is None and response.get("expires_at"):
+            latest_dt = utils.strptime_with_tz(response["expires_at"])
+
+        return latest_dt
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+
+        # Buffer by 1 second to avoid missing boundary records
+        start_dt = bookmark - datetime.timedelta(seconds=1)
+        start_epoch = int(start_dt.timestamp())
+
+        # Use the server-side filter for scalable incremental pulls
+        params = {
+            "filter[created_at_start]": start_epoch
+        }
+
+        for response in self.get_objects(params=params):
+            rep_dt = self._replication_dt(response)
+            if rep_dt and rep_dt >= bookmark:
+                self.update_bookmark(state, utils.strftime(rep_dt))
+                yield (self.stream, response)
+
+    def check_access(self):
+        url = self.endpoint.format(self.config["subdomain"])
+        http.call_api(
+            url,
+            self.request_timeout,
+            params={"page[size]": 1},
+            headers=self._headers(),
+        )
 
 class Groups(CursorBasedStream):
     name = "groups"
@@ -673,6 +785,113 @@ class SLAPolicies(Stream):
         '''
         self.client.sla_policies()
 
+
+class CustomRoles(Stream):
+    name = "custom_roles"
+    replication_method = "INCREMENTAL"
+    replication_key = "updated_at"
+    endpoint = 'https://{}.zendesk.com/api/v2/custom_roles.json'
+    item_key = 'custom_roles'
+
+    def get_objects(self):
+        url = self.endpoint.format(self.config['subdomain'])
+        # Pass `request_timeout` parameter
+        pages = http.get_offset_based(url, self.config['access_token'], self.request_timeout, self.page_size)
+
+        for page in pages:
+            yield from page[self.item_key]
+
+    def sync(self, state):
+        bookmark = self.get_bookmark(state)
+        for custom_role in self.get_objects():
+            if utils.strptime_with_tz(custom_role['updated_at']) >= bookmark:
+                # NB: We don't trust that the records come back ordered by
+                # updated_at (we've observed out-of-order records),
+                # so we can't save state until we've seen all records
+                self.update_bookmark(state, custom_role['updated_at'])
+                yield (self.stream, custom_role)
+
+class TicketConversationLogs(Stream):
+    name = "ticket_conversation_logs"
+    replication_method = "INCREMENTAL"
+    replication_key = "created_at"
+    count = 0
+    endpoint = 'https://{}.zendesk.com/api/v2/tickets/{}/conversation_log/'
+    item_key = 'events'
+
+    def sync_in_bulk(self, ticket_ids):
+        """
+        Fetch conversation logs for multiple tickets
+        """
+        results = []
+        for ticket_id in ticket_ids:
+            conversation_records = self.sync(ticket_id)
+            results.append(conversation_records)
+        return results
+
+    def get_objects(self, ticket_id):
+        """
+        Get conversation log events for a ticket using cursor-based pagination
+        """
+        url = self.endpoint.format(self.config['subdomain'], ticket_id)
+        # Fetch the conversation_log events using cursor-based pagination
+        pages = http.get_cursor_based(url, self.config['access_token'], self.request_timeout, self.page_size)
+        
+        events = []
+        for page in pages:
+            for event in page[self.item_key]:
+                # Add ticket_id as a top-level property to each event
+                event['ticket_id'] = ticket_id
+                events.append(event)
+        
+        return events
+
+
+    def sync(self, ticket_id):
+        """
+        Fetch conversation logs for a single ticket
+        """
+        conversation_records = []
+        try:
+            # Fetch conversation logs for the given ticket ID
+            conversation_events = self.get_objects(ticket_id)
+            for event in conversation_events:
+                if self.is_selected():
+                    zendesk_metrics.capture('ticket_conversation_log')
+                    self.count += 1
+                    conversation_records.append((self.stream, event))
+        except http.ZendeskNotFoundError:
+            return conversation_records
+
+        return conversation_records
+
+    def sync_incremental(self, state):
+        """
+        Note: This endpoint is per-ticket, so incremental sync is handled 
+        by the main tickets stream calling sync_in_bulk with ticket IDs.
+        This method is kept for interface compatibility but not used directly.
+        """
+        # This stream is synced per-ticket via the tickets stream
+        # No direct incremental sync is available for this endpoint
+        LOGGER.info("TicketConversationLogs are synced per-ticket via the tickets stream")
+        return
+        yield  # Make this a generator for compatibility
+
+    def check_access(self):
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        # Use test ticket ID "1" to check access to conversation logs endpoint
+        url = self.endpoint.format(self.config['subdomain'], '1')
+        HEADERS['Authorization'] = f'Bearer {self.config["access_token"]}'
+        try:
+            http.call_api(url, self.request_timeout, params={}, headers=HEADERS)
+        except http.ZendeskNotFoundError:
+            # Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketConversationLogs have read permission or not
+            pass
+
+
+
 STREAMS = {
     "tickets": Tickets,
     "groups": Groups,
@@ -690,4 +909,9 @@ STREAMS = {
     "ticket_metric_events": TicketMetricEvents,
     "sla_policies": SLAPolicies,
     "talk_phone_numbers": TalkPhoneNumbers,
+    "custom_roles": CustomRoles,
+    "ticket_conversation_logs": TicketConversationLogs,
+    "csat_survey_responses": CSATSurveyResponses,
 }
+
+

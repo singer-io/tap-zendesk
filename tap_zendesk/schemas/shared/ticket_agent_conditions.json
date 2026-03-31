@@ -1,0 +1,38 @@
+{
+  "properties": {
+    "parent_field_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "parent_field_type": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "child_fields": {
+      "items": {
+        "$ref": "shared/ticket_child_fields.json"
+      },
+      "type": [
+        "null",
+        "array"
+      ]
+    },
+    "value": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "type": [
+    "null",
+    "object"
+  ],
+  "tap_schema_dependencies": [
+    "ticket_child_fields"
+  ]
+}

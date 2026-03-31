@@ -1,0 +1,205 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The event ID"
+    },
+    "ticket_id": {
+      "type": "integer",
+      "description": "The ticket ID this conversation log event belongs to"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Internal reference identifier for the conversation message"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The time the conversation event was created"
+    },
+    "received_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "The time the conversation event was received"
+    },
+    "author": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The type of author (system, end-user, agent, user)"
+        },
+        "zen:support:user_id": {
+          "type": ["integer", "null"],
+          "description": "The Zendesk Support user ID"
+        },
+        "zen:sunco:user_id": {
+          "type": ["string", "null"],
+          "description": "The Sunshine Conversations user ID"
+        },
+        "display_name": {
+          "type": ["string", "null"],
+          "description": "The display name of the author"
+        },
+        "avatar_url": {
+          "type": ["string", "null"],
+          "description": "The avatar URL of the author"
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The type of content (text, form, formResponse, html)"
+        },
+        "text": {
+          "type": ["string", "null"],
+          "description": "The text content of the message"
+        },
+        "payload": {
+          "type": ["string", "null"],
+          "description": "Payload data for action responses"
+        },
+        "body": {
+          "type": ["string", "null"],
+          "description": "HTML body content for comments"
+        },
+        "text_fallback": {
+          "type": ["string", "null"],
+          "description": "Text fallback for form responses"
+        },
+        "block_chat_input": {
+          "type": ["boolean", "null"],
+          "description": "Whether chat input is blocked"
+        },
+        "submitted": {
+          "type": ["boolean", "null"],
+          "description": "Whether a form has been submitted"
+        },
+        "actions": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "properties": {
+              "reply": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  },
+                  "payload": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Available actions for interactive messages"
+        },
+        "fields": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Field type (EMAIL, TEXT, SELECT)"
+              },
+              "name": {
+                "type": "string",
+                "description": "Field name"
+              },
+              "label": {
+                "type": "string",
+                "description": "Field label"
+              },
+              "email": {
+                "type": ["string", "null"],
+                "description": "Email value for EMAIL fields"
+              },
+              "text": {
+                "type": ["string", "null"],
+                "description": "Text value for TEXT fields"
+              },
+              "min_size": {
+                "type": ["integer", "null"],
+                "description": "Minimum field size"
+              },
+              "max_size": {
+                "type": ["integer", "null"],
+                "description": "Maximum field size"
+              },
+              "select": {
+                "type": ["array", "null"],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {"type": "string"},
+                    "name": {"type": "string"}
+                  }
+                },
+                "description": "Selected options for SELECT fields"
+              },
+              "options": {
+                "type": ["array", "null"],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string"},
+                    "label": {"type": "string"}
+                  }
+                },
+                "description": "Available options for SELECT fields"
+              }
+            }
+          },
+          "description": "Form fields for form and formResponse content"
+        }
+      }
+    },
+    "type": {
+      "type": "string",
+      "description": "The type of event (Messaging::ConversationMessage, Comment)"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The source type (ultimate, web, zd:agentWorkspace)"
+        },
+        "integration_id": {
+          "type": ["string", "null"],
+          "description": "Integration ID for web sources"
+        }
+      }
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Array of attachments"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "system": {
+          "type": "object",
+          "description": "System metadata"
+        },
+        "custom": {
+          "type": "object",
+          "description": "Custom metadata"
+        },
+        "is_public": {
+          "type": ["boolean", "null"],
+          "description": "Whether the event is public"
+        }
+      }
+    }
+  }
+}
