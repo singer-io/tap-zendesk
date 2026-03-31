@@ -39,7 +39,7 @@
           "description": "The Sunshine Conversations user ID"
         },
         "display_name": {
-          "type": "string",
+          "type": ["string", "null"],
           "description": "The display name of the author"
         },
         "avatar_url": {
