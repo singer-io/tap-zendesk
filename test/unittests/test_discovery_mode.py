@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, Mock, patch
+from parameterized import parameterized
 from tap_zendesk import discover, http
+from tap_zendesk.streams import TalkPhoneNumbers, SLAPolicies, TicketForms
 import tap_zendesk
 import requests
 import zenpy
@@ -68,7 +70,7 @@ class TestDiscovery(unittest.TestCase):
         # Verifying the logger message
         mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): "\
             "groups, users, organizations, ticket_audits, ticket_fields, ticket_forms, group_memberships, macros, "\
-            "satisfaction_ratings, tags. The data for these streams would not be collected due to lack of required "\
+            "tags. The data for these streams would not be collected due to lack of required "\
             "permission.")
 
     @patch("tap_zendesk.discover.LOGGER.warning")
@@ -110,11 +112,11 @@ class TestDiscovery(unittest.TestCase):
         expected_call_count = 8
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
-    
+
         # Verifying the logger message
         mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): "\
             "groups, users, organizations, ticket_audits, ticket_fields, ticket_forms, group_memberships, macros, "\
-            "satisfaction_ratings, tags, sla_policies. The data for these streams would not be collected due to "\
+            "tags, sla_policies. The data for these streams would not be collected due to "\
             "lack of required permission.")
 
     @patch("tap_zendesk.discover.LOGGER.warning")
@@ -158,7 +160,7 @@ class TestDiscovery(unittest.TestCase):
 
         # Verifying the logger message
         mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): "\
-            "tickets, groups, users, organizations, ticket_fields, ticket_forms, group_memberships, macros, satisfaction_ratings, "\
+            "tickets, groups, users, organizations, ticket_fields, ticket_forms, group_memberships, macros, "\
             "tags. The data for these streams would not be collected due to lack of required permission.")
         
     @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access')
@@ -196,7 +198,7 @@ class TestDiscovery(unittest.TestCase):
             expected_error_message = "HTTP-error-code: 400, Error: A validation exception has occurred."
             # Verifying the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
-            
+
         expected_call_count = 4
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
@@ -241,8 +243,7 @@ class TestDiscovery(unittest.TestCase):
         expected_call_count = 2
         actual_call_count = mock_get.call_count
         self.assertEqual(expected_call_count, actual_call_count)
-        
-        
+
     @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access')
     @patch('tap_zendesk.streams.TicketMetricEvents.check_access')
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=[mocked_get(status_code=200, json={"key1": "val1"})])
@@ -319,3 +320,230 @@ class TestDiscovery(unittest.TestCase):
             "of streams supported by the tap. Data collection cannot be initiated due to lack of permissions."
             # # Verifying the message formed for the custom exception
             self.assertEqual(str(e), expected_message)
+
+
+class TestOptionalStreamDiscovery(unittest.TestCase):
+    '''
+    Tests for the optional/essential stream distinction introduced to fix the customer-reported
+    issue: a 403 on a plan-tier or add-on stream (e.g. talk_phone_numbers, sla_policies,
+    ticket_forms, satisfaction_ratings) must NOT block connection creation.
+    '''
+
+    # -------------------------------------------------------------------------
+    # Test 1: Exact customer-reported scenario
+    #   OAuth client has no Zendesk Talk access → phone_numbers endpoint returns 403.
+    #   After our fix, TalkPhoneNumbers.check_access converts the HTTPError to
+    #   ZendeskForbiddenError. discover.py should exclude the stream silently and
+    #   continue – the connection must succeed.
+    # -------------------------------------------------------------------------
+    @patch('tap_zendesk.discover.LOGGER.warning')
+    @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access',
+           side_effect=http.ZendeskForbiddenError(
+               '403 Client Error: Forbidden for url: '
+               'https://testaccount.zendesk.com/api/v2/channels/voice/phone_numbers.json'))
+    @patch('tap_zendesk.streams.SLAPolicies.check_access')         # succeeds
+    @patch('tap_zendesk.streams.TicketForms.check_access')          # succeeds
+    @patch('tap_zendesk.streams.TicketMetricEvents.check_access')   # succeeds
+    @patch('tap_zendesk.streams.Organizations.check_access')        # succeeds
+    @patch('tap_zendesk.streams.Users.check_access')                # succeeds
+    @patch('tap_zendesk.discover.load_shared_schema_refs', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_metadata', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_schema', return_value={})
+    @patch('singer.resolve_schema_references', return_value={})
+    @patch('requests.get', side_effect=[
+        mocked_get(status_code=200, json={'tickets': [{'id': 't1'}]}),  # tickets
+        mocked_get(status_code=200, json={'groups': []}),               # groups
+        mocked_get(status_code=200, json={}),                           # ticket_audits
+        mocked_get(status_code=200, json={}),                           # ticket_fields
+        mocked_get(status_code=200, json={}),                           # group_memberships
+        mocked_get(status_code=200, json={}),                           # macros
+        mocked_get(status_code=200, json={}),                           # satisfaction_ratings
+        mocked_get(status_code=200, json={}),                           # tags
+    ])
+    def test_talk_phone_numbers_403_excluded_connection_succeeds(
+            self, mock_get, mock_resolve_schema_references, mock_load_schema,
+            mock_load_metadata, mock_load_shared_schema_refs,
+            mock_users, mock_organizations, mock_ticket_metric_events,
+            mock_ticket_forms, mock_sla_policies, mock_talk_phone_numbers,
+            mock_logger):
+        '''
+        Replicates the exact customer-reported failure:
+          "Failed to create connection
+           403 Client Error: Forbidden for url: .../api/v2/channels/voice/phone_numbers.json"
+
+        The OAuth client has no Zendesk Talk product access. After the fix,
+        TalkPhoneNumbers.check_access raises ZendeskForbiddenError (converted from
+        requests.HTTPError). discover.py must:
+          1. NOT raise an exception (connection succeeds).
+          2. Exclude talk_phone_numbers from the returned catalog.
+          3. Log a warning identifying the excluded stream.
+        '''
+        result = discover.discover_streams(
+            'dummy_client',
+            {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date': START_DATE}
+        )
+
+        # Connection must succeed – 15 streams returned (all except talk_phone_numbers)
+        stream_names = [s['stream'] for s in result]
+        self.assertNotIn('talk_phone_numbers', stream_names)
+        self.assertEqual(len(result), 15)
+
+        # Warning must be logged for the excluded optional stream
+        mock_logger.assert_called_with(
+            "Stream '%s' is not available for this account (plan tier or add-on not "
+            "provisioned). It will be excluded from the available streams.",
+            'talk_phone_numbers'
+        )
+
+    # -------------------------------------------------------------------------
+    # Test 2: All four optional streams return 403
+    #   talk_phone_numbers (Talk add-on), sla_policies (plan-tier),
+    #   ticket_forms (plan-tier), satisfaction_ratings (plan-tier) all unavailable.
+    #   Connection must still succeed and all four must be absent from the catalog.
+    # -------------------------------------------------------------------------
+    @patch('tap_zendesk.discover.LOGGER.warning')
+    @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access',
+           side_effect=http.ZendeskForbiddenError('403 Forbidden: talk not provisioned'))
+    @patch('tap_zendesk.streams.SLAPolicies.check_access',
+           side_effect=http.ZendeskForbiddenError('403 Forbidden: sla not on plan'))
+    @patch('tap_zendesk.streams.TicketForms.check_access',
+           side_effect=http.ZendeskForbiddenError('403 Forbidden: ticket_forms not on plan'))
+    @patch('tap_zendesk.streams.TicketMetricEvents.check_access')   # succeeds
+    @patch('tap_zendesk.streams.Organizations.check_access')        # succeeds
+    @patch('tap_zendesk.streams.Users.check_access')                # succeeds
+    @patch('tap_zendesk.discover.load_shared_schema_refs', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_metadata', return_value={})
+    @patch('tap_zendesk.streams.Stream.load_schema', return_value={})
+    @patch('singer.resolve_schema_references', return_value={})
+    @patch('requests.get', side_effect=[
+        mocked_get(status_code=200, json={'tickets': [{'id': 't1'}]}),  # tickets
+        mocked_get(status_code=200, json={}),                           # groups
+        mocked_get(status_code=200, json={}),                           # ticket_audits
+        mocked_get(status_code=200, json={}),                           # ticket_fields
+        mocked_get(status_code=200, json={}),                           # group_memberships
+        mocked_get(status_code=200, json={}),                           # macros
+        mocked_get(status_code=403, json={}),                           # satisfaction_ratings (optional, 403 → excluded)
+        mocked_get(status_code=200, json={}),                           # tags
+    ])
+    def test_all_optional_streams_403_connection_still_succeeds(
+            self, mock_get, mock_resolve_schema_references, mock_load_schema,
+            mock_load_metadata, mock_load_shared_schema_refs,
+            mock_users, mock_organizations, mock_ticket_metric_events,
+            mock_ticket_forms, mock_sla_policies, mock_talk_phone_numbers,
+            mock_logger):
+        '''
+        When all four optional/plan-tier streams (talk_phone_numbers, sla_policies,
+        ticket_forms, satisfaction_ratings) return 403, the connection must still
+        succeed and all four must be excluded from the catalog. Essential streams
+        (tickets, groups, users, organizations, etc.) remain fully accessible.
+        '''
+        result = discover.discover_streams(
+            'dummy_client',
+            {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date': START_DATE}
+        )
+
+        # Connection succeeds: 12 essential streams remain (16 total − 4 optional excluded)
+        stream_names = [s['stream'] for s in result]
+        self.assertEqual(len(result), 12)
+
+        # All four optional streams must be absent
+        optional_streams = ['talk_phone_numbers', 'sla_policies', 'ticket_forms', 'satisfaction_ratings']
+        for stream in optional_streams:
+            self.assertNotIn(stream, stream_names)
+
+        # A warning must have been logged for each excluded optional stream
+        for stream in optional_streams:
+            mock_logger.assert_any_call(
+                "Stream '%s' is not available for this account (plan tier or add-on not "
+                "provisioned). It will be excluded from the available streams.",
+                stream
+            )
+
+
+class TestCheckAccessOptionalStreams(unittest.TestCase):
+    '''
+    Unit tests for the check_access() fixes on the three streams affected by the
+    customer-reported bug:
+      - TalkPhoneNumbers: Zenpy Talk raises requests.HTTPError directly (not ZendeskForbiddenError)
+      - SLAPolicies:      Zenpy native client raises APIException
+      - TicketForms:      Zenpy native client raises APIException
+    All three must convert their native exceptions to ZendeskForbiddenError so
+    discover.py can handle them uniformly via the is_optional flag.
+    '''
+
+    CONFIG = {
+        'subdomain': 'testaccount',
+        'access_token': 'test_token',
+        'start_date': START_DATE,
+    }
+
+    # -----------------------------------------------------------------------
+    # Parameterized: Zenpy native-client APIException → ZendeskForbiddenError
+    # Covers SLAPolicies and TicketForms which both use self.client.<method>()
+    # and must convert APIException to ZendeskForbiddenError.
+    # -----------------------------------------------------------------------
+    @parameterized.expand([
+        ('sla_policies',  SLAPolicies,  'sla_policies'),
+        ('ticket_forms',  TicketForms,  'ticket_forms'),
+    ])
+    def test_zenpy_api_exception_raises_zendesk_forbidden(self, _name, stream_cls, client_attr):
+        '''
+        Plan-tier streams (SLAPolicies, TicketForms) use the Zenpy native client.
+        A 403 surfaces as APIException; check_access() must re-raise it as
+        ZendeskForbiddenError for uniform handling in discover.py.
+        '''
+        client = MagicMock()
+        getattr(client, client_attr).side_effect = zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR)
+        stream = stream_cls(client, self.CONFIG)
+
+        with self.assertRaises(http.ZendeskForbiddenError):
+            stream.check_access()
+
+    # -----------------------------------------------------------------------
+    # Parameterized: TalkPhoneNumbers check_access HTTP error handling
+    # The Zenpy Talk client calls response.raise_for_status() internally,
+    # so it surfaces errors as requests.HTTPError rather than ZendeskForbiddenError.
+    # -----------------------------------------------------------------------
+    @parameterized.expand([
+        (
+            'http_403_converted_to_zendesk_forbidden',
+            403,
+            '403 Client Error: Forbidden for url: '
+            'https://testaccount.zendesk.com/api/v2/channels/voice/phone_numbers.json',
+            http.ZendeskForbiddenError,
+        ),
+        (
+            'http_non_403_reraises_unchanged',
+            500,
+            '500 Server Error: Internal Server Error',
+            requests.exceptions.HTTPError,
+        ),
+    ])
+    def test_talk_phone_numbers_http_error(self, _name, status_code, error_msg, expected_exc):
+        '''
+        TalkPhoneNumbers.check_access() calls the Zenpy Talk client which raises
+        requests.HTTPError for HTTP errors:
+          - 403 must be converted to ZendeskForbiddenError (customer-reported scenario).
+          - Non-403 errors (e.g. 500) must propagate unchanged.
+        '''
+        client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.status_code = status_code
+        client.talk.phone_numbers.side_effect = requests.exceptions.HTTPError(
+            error_msg, response=mock_response
+        )
+        stream = TalkPhoneNumbers(client, self.CONFIG)
+
+        with self.assertRaises(expected_exc):
+            stream.check_access()
+
+    def test_talk_phone_numbers_404_silently_passes(self):
+        '''
+        ZendeskNotFoundError (404) should be silently ignored the account simply
+        has no phone numbers configured, which is not a permissions problem.
+        '''
+        client = MagicMock()
+        client.talk.phone_numbers.side_effect = http.ZendeskNotFoundError('Not Found')
+        stream = TalkPhoneNumbers(client, self.CONFIG)
+
+        stream.check_access()

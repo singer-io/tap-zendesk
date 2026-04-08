@@ -4,6 +4,7 @@ import datetime
 import asyncio
 import time
 import pytz
+import requests
 from zenpy.lib.exception import APIException
 from aiohttp import ClientSession
 import singer
@@ -66,6 +67,10 @@ class Stream():
     endpoint = None
     request_timeout = None
     page_size = None
+    # Streams with is_optional=True depend on a specific plan tier or paid add-on.
+    # A 403 on these during discovery excludes them from the catalog rather than
+    # blocking connection creation.
+    is_optional = False
 
     def __init__(self, client=None, config=None):
         self.client = client
@@ -507,6 +512,7 @@ class TicketComments(Stream):
 class TalkPhoneNumbers(Stream):
     name = 'talk_phone_numbers'
     replication_method = "FULL_TABLE"
+    is_optional = True
 
     def sync(self, state): # pylint: disable=unused-argument
         for phone_number in self.client.talk.phone_numbers():
@@ -516,8 +522,28 @@ class TalkPhoneNumbers(Stream):
         try:
             self.client.talk.phone_numbers()
         except http.ZendeskNotFoundError:
-            #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
+            # Skip 404 as goal is to check whether TalkPhoneNumbers have read permission
             pass
+        except http.ZendeskForbiddenError:
+            raise  # Propagate to discover.py which adds stream to error_list
+        except requests.exceptions.HTTPError as e:
+            # Zenpy's Talk API raises requests.HTTPError directly for certain HTTP errors.
+            # Convert 403 Forbidden to ZendeskForbiddenError for consistent handling in discover.py.
+            if e.response is not None and e.response.status_code == 403:
+                raise http.ZendeskForbiddenError(str(e)) from None
+            raise
+        except APIException as e:
+            # Handle Zenpy APIException 403 with various message formats
+            try:
+                args0 = json.loads(e.args[0])
+                err = args0.get('error')
+                description = args0.get('description', '')
+            except (json.JSONDecodeError, ValueError, IndexError):
+                raise e
+            if (isinstance(err, dict) and err.get('message') == "You do not have access to this page. Please contact the account owner of this help desk for further help.") \
+                    or description == "You are missing the following required scopes: read":
+                raise http.ZendeskForbiddenError(str(e)) from None
+            raise
 
 class SatisfactionRatings(CursorBasedStream):
     name = "satisfaction_ratings"
@@ -525,6 +551,7 @@ class SatisfactionRatings(CursorBasedStream):
     replication_key = "updated_at"
     endpoint = 'https://{}.zendesk.com/api/v2/satisfaction_ratings'
     item_key = 'satisfaction_ratings'
+    is_optional = True
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
@@ -611,6 +638,7 @@ class TicketForms(Stream):
     name = "ticket_forms"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    is_optional = True
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
@@ -628,7 +656,12 @@ class TicketForms(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        self.client.ticket_forms()
+        try:
+            self.client.ticket_forms()
+        except APIException as e:
+            # ticket_forms is a plan-tier feature; re-raise any access denial as
+            # ZendeskForbiddenError so discover.py handles it consistently.
+            raise http.ZendeskForbiddenError(str(e)) from None
 
 class GroupMemberships(CursorBasedStream):
     name = "group_memberships"
@@ -662,6 +695,7 @@ class GroupMemberships(CursorBasedStream):
 class SLAPolicies(Stream):
     name = "sla_policies"
     replication_method = "FULL_TABLE"
+    is_optional = True
 
     def sync(self, state): # pylint: disable=unused-argument
         for policy in self.client.sla_policies():
@@ -671,7 +705,12 @@ class SLAPolicies(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        self.client.sla_policies()
+        try:
+            self.client.sla_policies()
+        except APIException as e:
+            # sla_policies is a plan-tier feature; re-raise any access denial as
+            # ZendeskForbiddenError so discover.py handles it consistently.
+            raise http.ZendeskForbiddenError(str(e)) from None
 
 STREAMS = {
     "tickets": Tickets,
