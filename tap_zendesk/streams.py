@@ -524,8 +524,6 @@ class TalkPhoneNumbers(Stream):
         except http.ZendeskNotFoundError:
             # Skip 404 as goal is to check whether TalkPhoneNumbers have read permission
             pass
-        except http.ZendeskForbiddenError:
-            raise  # Propagate to discover.py which adds stream to error_list
         except requests.exceptions.HTTPError as e:
             # Zenpy's Talk API raises requests.HTTPError directly for certain HTTP errors.
             # Convert 403 Forbidden to ZendeskForbiddenError for consistent handling in discover.py.
@@ -538,8 +536,8 @@ class TalkPhoneNumbers(Stream):
                 args0 = json.loads(e.args[0])
                 err = args0.get('error')
                 description = args0.get('description', '')
-            except (json.JSONDecodeError, ValueError, IndexError):
-                raise e
+            except (json.JSONDecodeError, ValueError, IndexError) as exc:
+                raise e from exc
             if (isinstance(err, dict) and err.get('message') == "You do not have access to this page. Please contact the account owner of this help desk for further help.") \
                     or description == "You are missing the following required scopes: read":
                 raise http.ZendeskForbiddenError(str(e)) from None
