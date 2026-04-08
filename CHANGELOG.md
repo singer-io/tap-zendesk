@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.7.3
+  * Fix connection failure when account lacks access to plan-restricted streams (`talk_phone_numbers`, `sla_policies`, `ticket_forms`, `satisfaction_ratings`) [#185](https://github.com/singer-io/tap-zendesk/pull/185)
+    * Added `is_optional` flag to `Stream` base class; optional streams excluded from catalog on 403 instead of blocking connection creation
+    * Fixed `TalkPhoneNumbers.check_access()` to handle `requests.exceptions.HTTPError` 403 and convert to `ZendeskForbiddenError`
+    * Fixed `SLAPolicies` and `TicketForms` `check_access()` to catch bare `APIException` and convert to `ZendeskForbiddenError`
+    * Hard-fail threshold now counts only essential streams (excludes optional streams)
+  * Fix `ValueError: Invalid format string` on Windows by replacing `strftime('%s')` with `.timestamp()` in `TicketMetricEvents`[#185](https://github.com/singer-io/tap-zendesk/pull/185)
+
 ## 2.7.2
   * Update aiohttp for twistlock [#178](https://github.com/singer-io/tap-zendesk/pull/178)
 

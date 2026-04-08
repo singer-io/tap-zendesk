@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='tap-zendesk',
-      version='2.7.2',
+      version='2.7.3',
       description='Singer.io tap for extracting data from the Zendesk API',
       author='Stitch',
       url='https://singer.io',
@@ -23,7 +23,8 @@ setup(name='tap-zendesk',
           'test': [
               'pylint==3.0.3',
               'nose2',
-              'pytest'
+              'pytest',
+              'parameterized'
           ]
       },
       entry_points='''

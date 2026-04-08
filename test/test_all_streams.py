@@ -173,10 +173,7 @@ class ZendeskAllStreams(ZendeskTest):
 
             if stream == 'tags':
                 # check to see if tags were already refreshed or not
-                if self.tags_are_stale:
-                    # refresh has not been run yet, this means we already have some tags records
-                    self.refresh_tags(records)
-                else:
+                if not self.tags_are_stale:
                     # tags were already refreshed so records were missing from first sync
                     messages = tags_records.get(stream).get('messages')
 

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, Mock, patch
 from parameterized import parameterized
 from tap_zendesk import discover, http
-from tap_zendesk.streams import TalkPhoneNumbers, SLAPolicies, TicketForms
+from tap_zendesk.streams import TalkPhoneNumbers, SLAPolicies, TicketForms, STREAMS
 import tap_zendesk
 import requests
 import zenpy
@@ -383,10 +383,12 @@ class TestOptionalStreamDiscovery(unittest.TestCase):
             {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date': START_DATE}
         )
 
-        # Connection must succeed – 15 streams returned (all except talk_phone_numbers)
+        # Connection must succeed – all streams except talk_phone_numbers are returned.
+        # Derive the expected count from STREAMS so this test isn't broken by unrelated stream additions.
+        excluded_streams = {'talk_phone_numbers'}
         stream_names = [s['stream'] for s in result]
         self.assertNotIn('talk_phone_numbers', stream_names)
-        self.assertEqual(len(result), 15)
+        self.assertEqual(len(result), len(STREAMS) - len(excluded_streams))
 
         # Warning must be logged for the excluded optional stream
         mock_logger.assert_called_with(
@@ -442,12 +444,13 @@ class TestOptionalStreamDiscovery(unittest.TestCase):
             {'subdomain': 'arp', 'access_token': 'dummy_token', 'start_date': START_DATE}
         )
 
-        # Connection succeeds: 12 essential streams remain (16 total − 4 optional excluded)
+        # Connection succeeds: all optional streams excluded, essential streams remain.
+        # Derive the expected count from STREAMS so this test isn't broken by unrelated stream additions.
+        optional_streams = {'talk_phone_numbers', 'sla_policies', 'ticket_forms', 'satisfaction_ratings'}
         stream_names = [s['stream'] for s in result]
-        self.assertEqual(len(result), 12)
+        self.assertEqual(len(result), len(STREAMS) - len(optional_streams))
 
         # All four optional streams must be absent
-        optional_streams = ['talk_phone_numbers', 'sla_policies', 'ticket_forms', 'satisfaction_ratings']
         for stream in optional_streams:
             self.assertNotIn(stream, stream_names)
 
@@ -539,7 +542,7 @@ class TestCheckAccessOptionalStreams(unittest.TestCase):
 
     def test_talk_phone_numbers_404_silently_passes(self):
         '''
-        ZendeskNotFoundError (404) should be silently ignored the account simply
+        ZendeskNotFoundError (404) should be silently ignored if the account simply
         has no phone numbers configured, which is not a permissions problem.
         '''
         client = MagicMock()
