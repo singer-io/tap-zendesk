@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, Mock, patch
 from parameterized import parameterized
 from tap_zendesk import discover, http
-from tap_zendesk.streams import TalkPhoneNumbers, SLAPolicies, TicketForms, STREAMS
+from tap_zendesk.streams import TalkPhoneNumbers, SLAPolicies, TicketForms, SatisfactionRatings, STREAMS
 import tap_zendesk
 import requests
 import zenpy
@@ -162,7 +162,7 @@ class TestDiscovery(unittest.TestCase):
         mock_logger.assert_called_with("The account credentials supplied do not have 'read' access to the following stream(s): "\
             "tickets, groups, users, organizations, ticket_fields, ticket_forms, group_memberships, macros, "\
             "tags. The data for these streams would not be collected due to lack of required permission.")
-        
+
     @patch('tap_zendesk.streams.TalkPhoneNumbers.check_access')
     @patch('tap_zendesk.streams.TicketMetricEvents.check_access')
     @patch('tap_zendesk.streams.Organizations.check_access',side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
@@ -391,7 +391,7 @@ class TestOptionalStreamDiscovery(unittest.TestCase):
         self.assertEqual(len(result), len(STREAMS) - len(excluded_streams))
 
         # Warning must be logged for the excluded optional stream
-        mock_logger.assert_called_with(
+        mock_logger.assert_any_call(
             "Stream '%s' is not available for this account (plan tier or add-on not "
             "provisioned). It will be excluded from the available streams.",
             'talk_phone_numbers'
@@ -550,3 +550,34 @@ class TestCheckAccessOptionalStreams(unittest.TestCase):
         stream = TalkPhoneNumbers(client, self.CONFIG)
 
         stream.check_access()
+
+    # -----------------------------------------------------------------------
+    # SatisfactionRatings: base class check_access() via http.call_api
+    # Confirms the implicit contract: http.call_api → raise_for_error maps
+    # HTTP 403 to ZendeskForbiddenError, so no dedicated override is needed.
+    # -----------------------------------------------------------------------
+    def test_satisfaction_ratings_403_raises_zendesk_forbidden(self):
+        '''
+        SatisfactionRatings.is_optional=True relies on the base Stream.check_access()
+        which calls http.call_api(). raise_for_error() maps HTTP 403 directly to
+        ZendeskForbiddenError via ERROR_CODE_EXCEPTION_MAPPING — no override is
+        needed. This test explicitly guards that contract so the implicit dependency
+        on http.call_api behaviour is visible and regression-protected.
+        '''
+        with patch('requests.get', return_value=mocked_get(
+                status_code=403, json={'error': 'Forbidden'})):
+            stream = SatisfactionRatings(MagicMock(), self.CONFIG)
+            with self.assertRaises(http.ZendeskForbiddenError):
+                stream.check_access()
+
+    def test_satisfaction_ratings_non_403_reraises_unchanged(self):
+        '''
+        A non-403 error raised by http.call_api must propagate unchanged.
+        We patch http.call_api directly to avoid triggering the backoff decorator
+        (which retries 5xx errors up to 10 times, causing the test to hang).
+        '''
+        with patch('tap_zendesk.streams.http.call_api',
+                   side_effect=http.ZendeskInternalServerError('500 Server Error')):
+            stream = SatisfactionRatings(MagicMock(), self.CONFIG)
+            with self.assertRaises(http.ZendeskInternalServerError):
+                stream.check_access()

@@ -165,7 +165,7 @@ class ZendeskAllStreams(ZendeskTest):
 
             # Ensure we replicated some tags records this time
             tags_records = runner.get_records_from_target_output()
-            self.assertGreater(len(tags_records, 0))
+            self.assertGreater(len(tags_records), 0)
 
 
         for stream in self.expected_sync_streams():

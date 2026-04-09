@@ -125,7 +125,6 @@ class Stream():
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
             else:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
-
         return metadata.to_list(mdata)
 
     def is_selected(self):
@@ -479,7 +478,7 @@ class TicketMetricEvents(Stream):
         bookmark = self.get_bookmark(state)
         start = bookmark - datetime.timedelta(seconds=1)
 
-        epoch_start = int(start.strftime('%s'))
+        epoch_start = int(start.timestamp())
         parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
         ticket_metric_events = self.client.tickets.metrics_incremental(start_time=epoch_start)
         for event in ticket_metric_events:
@@ -491,7 +490,7 @@ class TicketMetricEvents(Stream):
 
     def check_access(self):
         try:
-            epoch_start = int(utils.now().strftime('%s'))
+            epoch_start = int(utils.now().timestamp())
             self.client.tickets.metrics_incremental(start_time=epoch_start)
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
@@ -657,9 +656,16 @@ class TicketForms(Stream):
         try:
             self.client.ticket_forms()
         except APIException as e:
-            # ticket_forms is a plan-tier feature; re-raise any access denial as
-            # ZendeskForbiddenError so discover.py handles it consistently.
-            raise http.ZendeskForbiddenError(str(e)) from None
+            try:
+                args0 = json.loads(e.args[0])
+                err = args0.get('error')
+                description = args0.get('description', '')
+            except (json.JSONDecodeError, ValueError, IndexError) as exc:
+                raise e from exc
+            if (isinstance(err, dict) and err.get('message') == "You do not have access to this page. Please contact the account owner of this help desk for further help.") \
+                    or description == "You are missing the following required scopes: read":
+                raise http.ZendeskForbiddenError(str(e)) from None
+            raise
 
 class GroupMemberships(CursorBasedStream):
     name = "group_memberships"
@@ -706,9 +712,16 @@ class SLAPolicies(Stream):
         try:
             self.client.sla_policies()
         except APIException as e:
-            # sla_policies is a plan-tier feature; re-raise any access denial as
-            # ZendeskForbiddenError so discover.py handles it consistently.
-            raise http.ZendeskForbiddenError(str(e)) from None
+            try:
+                args0 = json.loads(e.args[0])
+                err = args0.get('error')
+                description = args0.get('description', '')
+            except (json.JSONDecodeError, ValueError, IndexError) as exc:
+                raise e from exc
+            if (isinstance(err, dict) and err.get('message') == "You do not have access to this page. Please contact the account owner of this help desk for further help.") \
+                    or description == "You are missing the following required scopes: read":
+                raise http.ZendeskForbiddenError(str(e)) from None
+            raise
 
 STREAMS = {
     "tickets": Tickets,
