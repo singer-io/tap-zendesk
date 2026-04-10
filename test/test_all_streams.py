@@ -49,8 +49,8 @@ class ZendeskAllStreams(ZendeskTest):
         # Zenpy client credentials to connect to API
         creds = {
             'email': 'dev@stitchdata.com',
-            'password': os.getenv('TAP_ZENDESK_API_PASSWORD'),
             'subdomain': self.get_properties()['subdomain'],
+            'token': os.getenv('TAP_ZENDESK_API_TOKEN')
         }
 
         test_tags = ['test_tag_1', 'test_tag_2', 'test_tag_3']
@@ -79,7 +79,7 @@ class ZendeskAllStreams(ZendeskTest):
         # Zenpy client credentials to connect to API
         creds = {
             'email': 'dev@stitchdata.com',
-            'password': os.getenv('TAP_ZENDESK_API_PASSWORD'),
+            'token': os.getenv('TAP_ZENDESK_API_TOKEN'),
             'subdomain': self.get_properties()['subdomain'],
         }
 
@@ -173,7 +173,10 @@ class ZendeskAllStreams(ZendeskTest):
 
             if stream == 'tags':
                 # check to see if tags were already refreshed or not
-                if not self.tags_are_stale:
+                if self.tags_are_stale:
+                    # refresh has not been run yet, this means we already have some tags records
+                    self.refresh_tags(records)
+                else:
                     # tags were already refreshed so records were missing from first sync
                     messages = tags_records.get(stream).get('messages')
 
