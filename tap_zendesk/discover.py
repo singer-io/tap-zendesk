@@ -55,9 +55,9 @@ def discover_streams(client, config):
             # check if the error is of type dictionary and the message retrieved from the dictionary
             # is the expected message. If so, only then print the logger message and return the schema
             if isinstance(err, dict):
-                if err.get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
+                if err.get('message', None) == "Access to this resource is restricted. Please contact the account administrator for assistance.":
                     error_list.append(stream.name)
-            elif args0.get('description') == "You are missing the following required scopes: read":
+            elif args0.get('description') == "Missing the following required scopes: read":
                 error_list.append(stream.name)
             else:
                 raise e from None # raise error if it is other than 403 forbidden error
