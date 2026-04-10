@@ -7,9 +7,9 @@ import tap_zendesk
 import requests
 import zenpy
 
-ACCSESS_TOKEN_ERROR = '{"error": "Forbidden", "description": "You are missing the following required scopes: read"}'
+ACCSESS_TOKEN_ERROR = '{"error": "Forbidden", "description": "Missing the following required scopes: read"}'
 API_TOKEN_ERROR = '{"error": {"title": "Forbidden",'\
-        '"message": "You do not have access to this page. Please contact the account owner of this help desk for further help."}}'
+        '"message": "Access to this resource is restricted. Please contact the account administrator for assistance."}}'
 AUTH_ERROR = '{"error": "Could not authenticate you"}'
 START_DATE = "2021-10-30T00:00:00Z"
 
