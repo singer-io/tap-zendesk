@@ -49,8 +49,8 @@ class ZendeskAllStreams(ZendeskTest):
         # Zenpy client credentials to connect to API
         creds = {
             'email': 'dev@stitchdata.com',
-            'password': os.getenv('TAP_ZENDESK_API_PASSWORD'),
             'subdomain': self.get_properties()['subdomain'],
+            'token': os.getenv('TAP_ZENDESK_API_TOKEN')
         }
 
         test_tags = ['test_tag_1', 'test_tag_2', 'test_tag_3']
@@ -79,7 +79,7 @@ class ZendeskAllStreams(ZendeskTest):
         # Zenpy client credentials to connect to API
         creds = {
             'email': 'dev@stitchdata.com',
-            'password': os.getenv('TAP_ZENDESK_API_PASSWORD'),
+            'token': os.getenv('TAP_ZENDESK_API_TOKEN'),
             'subdomain': self.get_properties()['subdomain'],
         }
 
@@ -165,7 +165,7 @@ class ZendeskAllStreams(ZendeskTest):
 
             # Ensure we replicated some tags records this time
             tags_records = runner.get_records_from_target_output()
-            self.assertGreater(len(tags_records, 0))
+            self.assertGreater(len(tags_records), 0)
 
 
         for stream in self.expected_sync_streams():

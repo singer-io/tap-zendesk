@@ -20,13 +20,13 @@ class TestException(unittest.TestCase):
         """
         schema = {}
         stream = 'test_stream'
-        error_string = '{"error":{"message": "You do not have access to this page. Please contact the account owner of this help desk for further help."}' + "}"
+        error_string = '{"error":{"message": "Access to this resource is restricted. Please contact the account administrator for assistance."}}'
         e = APIException(error_string)
         raise_or_log_zenpy_apiexception(schema, stream, e)
         mocked_logger.assert_called_with(
             "The account credentials supplied do not have access to `%s` custom fields.",
             stream)
-        
+
     def test_zenpy_exception_raised(self):
         """
         Test whether the no logger message is printed in case of errors other then access error and the exception is raised
@@ -40,7 +40,7 @@ class TestException(unittest.TestCase):
         except APIException as ex:
             self.assertEqual(str(ex), error_string)
 
-        
+
     def test_zenpy_exception_but_different_message_raised(self):
         """
         Test whether the exception is raised when the error is a dict but with different error message
