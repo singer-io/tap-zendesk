@@ -383,7 +383,7 @@ class TestBackoff(unittest.TestCase):
     def test_raise_or_log_zenpy_apiexception(self, mocked_logger, mock_sleep):
         schema = {}
         stream = "test_stream"
-        error_string = '{"error": "Forbidden", "description": "You are missing the following required scopes: read"}'
+        error_string = '{"error": "Forbidden", "description": "Missing the following required scopes: read"}'
         e = zenpy.lib.exception.APIException(error_string)
         streams.raise_or_log_zenpy_apiexception(schema, stream, e)
         # Verify the raise_or_log_zenpy_apiexception Log expected message

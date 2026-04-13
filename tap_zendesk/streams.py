@@ -4,6 +4,7 @@ import datetime
 import asyncio
 import time
 import pytz
+import requests
 from zenpy.lib.exception import APIException
 from aiohttp import ClientSession
 import singer
@@ -66,6 +67,10 @@ class Stream():
     endpoint = None
     request_timeout = None
     page_size = None
+    # Streams with is_optional=True depend on a specific plan tier or paid add-on.
+    # A 403 on these during discovery excludes them from the catalog rather than
+    # blocking connection creation.
+    is_optional = False
 
     def __init__(self, client=None, config=None):
         self.client = client
@@ -120,7 +125,6 @@ class Stream():
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
             else:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
-
         return metadata.to_list(mdata)
 
     def is_selected(self):
@@ -171,14 +175,14 @@ def raise_or_log_zenpy_apiexception(schema, stream, e):
         raise ValueError("Called with a bad exception type") from e
 
     #If read permission is not available in OAuth access_token, then it returns the below error.
-    if json.loads(e.args[0]).get('description') == "You are missing the following required scopes: read":
+    if json.loads(e.args[0]).get('description') == "Missing the following required scopes: read":
         LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
                        stream)
         return schema
     error = json.loads(e.args[0]).get('error')
     # check if the error is of type dictionary and the message retrieved from the dictionary
     # is the expected message. If so, only then print the logger message and return the schema
-    if isinstance(error, dict) and error.get('message', None) == "You do not have access to this page. Please contact the account owner of this help desk for further help.":
+    if isinstance(error, dict) and error.get('message', None) == "Access to this resource is restricted. Please contact the account administrator for assistance.":
         LOGGER.warning("The account credentials supplied do not have access to `%s` custom fields.",
                        stream)
         return schema
@@ -474,7 +478,7 @@ class TicketMetricEvents(Stream):
         bookmark = self.get_bookmark(state)
         start = bookmark - datetime.timedelta(seconds=1)
 
-        epoch_start = int(start.strftime('%s'))
+        epoch_start = int(start.timestamp())
         parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
         ticket_metric_events = self.client.tickets.metrics_incremental(start_time=epoch_start)
         for event in ticket_metric_events:
@@ -486,7 +490,7 @@ class TicketMetricEvents(Stream):
 
     def check_access(self):
         try:
-            epoch_start = int(utils.now().strftime('%s'))
+            epoch_start = int(utils.now().timestamp())
             self.client.tickets.metrics_incremental(start_time=epoch_start)
         except http.ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
@@ -507,6 +511,7 @@ class TicketComments(Stream):
 class TalkPhoneNumbers(Stream):
     name = 'talk_phone_numbers'
     replication_method = "FULL_TABLE"
+    is_optional = True
 
     def sync(self, state): # pylint: disable=unused-argument
         for phone_number in self.client.talk.phone_numbers():
@@ -516,8 +521,26 @@ class TalkPhoneNumbers(Stream):
         try:
             self.client.talk.phone_numbers()
         except http.ZendeskNotFoundError:
-            #Skip 404 ZendeskNotFoundError error as goal is to just check to whether TicketComments have read permission or not
+            # Skip 404 as goal is to check whether TalkPhoneNumbers have read permission
             pass
+        except requests.exceptions.HTTPError as e:
+            # Zenpy's Talk API raises requests.HTTPError directly for certain HTTP errors.
+            # Convert 403 Forbidden to ZendeskForbiddenError for consistent handling in discover.py.
+            if e.response is not None and e.response.status_code == 403:
+                raise http.ZendeskForbiddenError(str(e)) from None
+            raise
+        except APIException as e:
+            # Handle Zenpy APIException 403 with various message formats
+            try:
+                args0 = json.loads(e.args[0])
+                err = args0.get('error')
+                description = args0.get('description', '')
+            except (json.JSONDecodeError, ValueError, IndexError) as exc:
+                raise e from exc
+            if (isinstance(err, dict) and err.get('message') == "Access to this resource is restricted. Please contact the account administrator for assistance.") \
+                    or description == "Missing the following required scopes: read":
+                raise http.ZendeskForbiddenError(str(e)) from None
+            raise
 
 class SatisfactionRatings(CursorBasedStream):
     name = "satisfaction_ratings"
@@ -525,6 +548,7 @@ class SatisfactionRatings(CursorBasedStream):
     replication_key = "updated_at"
     endpoint = 'https://{}.zendesk.com/api/v2/satisfaction_ratings'
     item_key = 'satisfaction_ratings'
+    is_optional = True
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
@@ -611,6 +635,7 @@ class TicketForms(Stream):
     name = "ticket_forms"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    is_optional = True
 
     def sync(self, state):
         bookmark = self.get_bookmark(state)
@@ -628,7 +653,19 @@ class TicketForms(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        self.client.ticket_forms()
+        try:
+            self.client.ticket_forms()
+        except APIException as e:
+            try:
+                args0 = json.loads(e.args[0])
+                err = args0.get('error')
+                description = args0.get('description', '')
+            except (json.JSONDecodeError, ValueError, IndexError) as exc:
+                raise e from exc
+            if (isinstance(err, dict) and err.get('message') == "Access to this resource is restricted. Please contact the account administrator for assistance.") \
+                    or description == "Missing the following required scopes: read":
+                raise http.ZendeskForbiddenError(str(e)) from None
+            raise
 
 class GroupMemberships(CursorBasedStream):
     name = "group_memberships"
@@ -662,6 +699,7 @@ class GroupMemberships(CursorBasedStream):
 class SLAPolicies(Stream):
     name = "sla_policies"
     replication_method = "FULL_TABLE"
+    is_optional = True
 
     def sync(self, state): # pylint: disable=unused-argument
         for policy in self.client.sla_policies():
@@ -671,7 +709,19 @@ class SLAPolicies(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        self.client.sla_policies()
+        try:
+            self.client.sla_policies()
+        except APIException as e:
+            try:
+                args0 = json.loads(e.args[0])
+                err = args0.get('error')
+                description = args0.get('description', '')
+            except (json.JSONDecodeError, ValueError, IndexError) as exc:
+                raise e from exc
+            if (isinstance(err, dict) and err.get('message') == "Access to this resource is restricted. Please contact the account administrator for assistance.") \
+                    or description == "Missing the following required scopes: read":
+                raise http.ZendeskForbiddenError(str(e)) from None
+            raise
 
 STREAMS = {
     "tickets": Tickets,

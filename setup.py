@@ -23,7 +23,8 @@ setup(name='tap-zendesk',
           'test': [
               'pylint==3.0.3',
               'nose2',
-              'pytest'
+              'pytest',
+              'parameterized'
           ]
       },
       entry_points='''
