@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.0
+  * Handle Oauth token expiry [#182](https://github.com/singer-io/tap-zendesk/pull/182)
+  * Implement dev mode
+
 ## 2.7.3
   * Fix connection failure when account lacks access to plan-restricted streams (`talk_phone_numbers`, `sla_policies`, `ticket_forms`, `satisfaction_ratings`) [#185](https://github.com/singer-io/tap-zendesk/pull/185)
     * Added `is_optional` flag to `Stream` base class; optional streams excluded from catalog on 403 instead of blocking connection creation
