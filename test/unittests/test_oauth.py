@@ -138,24 +138,48 @@ class TestRefreshAccessTokenAPI(unittest.TestCase):
 
 
 # ===========================================================================
-# 4. _is_token_expired — CREDENTIAL CHECK API CALL
+# 4. _is_token_expired — TOKEN INFO API CALL
 # ===========================================================================
 class TestIsTokenExpired(unittest.TestCase):
-    """Credential check via GET /api/v2/users/me.json."""
+    """Token expiry check via GET /api/v2/oauth/tokens/current.json."""
 
     BASE_CONFIG = {
         'subdomain': 'acme',
         'access_token': 'some_at',
     }
 
+    @patch('tap_zendesk.oauth.time.time', return_value=1_000_000)
     @patch('tap_zendesk.oauth.requests.get')
-    def test_200_token_valid(self, mock_get):
-        """200 from /api/v2/users/me means token is valid."""
-        mock_get.return_value = MockResponse(200, {'user': {'id': 1}})
+    def test_token_valid_beyond_buffer(self, mock_get, mock_time):
+        """Token with plenty of remaining life should return False."""
+        # expires_at=1_100_000, remaining=100_000 > buffer(10_800) → valid
+        mock_get.return_value = MockResponse(200, {
+            'token': {'expires_at': 1_100_000}
+        })
         self.assertFalse(_is_token_expired(self.BASE_CONFIG))
         mock_get.assert_called_once()
         url = mock_get.call_args[0][0]
-        self.assertEqual(url, 'https://acme.zendesk.com/api/v2/users/me.json')
+        self.assertEqual(url, 'https://acme.zendesk.com/api/v2/oauth/tokens/current.json')
+
+    @patch('tap_zendesk.oauth.time.time', return_value=1_000_000)
+    @patch('tap_zendesk.oauth.requests.get')
+    def test_token_expiring_within_buffer(self, mock_get, mock_time):
+        """Token expiring within the 3-hour buffer should return True."""
+        # expires_at=1_005_000, remaining=5_000 < buffer(10_800) → expired
+        mock_get.return_value = MockResponse(200, {
+            'token': {'expires_at': 1_005_000}
+        })
+        self.assertTrue(_is_token_expired(self.BASE_CONFIG))
+
+    @patch('tap_zendesk.oauth.time.time', return_value=1_000_000)
+    @patch('tap_zendesk.oauth.requests.get')
+    def test_token_already_expired(self, mock_get, mock_time):
+        """Token already past expiry time should return True."""
+        # expires_at=950_000, remaining=-50_000 < buffer → expired
+        mock_get.return_value = MockResponse(200, {
+            'token': {'expires_at': 950_000}
+        })
+        self.assertTrue(_is_token_expired(self.BASE_CONFIG))
 
     @patch('tap_zendesk.oauth.requests.get')
     def test_401_token_expired(self, mock_get):
@@ -182,10 +206,13 @@ class TestIsTokenExpired(unittest.TestCase):
         mock_get.side_effect = req.ConnectionError("Network unreachable")
         self.assertTrue(_is_token_expired(self.BASE_CONFIG))
 
+    @patch('tap_zendesk.oauth.time.time', return_value=1_000_000)
     @patch('tap_zendesk.oauth.requests.get')
-    def test_correct_headers_sent(self, mock_get):
+    def test_correct_headers_sent(self, mock_get, mock_time):
         """Verify Authorization header is sent correctly."""
-        mock_get.return_value = MockResponse(200, {'user': {'id': 1}})
+        mock_get.return_value = MockResponse(200, {
+            'token': {'expires_at': 1_100_000}
+        })
         _is_token_expired(self.BASE_CONFIG)
         headers = mock_get.call_args[1]['headers']
         self.assertEqual(headers['Authorization'], 'Bearer some_at')

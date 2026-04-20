@@ -1,8 +1,9 @@
 """
 Handles refreshing access_token and refresh_token for Zendesk OAuth.
 
-On every session, a lightweight credential check (GET /api/v2/users/me) is
-performed.  If the API returns HTTP 401 (token expired / revoked), new
+On every session, the current token is inspected via
+GET /api/v2/oauth/tokens/current.json.  If the token will expire within
+a 3-hour buffer window (Buffer for ongoing sync), new
 access_token and refresh_token values are obtained via the refresh_token
 grant type and persisted back to the config file.
 
@@ -16,6 +17,8 @@ Zendesk docs:
 """
 
 import json
+import time
+from datetime import datetime
 import requests
 import singer
 from tap_zendesk.http import ZendeskError
@@ -25,19 +28,26 @@ LOGGER = singer.get_logger()
 # Zendesk OAuth token endpoint
 TOKEN_REFRESH_URL = "https://{subdomain}.zendesk.com/oauth/tokens"
 
-# Lightweight endpoint used to verify that the current access_token is valid
-CREDENTIAL_CHECK_URL = "https://{subdomain}.zendesk.com/api/v2/users/me.json"
+# Endpoint to inspect the current OAuth token
+TOKEN_INFO_URL = "https://{subdomain}.zendesk.com/api/v2/oauth/tokens/current.json"
+
+# Refresh the token if it expires within this many seconds (3 hours)
+EXPIRY_BUFFER_SECONDS = 10800
 
 
 def _is_token_expired(_config):
     """
-    Make a lightweight API call to Zendesk to check whether the current
-    access_token is still valid.
+    Call GET /api/v2/oauth/tokens/current.json to retrieve the token's
+    ``expires_at`` (Unix timestamp).
 
-    Returns True if the token is expired/invalid (HTTP 401), False otherwise.
+    Returns True when:
+      - The API returns a non-200 status (token already invalid/revoked).
+      - The token will expire within the EXPIRY_BUFFER_SECONDS window.
+
+    Returns False if the token is still valid beyond the buffer.
     """
     subdomain = _config['subdomain']
-    url = CREDENTIAL_CHECK_URL.format(subdomain=subdomain)
+    url = TOKEN_INFO_URL.format(subdomain=subdomain)
     headers = {
         'Authorization': 'Bearer {}'.format(_config['access_token']),
         'Accept': 'application/json',
@@ -46,13 +56,30 @@ def _is_token_expired(_config):
     try:
         response = requests.get(url, headers=headers, timeout=60)
     except requests.RequestException as exc:
-        LOGGER.warning("Credential check request failed: %s. Will attempt token refresh.", exc)
+        LOGGER.warning("Token info request failed: %s. Will attempt token refresh.", exc)
         return True
 
-    if response.status_code == 200:
+    if response.status_code != 200:
+        LOGGER.info("Token info endpoint returned HTTP %s. Token needs to be refreshed.", response.status_code)
+        return True
+
+    token_info = response.json()['token']
+    expires_at = token_info['expires_at']
+
+    # Token has no expiration date. Means it does not expire.
+    if not expires_at:
         return False
 
-    return True
+    now = time.time()
+    # expires_at is an ISO 8601 string (e.g. "2026-04-22T06:32:35Z"); convert to Unix timestamp
+    expires_at_ts = datetime.fromisoformat(expires_at).timestamp()
+    remaining = expires_at_ts - now
+
+    if remaining <= EXPIRY_BUFFER_SECONDS:
+        LOGGER.info("Token will expire in %.0f seconds. Will attempt token refresh.", remaining)
+        return True
+
+    return False
 
 
 def _refresh_access_token(_config):
