@@ -154,7 +154,7 @@ class TestIsTokenExpired(unittest.TestCase):
         """Token with plenty of remaining life should return False."""
         # expires_at=1_100_000, remaining=100_000 > buffer(10_800) → valid
         mock_get.return_value = MockResponse(200, {
-            'token': {'expires_at': 1_100_000}
+            'token': {'expires_at': '1970-01-13T17:33:20Z'}
         })
         self.assertFalse(_is_token_expired(self.BASE_CONFIG))
         mock_get.assert_called_once()
@@ -167,7 +167,7 @@ class TestIsTokenExpired(unittest.TestCase):
         """Token expiring within the 3-hour buffer should return True."""
         # expires_at=1_005_000, remaining=5_000 < buffer(10_800) → expired
         mock_get.return_value = MockResponse(200, {
-            'token': {'expires_at': 1_005_000}
+            'token': {'expires_at': '1970-01-12T15:10:00Z'}
         })
         self.assertTrue(_is_token_expired(self.BASE_CONFIG))
 
@@ -177,7 +177,7 @@ class TestIsTokenExpired(unittest.TestCase):
         """Token already past expiry time should return True."""
         # expires_at=950_000, remaining=-50_000 < buffer → expired
         mock_get.return_value = MockResponse(200, {
-            'token': {'expires_at': 950_000}
+            'token': {'expires_at': '1970-01-11T23:53:20Z'}
         })
         self.assertTrue(_is_token_expired(self.BASE_CONFIG))
 
@@ -211,7 +211,7 @@ class TestIsTokenExpired(unittest.TestCase):
     def test_correct_headers_sent(self, mock_get, mock_time):
         """Verify Authorization header is sent correctly."""
         mock_get.return_value = MockResponse(200, {
-            'token': {'expires_at': 1_100_000}
+            'token': {'expires_at': '1970-01-13T17:33:20Z'}
         })
         _is_token_expired(self.BASE_CONFIG)
         headers = mock_get.call_args[1]['headers']
