@@ -36,16 +36,16 @@ EXPIRY_BUFFER_SECONDS = 3 * 60 * 60
 
 ACCESS_TOKEN_VALIDITY_SECONDS = 48 * 60 * 60
 
-def _is_token_expired(_config):
+def is_token_valid(_config):
     """
     Call GET /api/v2/oauth/tokens/current.json to retrieve the token's
     ``expires_at`` (Unix timestamp).
 
-    Returns True when:
+    Returns False when:
       - The API returns a non-200 status (token already invalid/revoked).
       - The token will expire within the EXPIRY_BUFFER_SECONDS window.
 
-    Returns False if the token is still valid beyond the buffer.
+    Returns True if the token is still valid beyond the buffer.
     """
     subdomain = _config['subdomain']
     url = TOKEN_INFO_URL.format(subdomain=subdomain)
@@ -58,18 +58,18 @@ def _is_token_expired(_config):
         response = requests.get(url, headers=headers, timeout=60)
     except requests.RequestException as exc:
         LOGGER.warning("Token info request failed: %s. Will attempt token refresh.", exc)
-        return True
+        return False
 
     if response.status_code != 200:
         LOGGER.info("Token info endpoint returned HTTP %s. Token needs to be refreshed.", response.status_code)
-        return True
+        return False
 
     token_info = response.json()['token']
     expires_at = token_info['expires_at']
 
     # Token has no expiration date. Means it does not expire.
     if not expires_at:
-        return False
+        return True
 
     now = time.time()
     # expires_at is an ISO 8601 string (e.g. "2026-04-22T06:32:35Z"); convert to Unix timestamp
@@ -78,9 +78,9 @@ def _is_token_expired(_config):
 
     if remaining <= EXPIRY_BUFFER_SECONDS:
         LOGGER.info("Token will expire in %.0f seconds. Will attempt token refresh.", remaining)
-        return True
+        return False
 
-    return False
+    return True
 
 
 def _refresh_access_token(_config):
@@ -140,7 +140,7 @@ def refresh_credentials(_config, config_path, dev_mode=False):
     if 'refresh_token' not in _config:
         return _config
 
-    if not _is_token_expired(_config):
+    if is_token_valid(_config):
         return _config
 
     token_data = _refresh_access_token(_config)
