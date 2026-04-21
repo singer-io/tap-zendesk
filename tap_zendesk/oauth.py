@@ -32,8 +32,9 @@ TOKEN_REFRESH_URL = "https://{subdomain}.zendesk.com/oauth/tokens"
 TOKEN_INFO_URL = "https://{subdomain}.zendesk.com/api/v2/oauth/tokens/current.json"
 
 # Refresh the token if it expires within this many seconds (3 hours)
-EXPIRY_BUFFER_SECONDS = 10800
+EXPIRY_BUFFER_SECONDS = 3 * 60 * 60
 
+ACCESS_TOKEN_VALIDITY_SECONDS = 48 * 60 * 60
 
 def _is_token_expired(_config):
     """
@@ -95,14 +96,13 @@ def _refresh_access_token(_config):
         'refresh_token': _config['refresh_token'],
         'client_id': _config['client_id'],
         'client_secret': _config['client_secret'],
+        'expires_in': ACCESS_TOKEN_VALIDITY_SECONDS
     }
 
     response = requests.post(url, json=payload, timeout=60)
 
     if response.status_code != 200:
-        raise ZendeskError(
-            "OAuth token refresh failed. HTTP {}: {}".format(
-                response.status_code, response.text))
+        raise ZendeskError("Failed to refresh access token. Refresh token might have expired or been revoked. Please re-authorize the connection.")
 
     token_data = response.json()
 

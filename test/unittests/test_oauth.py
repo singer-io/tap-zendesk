@@ -5,6 +5,7 @@ from tap_zendesk.oauth import (
     refresh_credentials,
     _refresh_access_token,
     _is_token_expired,
+    ACCESS_TOKEN_VALIDITY_SECONDS,
 )
 from tap_zendesk.http import ZendeskError
 
@@ -114,7 +115,7 @@ class TestRefreshAccessTokenAPI(unittest.TestCase):
         url = mock_post.call_args[0][0]
         self.assertEqual(url, 'https://acme.zendesk.com/oauth/tokens')
 
-    # --- 200 OK: verify request payload (no expires_in) ---
+    # --- 200 OK: verify request payload ---
     @patch('tap_zendesk.oauth.requests.post')
     def test_200_correct_payload(self, mock_post):
         mock_post.return_value = MockResponse(200, {
@@ -126,7 +127,7 @@ class TestRefreshAccessTokenAPI(unittest.TestCase):
         self.assertEqual(payload['refresh_token'], 'old_rt')
         self.assertEqual(payload['client_id'], 'cid')
         self.assertEqual(payload['client_secret'], 'cs')
-        self.assertNotIn('expires_in', payload)
+        self.assertEqual(payload['expires_in'], ACCESS_TOKEN_VALIDITY_SECONDS)
 
     # --- 400 Bad Request ---
     @patch('tap_zendesk.oauth.requests.post')
@@ -134,7 +135,7 @@ class TestRefreshAccessTokenAPI(unittest.TestCase):
         mock_post.return_value = MockResponse(400, text='{"error": "invalid_grant"}')
         with self.assertRaises(ZendeskError) as ctx:
             _refresh_access_token(self.BASE_CONFIG)
-        self.assertIn('400', str(ctx.exception))
+        self.assertIn('re-authorize', str(ctx.exception))
 
 
 # ===========================================================================
@@ -180,6 +181,14 @@ class TestIsTokenExpired(unittest.TestCase):
             'token': {'expires_at': '1970-01-11T23:53:20Z'}
         })
         self.assertTrue(_is_token_expired(self.BASE_CONFIG))
+
+    @patch('tap_zendesk.oauth.requests.get')
+    def test_token_no_expiration(self, mock_get):
+        """Token with null expires_at should return False (never expires)."""
+        mock_get.return_value = MockResponse(200, {
+            'token': {'expires_at': None}
+        })
+        self.assertFalse(_is_token_expired(self.BASE_CONFIG))
 
     @patch('tap_zendesk.oauth.requests.get')
     def test_401_token_expired(self, mock_get):
