@@ -1,5 +1,9 @@
 # Changelog
 
+# 2.8.1
+  * Bump requests to 2.33.0 for security updates [#185](https://github.com/singer-io/tap-zendesk/pull/185)
+
+
 ## 2.8.0
   * Handle Oauth token expiry [#182](https://github.com/singer-io/tap-zendesk/pull/182)
   * Implement dev mode
