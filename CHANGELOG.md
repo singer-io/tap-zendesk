@@ -1,8 +1,10 @@
 # Changelog
 
+# 2.8.2
+  * Bump aiohttp to 3.13.4 for security updates [#186](https://github.com/singer-io/tap-zendesk/pull/186)
+
 # 2.8.1
   * Bump requests to 2.33.0 for security updates [#185](https://github.com/singer-io/tap-zendesk/pull/185)
-
 
 ## 2.8.0
   * Handle Oauth token expiry [#182](https://github.com/singer-io/tap-zendesk/pull/182)
