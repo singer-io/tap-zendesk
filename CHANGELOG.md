@@ -1,5 +1,10 @@
 # Changelog
 
+# 2.8.3
+  * Bump aiohttp to 3.14.1 for security updates
+  * Mark `ticket_audits`, `ticket_comments`, and `ticket_metrics` as child streams of `tickets`
+  * [#190](https://github.com/singer-io/tap-zendesk/pull/190)
+
 # 2.8.2
   * Bump aiohttp to 3.13.4 for security updates [#186](https://github.com/singer-io/tap-zendesk/pull/186)
 
