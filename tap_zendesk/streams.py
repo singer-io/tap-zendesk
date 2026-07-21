@@ -67,8 +67,6 @@ class Stream():
     endpoint = None
     request_timeout = None
     page_size = None
-    # Streams synced as sub-streams of another stream set `parent` to the
-    # parent's tap_stream_id so the catalog denotes the parent-child relationship.
     parent = None
     # Streams with is_optional=True depend on a specific plan tier or paid add-on.
     # A 403 on these during discovery excludes them from the catalog rather than
