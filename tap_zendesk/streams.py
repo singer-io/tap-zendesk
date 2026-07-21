@@ -67,6 +67,9 @@ class Stream():
     endpoint = None
     request_timeout = None
     page_size = None
+    # Streams synced as sub-streams of another stream set `parent` to the
+    # parent's tap_stream_id so the catalog denotes the parent-child relationship.
+    parent = None
     # Streams with is_optional=True depend on a specific plan tier or paid add-on.
     # A 403 on these during discovery excludes them from the catalog rather than
     # blocking connection creation.
@@ -116,6 +119,9 @@ class Stream():
 
         mdata = metadata.write(mdata, (), 'table-key-properties', self.key_properties)
         mdata = metadata.write(mdata, (), 'forced-replication-method', self.replication_method)
+
+        if self.parent:
+            mdata = metadata.write(mdata, (), 'parent-tap-stream-id', self.parent)
 
         if self.replication_key:
             mdata = metadata.write(mdata, (), 'valid-replication-keys', [self.replication_key])
@@ -385,6 +391,7 @@ class Tickets(CursorBasedExportStream):
 class TicketAudits(Stream):
     name = "ticket_audits"
     replication_method = "INCREMENTAL"
+    parent = "tickets"
     count = 0
     endpoint='https://{}.zendesk.com/api/v2/tickets/{}/audits.json'
     item_key='audits'
@@ -459,6 +466,7 @@ class TicketAudits(Stream):
 class TicketMetrics(CursorBasedStream):
     name = "ticket_metrics"
     replication_method = "INCREMENTAL"
+    parent = "tickets"
     count = 0
 
     def check_access(self):
@@ -499,6 +507,7 @@ class TicketMetricEvents(Stream):
 class TicketComments(Stream):
     name = "ticket_comments"
     replication_method = "INCREMENTAL"
+    parent = "tickets"
     count = 0
 
     def check_access(self):
