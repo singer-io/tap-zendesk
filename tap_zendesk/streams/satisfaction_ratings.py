@@ -9,6 +9,7 @@ class SatisfactionRatings(PaginatedStream):
     endpoint = 'satisfaction_ratings'
     item_key = 'satisfaction_ratings'
     pagination_type = "cursor"
+    is_optional = True
 
     def update_params(self, **kwargs):
         """

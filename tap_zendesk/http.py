@@ -9,7 +9,7 @@ from urllib3.exceptions import ProtocolError
 from tap_zendesk.exceptions import (
     ERROR_CODE_EXCEPTION_MAPPING,
     ZendeskError,
-    ZendeskBackoffError
+    ZendeskBackoffError,
 )
 
 

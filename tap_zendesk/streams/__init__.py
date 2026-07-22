@@ -1,3 +1,5 @@
+from tap_zendesk import http
+from tap_zendesk.streams.abstracts import Stream
 from tap_zendesk.streams.activities import Activities
 from tap_zendesk.streams.audit_logs import AuditLogs
 from tap_zendesk.streams.automations import Automations

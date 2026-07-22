@@ -1,11 +1,13 @@
+from zenpy.lib.exception import APIException
 from singer import utils
-from tap_zendesk.streams.abstracts import Stream
+from tap_zendesk.streams.abstracts import Stream, raise_forbidden_if_access_denied
 
 
 class TicketForms(Stream):
     name = "ticket_forms"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
+    is_optional = True
 
     def sync(self, state):
         bookmark = self.get_bookmark(state, self.name)
@@ -23,4 +25,7 @@ class TicketForms(Stream):
         '''
         Check whether the permission was given to access stream resources or not.
         '''
-        self.client.ticket_forms()
+        try:
+            self.client.ticket_forms()
+        except APIException as e:
+            raise_forbidden_if_access_denied(e)
