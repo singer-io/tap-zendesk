@@ -1,7 +1,34 @@
 # Changelog
 
-## 2.8.0
+## 2.9.0
   * Added multiple new streams [#176](https://github.com/singer-io/tap-zendesk/pull/176)
+  * bump singer-python to 6.8.0, zenpy to 2.0.57 and requests to 2.34.2
+
+# 2.8.3
+  * Bump aiohttp to 3.14.1 for security updates
+  * Mark `ticket_audits`, `ticket_comments`, and `ticket_metrics` as child streams of `tickets`
+  * [#190](https://github.com/singer-io/tap-zendesk/pull/190)
+
+# 2.8.2
+  * Bump aiohttp to 3.13.4 for security updates [#186](https://github.com/singer-io/tap-zendesk/pull/186)
+
+# 2.8.1
+  * Bump requests to 2.33.0 for security updates [#185](https://github.com/singer-io/tap-zendesk/pull/185)
+
+## 2.8.0
+  * Handle Oauth token expiry [#182](https://github.com/singer-io/tap-zendesk/pull/182)
+  * Implement dev mode
+
+## 2.7.3
+  * Fix connection failure when account lacks access to plan-restricted streams (`talk_phone_numbers`, `sla_policies`, `ticket_forms`, `satisfaction_ratings`) [#185](https://github.com/singer-io/tap-zendesk/pull/185)
+    * Added `is_optional` flag to `Stream` base class; optional streams excluded from catalog on 403 instead of blocking connection creation
+    * Fixed `TalkPhoneNumbers.check_access()` to handle `requests.exceptions.HTTPError` 403 and convert to `ZendeskForbiddenError`
+    * Fixed `SLAPolicies` and `TicketForms` `check_access()` to catch bare `APIException` and convert to `ZendeskForbiddenError`
+    * Hard-fail threshold now counts only essential streams (excludes optional streams)
+  * Fix `ValueError: Invalid format string` on Windows by replacing `strftime('%s')` with `.timestamp()` in `TicketMetricEvents`[#185](https://github.com/singer-io/tap-zendesk/pull/185)
+
+## 2.7.2
+  * Update aiohttp for twistlock [#178](https://github.com/singer-io/tap-zendesk/pull/178)
 
 ## 2.7.1
   * Update dependencies [#177](https://github.com/singer-io/tap-zendesk/pull/177)
