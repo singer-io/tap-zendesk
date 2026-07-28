@@ -70,8 +70,7 @@ def discover_streams(client, config):
         total_essential_streams = sum(1 for s in STREAMS.values() if not s.is_optional)
         streams_name = ", ".join(error_list)
         if len(error_list) != total_essential_streams:
-            message = "The account credentials supplied do not have 'read' access to the following stream(s): {}. "\
-                "The data for these streams would not be collected due to lack of required permission.".format(streams_name)
+            message = "Unauthorized streams excluded from catalog: {}.".format(streams_name)
             # If at least one essential stream has read permission, warn about the others.
             LOGGER.warning(message)
         else:

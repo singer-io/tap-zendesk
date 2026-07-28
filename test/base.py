@@ -1,6 +1,7 @@
 import unittest
 import os
 import backoff
+import threading
 from datetime import datetime as dt
 from datetime import timedelta
 import dateutil.parser
@@ -43,6 +44,28 @@ class ZendeskTest(unittest.TestCase):
         missing_envs = [v for v in required_env if not os.getenv(v)]
         if missing_envs:
             raise Exception("set " + ", ".join(missing_envs))
+
+        # Start a heartbeat thread to prevent CircleCI from timing out
+        # due to inactivity on stdout (e.g. during rate-limit backoff sleeps)
+        self._heartbeat_stop_event = threading.Event()
+        self._heartbeat_thread = threading.Thread(
+            target=self._heartbeat_worker,
+            args=(self._heartbeat_stop_event,),
+            daemon=True,
+            name="circleci-heartbeat"
+        )
+        self._heartbeat_thread.start()
+
+    def _heartbeat_worker(self, stop_event, interval=60):
+        """Print a heartbeat log line every `interval` seconds to keep CI stdout alive."""
+        while not stop_event.wait(timeout=interval):
+            LOGGER.info("Heartbeat: test still running at %s ...", dt.now(tz=pytz.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"))
+
+    def tearDown(self):
+        """Stop the heartbeat thread after each test."""
+        if hasattr(self, '_heartbeat_stop_event'):
+            self._heartbeat_stop_event.set()
+            self._heartbeat_thread.join(timeout=5)
 
     def get_type(self):
         return "platform.zendesk"
