@@ -6,6 +6,7 @@ from tap_zendesk.oauth import (
     _refresh_access_token,
     is_token_valid,
     ACCESS_TOKEN_VALIDITY_SECONDS,
+    EXPIRY_BUFFER_SECONDS,
 )
 from tap_zendesk.http import ZendeskError
 
@@ -153,7 +154,7 @@ class TestIsTokenExpired(unittest.TestCase):
     @patch('tap_zendesk.oauth.requests.get')
     def test_token_valid_beyond_buffer(self, mock_get, mock_time):
         """Token with plenty of remaining life should return False."""
-        # expires_at=1_100_000, remaining=100_000 > buffer(10_800) → valid
+        # expires_at=1_100_000, remaining=100_000 > buffer(90_000) → valid
         mock_get.return_value = MockResponse(200, {
             'token': {'expires_at': '1970-01-13T17:33:20Z'}
         })
@@ -165,8 +166,8 @@ class TestIsTokenExpired(unittest.TestCase):
     @patch('tap_zendesk.oauth.time.time', return_value=1_000_000)
     @patch('tap_zendesk.oauth.requests.get')
     def test_token_expiring_within_buffer(self, mock_get, mock_time):
-        """Token expiring within the 3-hour buffer should return True."""
-        # expires_at=1_005_000, remaining=5_000 < buffer(10_800) → expired
+        """Token expiring within the buffer should return True."""
+        # expires_at=1_005_000, remaining=5_000 < buffer(90_000) → expired
         mock_get.return_value = MockResponse(200, {
             'token': {'expires_at': '1970-01-12T15:10:00Z'}
         })
@@ -181,6 +182,26 @@ class TestIsTokenExpired(unittest.TestCase):
             'token': {'expires_at': '1970-01-11T23:53:20Z'}
         })
         self.assertFalse(is_token_valid(self.BASE_CONFIG))
+
+    @patch('tap_zendesk.oauth.time.time', return_value=1_000_000)
+    @patch('tap_zendesk.oauth.requests.get')
+    def test_token_outlived_by_a_long_sync_is_refreshed(self, mock_get, mock_time):
+        """A token good for 20h must still be refreshed: the sync can outlive it.
+
+        The token is only checked here, at startup, so anything not refreshed now has
+        to survive the whole run.
+        """
+        # expires_at=1_072_000, remaining=72_000 (20h) < buffer(90_000) → refresh
+        mock_get.return_value = MockResponse(200, {
+            'token': {'expires_at': '1970-01-13T09:46:40Z'}
+        })
+        self.assertFalse(is_token_valid(self.BASE_CONFIG))
+
+    def test_buffer_clears_the_longest_possible_sync(self):
+        """Guards the invariant the buffer exists for; a smaller value reintroduces
+        mid-sync 401s. Orchestrator deadline for a sync job is just under 24h."""
+        longest_sync_seconds = 24 * 60 * 60
+        self.assertGreater(EXPIRY_BUFFER_SECONDS, longest_sync_seconds)
 
     @patch('tap_zendesk.oauth.requests.get')
     def test_token_no_expiration(self, mock_get):
