@@ -2,6 +2,7 @@
 
 # 2.8.4
   * Refresh the OAuth access token whenever it could expire before the sync ends, rather than only within 3 hours of expiry
+  * Bump aiohttp to 3.14.3 for security updates
 
 # 2.8.3
   * Bump aiohttp to 3.14.1 for security updates
