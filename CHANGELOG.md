@@ -1,5 +1,8 @@
 # Changelog
 
+# 2.8.5
+  * Bump aiohttp from 3.14.1 -> 3.14.3 [#192](https://github.com/singer-io/tap-zendesk/pull/192)
+
 # 2.8.4
   * Refresh the OAuth access token whenever it could expire before the sync ends, rather than only within 3 hours of expiry
 
