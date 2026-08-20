@@ -31,8 +31,10 @@ TOKEN_REFRESH_URL = "https://{subdomain}.zendesk.com/oauth/tokens"
 # Endpoint to inspect the current OAuth token
 TOKEN_INFO_URL = "https://{subdomain}.zendesk.com/api/v2/oauth/tokens/current.json"
 
-# Refresh the token if it expires within this many seconds (3 hours)
-EXPIRY_BUFFER_SECONDS = 3 * 60 * 60
+# The token is only checked once, at startup, while a sync can run for just under a
+# day. A window narrower than that lets a token pass this check and still expire
+# mid-sync, which surfaces as an unrecoverable 401 partway through a load.
+EXPIRY_BUFFER_SECONDS = 25 * 60 * 60
 
 ACCESS_TOKEN_VALIDITY_SECONDS = 48 * 60 * 60
 
