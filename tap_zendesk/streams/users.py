@@ -7,7 +7,7 @@ from tap_zendesk.streams.abstracts import (
     raise_or_log_zenpy_apiexception,
     START_DATE_FORMAT
 )
-
+from tap_zendesk.exceptions import ZendeskNotFoundError
 
 class Users(ParentChildBookmarkMixin, CursorBasedExportStream):
     name = "users"
@@ -57,8 +57,8 @@ class UserSubStreamMixin:
         return super().get_stream_endpoint(**kwargs)
 
     def get_objects(self, **kwargs):
-        parent_obj = kwargs.get('parent_obj', {})
-        if parent_obj.get("verified", False):
+        try:
             yield from super().get_objects(**kwargs)
-        else:
+        except ZendeskNotFoundError:
+            # User identities not found (unverified/deleted user)
             yield from []
