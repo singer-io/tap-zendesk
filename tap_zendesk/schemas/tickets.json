@@ -1,5 +1,29 @@
 {
   "properties": {
+    "custom_status_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "encoded_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "from_messaging_channel": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "support_type": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
     "organization_id": {
       "type": [
         "null",

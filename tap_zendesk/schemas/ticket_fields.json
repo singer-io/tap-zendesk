@@ -1,5 +1,41 @@
 {
   "properties": {
+    "agent_can_edit": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "key": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "creator_app_name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "creator_user_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "max_selections": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "relationship_target_type": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
     "created_at": {
       "type": [
         "null",

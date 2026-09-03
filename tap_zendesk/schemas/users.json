@@ -4,6 +4,32 @@
     "object"
   ],
   "properties": {
+    "iana_time_zone": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "suspension_details": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "channels": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      }
+    },
     "verified": {
       "type": [
         "null",

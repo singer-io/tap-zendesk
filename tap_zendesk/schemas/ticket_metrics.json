@@ -1,5 +1,26 @@
 {
   "properties": {
+    "custom_status_updated_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "reply_time_in_seconds": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "calendar": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        }
+      }
+    },
     "metric": {
       "type": [
         "null",
