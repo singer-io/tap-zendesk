@@ -51,6 +51,7 @@ jobs:
 
   integration_tests:
     executor: docker-executor
+    parallelism: 11
     steps:
       - checkout
       - attach_workspace:
@@ -66,9 +67,38 @@ jobs:
             export STITCH_CONFIG_DIR=/tmp/${CIRCLE_PROJECT_REPONAME}
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
             uv pip install 'zenpy==2.0.56'
-            circleci tests glob "test/*.py" | circleci tests split > ./tests-to-run
-            if [ -s ./tests-to-run ]; then
-              for test_file in $(cat ./tests-to-run)
+
+            # Full/near-full stream sync tests hit the Zendesk sandbox the hardest and are the
+            # most likely to trigger 429 rate limiting when several run concurrently. Cluster
+            # them onto a small, fixed set of nodes (run sequentially within each node) so at
+            # most HEAVY_CLUSTER_NODES heavy syncs are in flight at once, instead of up to
+            # `parallelism` of them. Adjust this list if other tests start showing 429s, or if
+            # new heavy full-sync test files are added.
+            #
+            # HEAVY_CLUSTER_NODES is set equal to the number of heavy tests so each node runs
+            # exactly ONE heavy test (each takes ~1.5-1.7h per CI history). Stacking 2+ heavy
+            # tests sequentially on a single node risks exceeding the 3h job timeout, so avoid
+            # letting HEAVY_CLUSTER_NODES drop below the heavy test count.
+            HEAVY_TESTS="test/test_all_fields.py test/test_start_date.py test/test_standard_bookmark.py test/test_pagination.py test/test_all_streams.py"
+            HEAVY_CLUSTER_NODES=5
+
+            if [ "$CIRCLE_NODE_INDEX" -lt "$HEAVY_CLUSTER_NODES" ]; then
+              # Distribute heavy tests round-robin across the first N nodes. With
+              # HEAVY_CLUSTER_NODES equal to the heavy test count, each of these nodes runs
+              # exactly one heavy test.
+              tests_to_run=$(echo "$HEAVY_TESTS" | tr ' ' '\n' | awk -v n="$HEAVY_CLUSTER_NODES" -v i="$CIRCLE_NODE_INDEX" 'NR % n == i')
+            else
+              # Remaining nodes split the rest of the (lighter) test files as before, balanced
+              # by historical timings, using the remaining node pool.
+              all_tests=$(circleci tests glob "test/*.py")
+              light_tests=$(comm -23 <(echo "$all_tests" | sort) <(echo "$HEAVY_TESTS" | tr ' ' '\n' | sort))
+              tests_to_run=$(echo "$light_tests" | circleci tests split --split-by=timings \
+                --index=$((CIRCLE_NODE_INDEX - HEAVY_CLUSTER_NODES)) \
+                --total=$((CIRCLE_NODE_TOTAL - HEAVY_CLUSTER_NODES)))
+            fi
+
+            if [ -n "$tests_to_run" ]; then
+              for test_file in $tests_to_run
               do
                 run-test --tap=${CIRCLE_PROJECT_REPONAME} $test_file
               done

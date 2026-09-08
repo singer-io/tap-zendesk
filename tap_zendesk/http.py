@@ -74,7 +74,10 @@ def build_headers(access_token: str, additional_headers: dict = None) -> dict:
 
 @backoff.on_exception(backoff.expo,
                       (HTTPError, ZendeskError), # Added support of backoff for all unhandled status codes.
-                      max_tries=10,
+                      max_tries=20, # Bumped from 10: with CI test files running in parallel against the
+                      # same Zendesk sandbox account, sustained 429s from shared rate-limit contention
+                      # can outlast a smaller retry budget even though each attempt already waits the
+                      # full `Retry-After` duration (see `is_fatal`).
                       giveup=is_fatal)
 @backoff.on_exception(backoff.expo,
                     (ConnectionError, ConnectionResetError, Timeout, ChunkedEncodingError, ProtocolError),#As ConnectionError error and timeout error does not have attribute status_code,

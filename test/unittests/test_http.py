@@ -274,8 +274,8 @@ class TestBackoff(unittest.TestCase):
             expected_error_message = "HTTP-error-code: 409, Error: The API request cannot be completed because the requested operation would conflict with an existing item."
             self.assertEqual(str(e), expected_error_message)
 
-        # Verify that requests.Session.request called 10 times
-        self.assertEqual(mocked_request.call_count, 10)
+        # Verify that requests.Session.request called 20 times
+        self.assertEqual(mocked_request.call_count, 20)
 
     @patch(
         "requests.get", side_effect=[mocked_get(status_code=422, json={"key1": "val1"})]
@@ -299,11 +299,11 @@ class TestBackoff(unittest.TestCase):
 
     @patch(
         "requests.get",
-        side_effect=10 * [mocked_get(status_code=500, json={"key1": "val1"})],
+        side_effect=20 * [mocked_get(status_code=500, json={"key1": "val1"})],
     )
     def test_get_cursor_based_handles_500(self, mock_get, mock_sleep):
         """
-        Test that the tap can handle 500 error and retry it 10 times
+        Test that the tap can handle 500 error and retry it 20 times
         """
         try:
             responses = [
@@ -321,16 +321,16 @@ class TestBackoff(unittest.TestCase):
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
 
-        # Verify the request retry 10 times
-        self.assertEqual(mock_get.call_count, 10)
+        # Verify the request retry 20 times
+        self.assertEqual(mock_get.call_count, 20)
 
     @patch(
         "requests.get",
-        side_effect=10 * [mocked_get(status_code=501, json={"key1": "val1"})],
+        side_effect=20 * [mocked_get(status_code=501, json={"key1": "val1"})],
     )
     def test_get_cursor_based_handles_501(self, mock_get, mock_sleep):
         """
-        Test that the tap can handle 501 error and retry it 10 times
+        Test that the tap can handle 501 error and retry it 20 times
         """
         try:
             responses = [
@@ -345,16 +345,16 @@ class TestBackoff(unittest.TestCase):
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
 
-        # Verify the request retry 10 times
-        self.assertEqual(mock_get.call_count, 10)
+        # Verify the request retry 20 times
+        self.assertEqual(mock_get.call_count, 20)
 
     @patch(
         "requests.get",
-        side_effect=10 * [mocked_get(status_code=502, json={"key1": "val1"})],
+        side_effect=20 * [mocked_get(status_code=502, json={"key1": "val1"})],
     )
     def test_get_cursor_based_handles_502(self, mock_get, mock_sleep):
         """
-        Test that the tap can handle 502 error and retry it 10 times
+        Test that the tap can handle 502 error and retry it 20 times
         """
         try:
             responses = [
@@ -371,8 +371,8 @@ class TestBackoff(unittest.TestCase):
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
 
-        # Verify the request retry 10 times
-        self.assertEqual(mock_get.call_count, 10)
+        # Verify the request retry 20 times
+        self.assertEqual(mock_get.call_count, 20)
 
     @patch("requests.get")
     def test_get_cursor_based_handles_444(self, mock_get, mock_sleep):
@@ -438,11 +438,11 @@ class TestBackoff(unittest.TestCase):
 
     @patch(
         "requests.get",
-        side_effect=10 * [mocked_get(status_code=524, json={"key1": "val1"})],
+        side_effect=20 * [mocked_get(status_code=524, json={"key1": "val1"})],
     )
     def test_get_cursor_based_handles_524(self, mock_get, mock_sleep):
         """
-        Test that the tap can handle 524 error and retry it 10 times
+        Test that the tap can handle 524 error and retry it 20 times
         """
         try:
             responses = [
@@ -457,16 +457,16 @@ class TestBackoff(unittest.TestCase):
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
 
-        # Verify the request retry 10 times
-        self.assertEqual(mock_get.call_count, 10)
+        # Verify the request retry 20 times
+        self.assertEqual(mock_get.call_count, 20)
 
     @patch(
         "requests.get",
-        side_effect=10 * [mocked_get(status_code=520, json={"key1": "val1"})],
+        side_effect=20 * [mocked_get(status_code=520, json={"key1": "val1"})],
     )
     def test_get_cursor_based_handles_520(self, mock_get, mock_sleep):
         """
-        Test that the tap can handle 520 error and retry it 10 times
+        Test that the tap can handle 520 error and retry it 20 times
         """
         try:
             responses = [
@@ -481,16 +481,16 @@ class TestBackoff(unittest.TestCase):
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
 
-        # Verify the request retry 10 times
-        self.assertEqual(mock_get.call_count, 10)
+        # Verify the request retry 20 times
+        self.assertEqual(mock_get.call_count, 20)
 
     @patch(
         "requests.get",
-        side_effect=10 * [mocked_get(status_code=503, json={"key1": "val1"})],
+        side_effect=20 * [mocked_get(status_code=503, json={"key1": "val1"})],
     )
     def test_get_cursor_based_handles_503(self, mock_get, mock_sleep):
         """
-        Test that the tap can handle 503 error and retry it 10 times
+        Test that the tap can handle 503 error and retry it 20 times
         """
         try:
             responses = [
@@ -507,8 +507,8 @@ class TestBackoff(unittest.TestCase):
             # Verify the message formed for the custom exception
             self.assertEqual(str(e), expected_error_message)
 
-        # Verify the request retry 10 times
-        self.assertEqual(mock_get.call_count, 10)
+        # Verify the request retry 20 times
+        self.assertEqual(mock_get.call_count, 20)
 
     @patch("requests.get")
     def test_call_api_handles_protocol_error(self, mock_get, mock_sleep):
