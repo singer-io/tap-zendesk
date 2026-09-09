@@ -1,5 +1,32 @@
 {
   "properties": {
+    "agent_conditions": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {}
+    },
+    "end_user_conditions": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {}
+    },
+    "deleted_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "form_type": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
     "created_at": {
       "type": [
         "null",

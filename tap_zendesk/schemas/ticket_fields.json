@@ -1,5 +1,23 @@
 {
   "properties": {
+    "agent_can_edit": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "key": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "raw_agent_description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
     "created_at": {
       "type": [
         "null",
