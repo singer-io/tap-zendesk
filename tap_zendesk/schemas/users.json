@@ -4,6 +4,38 @@
     "object"
   ],
   "properties": {
+    "iana_time_zone": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "is_billing_admin": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "suspension_details": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "channels": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      }
+    },
     "verified": {
       "type": [
         "null",

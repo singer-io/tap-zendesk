@@ -1,5 +1,12 @@
 {
   "properties": {
+    "custom_status_updated_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
     "metric": {
       "type": [
         "null",
