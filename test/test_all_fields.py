@@ -71,13 +71,23 @@ class ZendeskAllFields(ZendeskTest):
 
                 # As we can't generate following fields by zendesk APIs now so expected.
                 if stream == "ticket_fields":
-                    expected_all_keys = expected_all_keys - {'system_field_options', 'sub_type_id'}
-                elif stream == "users":  # field appeared in syncd records Nov 1 - Dec 18, 2023
-                    expected_all_keys = expected_all_keys - {'chat_only'}
+                    expected_all_keys = expected_all_keys - {
+                        'system_field_options', 'sub_type_id', 'creator_user_id',
+                        'creator_app_name', 'max_selections'
+                    }
+                elif stream == "users":  # field appeared in synced records Nov 1 - Dec 18, 2023
+                    expected_all_keys = expected_all_keys - {'chat_only', 'suspension_details'}
                 elif stream == "ticket_metrics":
-                    expected_all_keys = expected_all_keys - {'status', 'instance_id', 'metric', 'type', 'time'}
+                    expected_all_keys = expected_all_keys - {
+                        'status', 'instance_id', 'metric', 'type', 'time',
+                        'custom_status_updated_at', 'reply_time_in_seconds'
+                    }
                 elif stream == "talk_phone_numbers":
                     expected_all_keys = expected_all_keys - {'token'}
+                elif stream == "support_requests":
+                    expected_all_keys = expected_all_keys - {'solved', 'group_id', 'custom_status_id'}
+                elif stream == "tickets":
+                    expected_all_keys = expected_all_keys - {'custom_status_id'}
 
                 # verify all fields for each stream are replicated
                 self.assertSetEqual(expected_all_keys, actual_all_keys)
