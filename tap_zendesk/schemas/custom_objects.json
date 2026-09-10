@@ -1,0 +1,91 @@
+{
+    "type": "object",
+    "properties": {
+        "key": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "title": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "title_pluralized": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "include_in_list_view": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "allows_photos": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "created_by_user_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "description": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "raw_description": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "raw_title": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "raw_title_pluralized": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "updated_by_user_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

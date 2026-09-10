@@ -1,0 +1,119 @@
+{
+    "type": "object",
+    "properties": {
+        "title": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "values": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "properties": {
+                "type": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "list": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "value": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "title": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "enabled": {
+                                "type": [
+                                    "boolean",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "value": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "operators": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": [
+                    "object",
+                    "null"
+                ],
+                "properties": {
+                    "value": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "title": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            }
+        },
+        "group": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "title_for_field": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "output_key": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "repeatable": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "field": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

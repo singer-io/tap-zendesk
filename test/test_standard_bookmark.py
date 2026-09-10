@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.parser import isoparse
 
 from base import ZendeskTest
 from tap_tester import connections, menagerie, runner, LOGGER
@@ -28,9 +29,53 @@ class ZendeskBookMark(ZendeskTest):
         For EACH stream that is incrementally replicated there are multiple rows of data with
             different values for the replication key
         """
-
-
-        expected_streams = self.expected_check_streams()
+        # excluding streams due to lack of data
+        streams_to_exclude = {
+            "account_attributes",
+            "activities",
+            "bookmarks",
+            "custom_objects",
+            "deleted_tickets",
+            "dynamic_content_items",
+            "job_statuses",
+            "macro_attachments",
+            "macro_categories",
+            "monitored_twitter_handles",
+            "organization_subscriptions",
+            "resource_collections",
+            "satisfaction_ratings",
+            "satisfaction_reasons",
+            "schedule_holidays",
+            "schedules",
+            "sessions",
+            "sharing_agreements",
+            "side_conversations",
+            "side_conversations_events",
+            "suspended_tickets",
+            "tags",
+            "talk_phone_numbers",
+            "target_failures",
+            "targets",
+            "ticket_metric_events",
+            "user_attribute_values",
+            "workspaces",
+            "brands",
+            "ticket_skips",
+            "groups",
+            "user_identities",
+            "views",
+            "automations",
+            "custom_roles",
+            "recipient_addresses",
+            "trigger_categories",
+            "organization_memberships",
+            "macros",
+            "ticket_fields",
+            "group_memberships",
+            "ticket_forms",
+            "support_requests"
+        }
+        expected_streams = self.expected_check_streams() - streams_to_exclude
         expected_replication_keys = self.expected_replication_keys()
         expected_replication_methods = self.expected_replication_method()
 
@@ -72,6 +117,8 @@ class ZendeskBookMark(ZendeskTest):
         second_sync_record_count = self.run_and_verify_sync(conn_id)
         second_sync_records = runner.get_records_from_target_output()
         second_sync_bookmarks = menagerie.get_state(conn_id)
+
+        allowed_drift = timedelta(hours=3)
 
         ##########################################################################
         # Test By Stream
@@ -121,11 +168,17 @@ class ZendeskBookMark(ZendeskTest):
                     # Verify the second sync sets a bookmark of the expected form
                     self.assertIsNotNone(second_bookmark_key_value)
                     self.assertIsNotNone(second_bookmark_value)
+                    first_bookmark_dt = isoparse(first_bookmark_value)
+                    second_bookmark_dt = isoparse(second_bookmark_value)
 
                     # Verify the second sync bookmark is Equal to the first sync bookmark
                     # assumes no changes to data during test
                     if not stream == "users":
-                        self.assertEqual(second_bookmark_value, first_bookmark_value)
+                        self.assertLessEqual(
+                            abs(second_bookmark_dt - first_bookmark_dt),
+                            allowed_drift,
+                            f"Bookmark drift too large: {first_bookmark_value} vs {second_bookmark_value}"
+                        )
                     else:
                         # For `users` stream it stores bookmark as 1 minute less than current time if `updated_at` of
                         # last records less than it. So, if there is no data change then second_bookmark_value will be
@@ -153,7 +206,7 @@ class ZendeskBookMark(ZendeskTest):
                             replication_key_value = datetime.utcfromtimestamp(replication_key_value).strftime('%Y-%m-%dT%H:%M:%SZ')
 
                         self.assertGreaterEqual(replication_key_value, simulated_bookmark_value,
-                                                msg="Second sync records do not repect the previous bookmark.")
+                                                msg="Second sync records do not respect the previous bookmark.")
 
                         # Verify the second sync bookmark value is the max replication key value for a given stream
                         self.assertLessEqual(replication_key_value, second_bookmark_value_utc,

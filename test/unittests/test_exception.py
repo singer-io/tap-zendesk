@@ -2,7 +2,7 @@ import unittest
 from tap_zendesk import  get_session
 from unittest import mock
 from pytest import raises
-from tap_zendesk.streams import raise_or_log_zenpy_apiexception, APIException, json, LOGGER
+from tap_zendesk.streams.abstracts import raise_or_log_zenpy_apiexception, APIException, json, LOGGER
 
 class ValueError(Exception):
     def __init__(self, m):
@@ -13,7 +13,7 @@ class ValueError(Exception):
 
 
 class TestException(unittest.TestCase):
-    @mock.patch("tap_zendesk.streams.LOGGER.warning")
+    @mock.patch("tap_zendesk.streams.abstracts.LOGGER.warning")
     def test_exception_logger(self, mocked_logger):
         """
         Test whether the specific logger message is correctly printed when access error occurs and the error is a dict

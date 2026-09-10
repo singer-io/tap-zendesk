@@ -1,0 +1,61 @@
+{
+    "type": "object",
+    "properties": {
+        "agent_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "attribute_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "attribute_value_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "user_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

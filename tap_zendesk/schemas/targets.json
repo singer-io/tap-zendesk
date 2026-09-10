@@ -1,0 +1,84 @@
+{
+    "type": "object",
+    "properties": {
+        "project_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "resource": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "target_url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "title": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "token": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "type": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "active": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "message_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "password": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "todo_list_id": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "username": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

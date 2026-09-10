@@ -1,0 +1,78 @@
+{
+    "type": "object",
+    "properties": {
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "action_label": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "actor_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "source_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "source_type": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "source_label": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "action": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "change_description": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "ip_address": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "actor_name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

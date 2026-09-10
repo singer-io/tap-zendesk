@@ -167,8 +167,8 @@
             "type": [
               "null",
               "string"
-             ],
-             "format": "date-time"
+            ],
+            "format": "date-time"
           },
           "data": {
             "type": [
@@ -183,10 +183,10 @@
                 ]
               },
               "transcription_text": {
-                 "type": [
-                   "null",
-                   "string"
-                 ]
+                "type": [
+                  "null",
+                  "string"
+                ]
               },
               "to": {
                 "type": [
