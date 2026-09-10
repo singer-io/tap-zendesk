@@ -4,6 +4,24 @@
     "object"
   ],
   "properties": {
+    "default": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "is_public": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
     "name": {
       "type": [
         "null",

@@ -4,6 +4,9 @@
   * Added multiple new streams [#176](https://github.com/singer-io/tap-zendesk/pull/176)
   * bump singer-python to 6.8.0, zenpy to 2.0.57 and requests to 2.34.2
 
+# 2.8.6
+  * Schema updates [#199](https://github.com/singer-io/tap-zendesk/pull/199)
+
 # 2.8.5
   * Bump aiohttp from 3.14.1 -> 3.14.3 [#192](https://github.com/singer-io/tap-zendesk/pull/192)
 
