@@ -576,6 +576,31 @@ class TestParentChildBookmarkMixin(unittest.TestCase):
 
         self.assertNotIn("bookmarks", state)
 
+    def test_persists_traversal_bookmark_when_unselected_parent_has_children_to_sync(self):
+        """
+        Even if the parent stream itself is not selected, its own bookmark
+        must still be persisted whenever it is being traversed to reach a
+        selected child stream (i.e. `child_to_sync` is non-empty) - otherwise
+        the parent would be re-scanned from `start_date` on every sync purely
+        to reach its children.
+        """
+        parent = self.ParentStream(client=MagicMock(), config=make_config())
+        parent.name = "tickets"
+        parent.replication_key = "updated_at"
+        parent.is_selected = MagicMock(return_value=False)
+
+        child = MagicMock()
+        child.is_selected.return_value = True
+        child.replication_method = "INCREMENTAL"
+        child.name = "ticket_comments"
+        child.replication_key = "created_at"
+        parent.child_to_sync = [child]
+
+        state = {}
+        parent.update_bookmark(state, "tickets", "2022-01-01T00:00:00Z")
+
+        self.assertEqual(state["bookmarks"]["tickets"]["updated_at"], "2022-01-01T00:00:00Z")
+
     def test_writes_initial_bookmark_for_incremental_child(self):
         parent = self.ParentStream(client=MagicMock(), config=make_config())
         parent.name = "tickets"

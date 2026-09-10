@@ -424,8 +424,16 @@ class ParentChildBookmarkMixin:
     def update_bookmark(self, state: Dict, stream: str, value: Any = None) -> Dict:
         """
         Write the bookmark value to the parent and all incremental children.
+
+        The parent's traversal bookmark must be persisted whenever it is being
+        walked to reach a selected child stream (`self.child_to_sync` is
+        populated only with selected children), even if the parent stream
+        itself is not selected for extraction. Otherwise the parent would be
+        re-scanned from `start_date` on every sync purely to reach its
+        children, since `is_selected()` alone continues to gate whether the
+        parent's own records are yielded.
         """
-        if self.is_selected():
+        if self.is_selected() or self.child_to_sync:
             super().update_bookmark(state, stream, value=value)
 
         for child in self.child_to_sync:

@@ -7,7 +7,7 @@ class MacroAttachments(ChildBookmarkMixin, PaginatedStream):
     replication_method = "FULL_TABLE"
     key_properties = ["id"]
     endpoint = 'macros/{macro_id}/attachments'
-    item_key = 'actions'
+    item_key = 'macro_attachments'
     pagination_type = "offset"
     parent = 'macros'
     bookmark_value = None

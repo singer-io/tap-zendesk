@@ -9,7 +9,7 @@ class ScheduleHolidays(ChildBookmarkMixin, PaginatedStream):
     replication_key = "start_date"
     key_properties = ["id"]
     endpoint = 'business_hours/schedules/{schedule_id}/holidays'
-    item_key = 'schedules'
+    item_key = 'holidays'
     pagination_type = "offset"
     parent = 'schedules'
     bookmark_value = None

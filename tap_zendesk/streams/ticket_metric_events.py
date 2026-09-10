@@ -15,7 +15,7 @@ class TicketMetricEvents(Stream):
         bookmark = self.get_bookmark(state, self.name)
         start = bookmark - datetime.timedelta(seconds=1)
 
-        epoch_start = int(utils.now().timestamp())
+        epoch_start = int(start.timestamp())
         parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
         ticket_metric_events = self.client.tickets.metrics_incremental(start_time=epoch_start)
         for event in ticket_metric_events:
