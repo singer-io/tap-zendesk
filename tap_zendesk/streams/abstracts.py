@@ -199,6 +199,24 @@ class Stream():
         """
         return record
 
+    def get_replication_datetime(self, record: Dict):
+        """
+        Extract and parse the replication value from a record.
+
+        Raises ValueError if the replication key is missing from the record.
+        """
+        replication_value = record.get(self.replication_key)
+        if replication_value is None:
+            raise ValueError(
+                f"Record has missing replication key '{self.replication_key}': {record}"
+            )
+
+        return (
+            utils.strptime_with_tz(replication_value)
+            if isinstance(replication_value, str)
+            else replication_value
+        )
+
     def get_nested_value(self, data, key_path, default=None):
         """
         Recursively get a value from nested dicts using dot-separated key path.
@@ -256,28 +274,21 @@ class PaginatedStream(Stream):
             else:
                 yield from []
 
-    def sync(self, state: Dict, parent_obj: Dict = None):
+    def process_records(self, state: Dict, raw_records, parent_obj: Dict = None):
         """
-        Implementation for `type: Paginated` stream.
+        Apply replication filtering, child sync, and bookmark updates to an
+        already-retrieved sequence of raw records. This is split out from
+        `sync` so that callers who can fetch `raw_records` more efficiently
+        (e.g. concurrently for multiple parents) can reuse the same
+        filtering/bookmarking logic.
         """
         bookmark_date = self.get_bookmark(state, self.name)
         current_max_bookmark_date = bookmark_date
-        self.update_params(state=state)
 
-        for record in self.get_objects(params=self.params, parent_obj=parent_obj):
+        for record in raw_records:
             record = self.modify_object(record, parent_record=parent_obj)
             if self.replication_method == "INCREMENTAL":
-                replication_value = record.get(self.replication_key)
-                if replication_value is None:
-                    raise ValueError(
-                        f"Record has missing replication key '{self.replication_key}': {record}"
-                    )
-
-                replication_datetime = (
-                    utils.strptime_with_tz(replication_value)
-                    if isinstance(replication_value, str)
-                    else replication_value
-                )
+                replication_datetime = self.get_replication_datetime(record)
 
                 if replication_datetime >= bookmark_date:
                     current_max_bookmark_date = max(
@@ -304,6 +315,17 @@ class PaginatedStream(Stream):
         if self.replication_method == "INCREMENTAL":
             self.update_bookmark(state, self.name, current_max_bookmark_date)
 
+    def sync(self, state: Dict, parent_obj: Dict = None):
+        """
+        Implementation for `type: Paginated` stream.
+        """
+        self.update_params(state=state)
+        yield from self.process_records(
+            state,
+            self.get_objects(params=self.params, parent_obj=parent_obj),
+            parent_obj=parent_obj
+        )
+
 class CursorBasedExportStream(Stream):
     endpoint = None
     item_key = None
@@ -325,16 +347,7 @@ class CursorBasedExportStream(Stream):
         for record in records:
             record = self.modify_object(record, parent_record=parent_obj)
             if self.replication_method == "INCREMENTAL":
-                replication_value = record.get(self.replication_key)
-                if replication_value is None:
-                    raise ValueError(
-                        f"Record has missing replication key '{self.replication_key}': {record}"
-                    )
-                replication_datetime = (
-                    utils.strptime_with_tz(replication_value)
-                    if isinstance(replication_value, str)
-                    else replication_value
-                )
+                replication_datetime = self.get_replication_datetime(record)
 
                 if replication_datetime >= bookmark_date:
                     current_max_bookmark_date = max(

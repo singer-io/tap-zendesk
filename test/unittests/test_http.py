@@ -934,3 +934,303 @@ class TestAPIAsync(unittest.TestCase):
                 self.assertEqual(result, expected_result)
 
         asyncio.run(run_test())
+
+    @patch("aiohttp.ClientSession.get")
+    def test_paginate_cursor_async_single_page(self, mocked):
+        """
+        A response with has_more=False should return immediately after one page.
+        """
+        url = "https://api.example.com/resource"
+        response_data = {
+            "identities": [{"id": 1}, {"id": 2}],
+            "meta": {"has_more": False},
+        }
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json.return_value = response_data
+        mocked.return_value.__aenter__.return_value = mock_response
+
+        async def run_test():
+            async with ClientSession() as session:
+                result = await http.paginate_cursor_async(
+                    session, url, "token", 10, 100, "identities"
+                )
+                self.assertEqual(result, [{"id": 1}, {"id": 2}])
+
+        asyncio.run(run_test())
+
+    @patch("aiohttp.ClientSession.get")
+    def test_paginate_cursor_async_multi_page(self, mocked):
+        """
+        Multiple pages linked via meta.after_cursor should be aggregated into
+        a single list of records, in order.
+        """
+        url = "https://api.example.com/resource"
+        first_page = {
+            "identities": [{"id": 1}],
+            "meta": {"has_more": True, "after_cursor": "cursor-1"},
+        }
+        second_page = {
+            "identities": [{"id": 2}],
+            "meta": {"has_more": False},
+        }
+        mock_first_response = AsyncMock()
+        mock_first_response.status = 200
+        mock_first_response.json.return_value = first_page
+        mock_second_response = AsyncMock()
+        mock_second_response.status = 200
+        mock_second_response.json.return_value = second_page
+        mocked.return_value.__aenter__.side_effect = [
+            mock_first_response,
+            mock_second_response,
+        ]
+
+        async def run_test():
+            async with ClientSession() as session:
+                result = await http.paginate_cursor_async(
+                    session, url, "token", 10, 100, "identities"
+                )
+                self.assertEqual(result, [{"id": 1}, {"id": 2}])
+
+        asyncio.run(run_test())
+        # Second call's params should carry the after_cursor from the first page.
+        _, second_call_kwargs = mocked.call_args_list[1]
+        self.assertEqual(second_call_kwargs["params"]["page[after]"], "cursor-1")
+
+    @patch("aiohttp.ClientSession.get")
+    def test_paginate_cursor_async_stops_when_cursor_missing(self, mocked):
+        """
+        If has_more is True but no after_cursor is present, pagination should
+        stop rather than loop forever.
+        """
+        url = "https://api.example.com/resource"
+        response_data = {
+            "identities": [{"id": 1}],
+            "meta": {"has_more": True},
+        }
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json.return_value = response_data
+        mocked.return_value.__aenter__.return_value = mock_response
+
+        async def run_test():
+            async with ClientSession() as session:
+                result = await http.paginate_cursor_async(
+                    session, url, "token", 10, 100, "identities"
+                )
+                self.assertEqual(result, [{"id": 1}])
+
+        asyncio.run(run_test())
+        mocked.assert_called_once()
+
+
+class TestHttpPaginationHelpers(unittest.TestCase):
+
+    def test_build_headers_merges_additional_headers(self):
+        headers = http.build_headers("token", additional_headers={"X-Custom": "value"})
+        self.assertEqual(headers["Authorization"], "Bearer token")
+        self.assertEqual(headers["X-Custom"], "value")
+
+    def test_build_headers_without_additional_headers(self):
+        headers = http.build_headers("token")
+        self.assertNotIn("X-Custom", headers)
+
+    @patch("tap_zendesk.http.call_api")
+    def test_get_cursor_based_uses_provided_cursor(self, mock_call_api):
+        mock_call_api.return_value.json.return_value = SINGLE_RESPONSE
+        list(http.get_cursor_based(
+            "https://example.zendesk.com/resource", "token", REQUEST_TIMEOUT, PAGE_SIZE,
+            cursor="existing_cursor"
+        ))
+        _, kwargs = mock_call_api.call_args
+        self.assertEqual(kwargs["params"]["page[after]"], "existing_cursor")
+
+    @patch("aiohttp.ClientSession.get")
+    def test_paginate_ticket_audits_missing_cursor_stops_pagination(self, mocked):
+        """
+        If a subsequent page's meta is missing 'after_cursor', pagination must stop
+        gracefully (KeyError handled) instead of raising. The second page still has
+        a cursor (covering the successful continuation branch) before the third
+        page triggers the missing-cursor KeyError branch.
+        """
+        first_page = {
+            "audits": [{"id": 1}],
+            "meta": {"has_more": True, "after_cursor": "cursor1"},
+        }
+        second_page = {
+            "audits": [{"id": 2}],
+            "meta": {"has_more": True, "after_cursor": "cursor2"},
+        }
+        third_page = {
+            "audits": [{"id": 3}],
+            "meta": {"has_more": True},  # after_cursor missing -> KeyError branch
+        }
+        mock_first_response = AsyncMock()
+        mock_first_response.status = 200
+        mock_first_response.json.return_value = first_page
+        mock_second_response = AsyncMock()
+        mock_second_response.status = 200
+        mock_second_response.json.return_value = second_page
+        mock_third_response = AsyncMock()
+        mock_third_response.status = 200
+        mock_third_response.json.return_value = third_page
+        mocked.return_value.__aenter__.side_effect = [
+            mock_first_response,
+            mock_second_response,
+            mock_third_response,
+        ]
+
+        async def run_test():
+            async with ClientSession() as session:
+                result = await http.paginate_ticket_audits(
+                    session, "https://api.example.com/resource", "token", 10, 2
+                )
+                self.assertEqual(result["audits"], [{"id": 1}, {"id": 2}, {"id": 3}])
+
+        asyncio.run(run_test())
+
+    def test_get_offset_based_paginates_until_no_next_page(self):
+        with patch("tap_zendesk.http.call_api") as mock_call_api:
+            first_response = Mock()
+            first_response.json.return_value = {
+                "tickets": [{"id": 1}],
+                "next_page": "https://example.zendesk.com/resource?page=2",
+            }
+            second_response = Mock()
+            second_response.json.return_value = {
+                "tickets": [{"id": 2}],
+            }
+            mock_call_api.side_effect = [first_response, second_response]
+
+            pages = list(http.get_offset_based(
+                "https://example.zendesk.com/resource", "token", REQUEST_TIMEOUT, PAGE_SIZE
+            ))
+            self.assertEqual(len(pages), 2)
+            self.assertEqual(mock_call_api.call_count, 2)
+
+    def test_get_offset_based_uses_after_url_when_next_page_absent(self):
+        with patch("tap_zendesk.http.call_api") as mock_call_api:
+            first_response = Mock()
+            first_response.json.return_value = {
+                "tickets": [{"id": 1}],
+                "after_url": "https://example.zendesk.com/resource?page=2",
+            }
+            second_response = Mock()
+            second_response.json.return_value = {"tickets": [{"id": 2}]}
+            mock_call_api.side_effect = [first_response, second_response]
+
+            pages = list(http.get_offset_based(
+                "https://example.zendesk.com/resource", "token", REQUEST_TIMEOUT, PAGE_SIZE
+            ))
+            self.assertEqual(len(pages), 2)
+
+    @patch("aiohttp.ClientSession.get")
+    def test_raise_for_error_for_async_handles_invalid_json_response(self, mocked):
+        """
+        When response.json() raises ContentTypeError/ValueError, raise_for_error_for_async
+        must treat the body as an empty dict instead of propagating the JSON error.
+        """
+        from aiohttp import ContentTypeError as AiohttpContentTypeError
+
+        mock_response = AsyncMock()
+        mock_response.status = 404
+        mock_response.json.side_effect = AiohttpContentTypeError(Mock(), Mock())
+        mocked.return_value.__aenter__.return_value = mock_response
+
+        async def run_test():
+            async with ClientSession() as session:
+                with self.assertRaises(ZendeskNotFoundError) as context:
+                    await http.call_api_async(session, "https://api.example.com/resource", 10, {}, {})
+                self.assertIn("HTTP-error-code: 404", str(context.exception))
+
+        asyncio.run(run_test())
+
+    def test_get_incremental_export_yields_pages_until_end_of_stream(self):
+        with patch("tap_zendesk.http.call_api") as mock_call_api:
+            first_response = Mock()
+            first_response.json.return_value = {
+                "tickets": [{"id": 1}],
+                "end_of_stream": False,
+                "after_cursor": "cursor1",
+            }
+            second_response = Mock()
+            second_response.json.return_value = {
+                "tickets": [{"id": 2}],
+                "end_of_stream": True,
+            }
+            mock_call_api.side_effect = [first_response, second_response]
+
+            pages = list(http.get_incremental_export(
+                "https://example.zendesk.com/resource", "token", REQUEST_TIMEOUT, 0, None
+            ))
+            self.assertEqual(len(pages), 2)
+            self.assertEqual(mock_call_api.call_count, 2)
+
+    def test_get_incremental_export_raises_when_cursor_missing(self):
+        with patch("tap_zendesk.http.call_api") as mock_call_api:
+            response = Mock()
+            response.json.return_value = {"tickets": [], "end_of_stream": False}
+            mock_call_api.return_value = response
+
+            with self.assertRaises(ValueError):
+                list(http.get_incremental_export(
+                    "https://example.zendesk.com/resource", "token", REQUEST_TIMEOUT, 0, None
+                ))
+
+    def test_get_incremental_export_accepts_datetime_start_time(self):
+        import datetime
+        with patch("tap_zendesk.http.call_api") as mock_call_api:
+            response = Mock()
+            response.json.return_value = {"tickets": [], "end_of_stream": True}
+            mock_call_api.return_value = response
+
+            list(http.get_incremental_export(
+                "https://example.zendesk.com/resource", "token", REQUEST_TIMEOUT,
+                datetime.datetime.now(datetime.timezone.utc), None
+            ))
+            mock_call_api.assert_called_once()
+
+    def test_get_incremental_export_offset_yields_pages_until_no_next_url(self):
+        with patch("tap_zendesk.http.call_api") as mock_call_api:
+            first_response = Mock()
+            first_response.json.return_value = {
+                "tickets": [{"id": 1}],
+                "end_of_stream": False,
+                "next_page": "https://example.zendesk.com/resource?page=2",
+            }
+            second_response = Mock()
+            second_response.json.return_value = {
+                "tickets": [{"id": 2}],
+                "end_of_stream": True,
+            }
+            mock_call_api.side_effect = [first_response, second_response]
+
+            pages = list(http.get_incremental_export_offset(
+                "https://example.zendesk.com/resource", "token", REQUEST_TIMEOUT, PAGE_SIZE, 0
+            ))
+            self.assertEqual(len(pages), 2)
+
+    def test_get_incremental_export_offset_stops_when_no_next_page(self):
+        with patch("tap_zendesk.http.call_api") as mock_call_api:
+            response = Mock()
+            response.json.return_value = {"tickets": [{"id": 1}], "end_of_stream": False}
+            mock_call_api.return_value = response
+
+            pages = list(http.get_incremental_export_offset(
+                "https://example.zendesk.com/resource", "token", REQUEST_TIMEOUT, PAGE_SIZE, 0
+            ))
+            self.assertEqual(len(pages), 1)
+            mock_call_api.assert_called_once()
+
+    def test_get_incremental_export_offset_accepts_datetime_start_time(self):
+        import datetime
+        with patch("tap_zendesk.http.call_api") as mock_call_api:
+            response = Mock()
+            response.json.return_value = {"tickets": [], "end_of_stream": True}
+            mock_call_api.return_value = response
+
+            list(http.get_incremental_export_offset(
+                "https://example.zendesk.com/resource", "token", REQUEST_TIMEOUT, PAGE_SIZE,
+                datetime.datetime.now(datetime.timezone.utc)
+            ))
+            mock_call_api.assert_called_once()

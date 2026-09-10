@@ -228,6 +228,36 @@ async def call_api_async(session, url, request_timeout, params, headers):
 
         return response_json
 
+async def paginate_cursor_async(session, url, access_token, request_timeout, page_size, item_key, **kwargs): # pylint: disable=too-many-arguments,too-many-positional-arguments
+    """
+    Generic async cursor-based pagination. Fetches all pages for the given
+    endpoint and returns the aggregated list of records found at `item_key`.
+    """
+    custom_headers = kwargs.pop('headers', {})
+    query_params = kwargs.pop('params', {})
+
+    headers = build_headers(access_token=access_token, additional_headers=custom_headers)
+    params = {
+        'page[size]': page_size,
+        **query_params
+    }
+
+    all_records = []
+    has_more = True
+    while has_more:
+        response = await call_api_async(session, url, request_timeout, params=params, headers=headers)
+        all_records.extend(response.get(item_key, []))
+
+        has_more = response.get('meta', {}).get('has_more', False)
+        if has_more:
+            cursor = response.get('meta', {}).get('after_cursor')
+            if not cursor:
+                LOGGER.info("Cursor not found, stopping pagination.")
+                break
+            params['page[after]'] = cursor
+
+    return all_records
+
 async def paginate_ticket_audits(session, url, access_token, request_timeout, page_size, **kwargs):
     """
     Paginate through the ticket audits API endpoint and return the aggregated results

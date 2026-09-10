@@ -410,3 +410,146 @@ class TestASyncTicketAudits(unittest.TestCase):
             )
 
         asyncio.run(run_test())
+
+    @patch("tap_zendesk.streams.http.paginate_ticket_audits")
+    def test_get_objects_returns_item_key_records(self, mock_paginate):
+        """
+        get_objects should call http.paginate_ticket_audits and return the
+        'audits' list from the response.
+        """
+        async def fake_paginate(*args, **kwargs):
+            return {"audits": [{"id": 1}, {"id": 2}]}
+
+        mock_paginate.side_effect = fake_paginate
+
+        instance = streams.TicketAudits("client", {
+            "access_token": "token",
+            "subdomain": "acme",
+        })
+
+        async def run_test():
+            async with ClientSession() as session:
+                records = await instance.get_objects(session, 1)
+                self.assertEqual(records, [{"id": 1}, {"id": 2}])
+
+        asyncio.run(run_test())
+
+    def test_sync_in_bulk_runs_concurrently_for_all_ticket_ids(self):
+        """
+        sync_in_bulk should create a session and call sync() concurrently for
+        every ticket id, returning results in order.
+        """
+        instance = streams.TicketAudits("client", {})
+        comments_stream = MagicMock()
+
+        async def fake_sync(session, ticket_id, comments_stream_arg):
+            return ([(instance.stream, {"id": ticket_id})], [])
+
+        with patch.object(streams.TicketAudits, "sync", side_effect=fake_sync):
+            async def run_test():
+                results = await instance.sync_in_bulk([1, 2, 3], comments_stream)
+                self.assertEqual(len(results), 3)
+                self.assertEqual(results[0][0][0][1]["id"], 1)
+                self.assertEqual(results[2][0][0][1]["id"], 3)
+
+            asyncio.run(run_test())
+
+    @patch("tap_zendesk.streams.TicketAudits.get_stream_endpoint")
+    @patch("tap_zendesk.streams.http.call_api")
+    def test_check_access_success(self, mock_call_api, mock_get_endpoint):
+        """
+        check_access should call http.call_api and pass through when it succeeds.
+        """
+        mock_get_endpoint.return_value = "https://example.zendesk.com/tickets/1/audits.json"
+        instance = streams.TicketAudits("client", {"access_token": "token"})
+
+        instance.check_access()
+
+        mock_call_api.assert_called_once()
+
+    @patch("tap_zendesk.streams.TicketAudits.get_stream_endpoint")
+    @patch("tap_zendesk.streams.http.call_api")
+    def test_check_access_swallows_404(self, mock_call_api, mock_get_endpoint):
+        """
+        check_access should silently ignore a ZendeskNotFoundError since the
+        goal is only to verify read permission, not that ticket 1 exists.
+        """
+        mock_get_endpoint.return_value = "https://example.zendesk.com/tickets/1/audits.json"
+        mock_call_api.side_effect = ZendeskNotFoundError("not found")
+        instance = streams.TicketAudits("client", {"access_token": "token"})
+
+        # Should not raise
+        instance.check_access()
+
+    @patch("tap_zendesk.streams.Tickets.update_bookmark")
+    @patch("tap_zendesk.streams.Tickets.get_bookmark")
+    @patch("tap_zendesk.streams.Tickets.get_objects")
+    @patch("tap_zendesk.streams.tickets.singer.write_state")
+    @patch("tap_zendesk.streams.tickets.zendesk_metrics.capture")
+    @patch("tap_zendesk.streams.abstracts.LOGGER.info")
+    def test_sync_yields_metric_set_when_metrics_stream_selected(
+        self,
+        mock_info,
+        mock_capture,
+        mock_write_state,
+        mock_get_objects,
+        mock_get_bookmark,
+        mock_update_bookmark,
+    ):
+        """
+        When metrics_stream is selected and a ticket carries a 'metric_set',
+        sync must yield the metric_set record (lines 71-73 of tickets.py).
+        """
+        state = {}
+        mock_get_bookmark.return_value = "2023-01-01T00:00:00Z"
+        mock_get_objects.return_value = [
+            {
+                "id": 1,
+                "generated_timestamp": 1672531200,
+                "fields": "duplicate",
+                "metric_set": {"id": "m1"},
+            },
+        ]
+        config = {
+            'start_date': '2024-01-01T00:00:00Z',
+            'subdomain': 'dummy',
+            'access_token': 'dummy token',
+        }
+        instance = streams.Tickets(None, config)
+        instance.is_selected = MagicMock(return_value=False)
+        instance.emit_sub_stream_metrics = MagicMock(return_value=None)
+        instance.sync_ticket_audits_and_comments = MagicMock(return_value=[([], [])])
+
+        with patch("tap_zendesk.streams.ticket_metrics.TicketMetrics.is_selected", return_value=True), \
+             patch("tap_zendesk.streams.ticket_comments.TicketComments.is_selected", return_value=False), \
+             patch("tap_zendesk.streams.ticket_audits.TicketAudits.is_selected", return_value=False), \
+             patch("tap_zendesk.streams.side_conversations.SideConversations.is_selected", return_value=False):
+            result = list(instance.sync(state))
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][1], {"id": "m1"})
+
+    def test_sync_ticket_audits_and_comments_runs_asyncio_when_selected(self):
+        """
+        sync_ticket_audits_and_comments should invoke asyncio.run(sync_in_bulk(...))
+        (line 125 of tickets.py) when either sub-stream is selected.
+        """
+        config = {
+            'start_date': '2024-01-01T00:00:00Z',
+            'subdomain': 'dummy',
+            'access_token': 'dummy token',
+        }
+        instance = streams.Tickets(None, config)
+        comments_stream = MagicMock()
+        comments_stream.is_selected.return_value = True
+        audits_stream = MagicMock()
+        audits_stream.is_selected.return_value = False
+
+        async def fake_sync_in_bulk(ticket_ids, comments_stream_arg):
+            return [(["audit1"], ["comment1"])]
+
+        audits_stream.sync_in_bulk = fake_sync_in_bulk
+
+        result = instance.sync_ticket_audits_and_comments(comments_stream, audits_stream, [1, 2])
+
+        self.assertEqual(result, [(["audit1"], ["comment1"])])

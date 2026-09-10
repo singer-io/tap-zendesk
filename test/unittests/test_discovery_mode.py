@@ -533,3 +533,58 @@ class TestCheckAccessOptionalStreams(unittest.TestCase):
             stream = SatisfactionRatings(MagicMock(), self.CONFIG)
             with self.assertRaises(ZendeskInternalServerError):
                 stream.check_access()
+
+
+class TestGetAbsPathAndSharedSchemaRefs(unittest.TestCase):
+
+    def test_get_abs_path_returns_path_relative_to_module(self):
+        path = discover.get_abs_path('schemas')
+        self.assertTrue(path.endswith('schemas'))
+
+    def test_load_shared_schema_refs_reads_real_shared_schema_files(self):
+        refs = discover.load_shared_schema_refs()
+        self.assertTrue(len(refs) > 0)
+        self.assertTrue(all(key.startswith('shared/') for key in refs))
+
+
+class TestDiscoverStreamsAllEssentialStreamsFail(unittest.TestCase):
+
+    CONFIG = {
+        'subdomain': 'arp',
+        'access_token': 'dummy_token',
+        'start_date': START_DATE,
+    }
+
+    @patch('tap_zendesk.discover.load_shared_schema_refs', return_value={})
+    @patch('tap_zendesk.streams.abstracts.Stream.load_metadata', return_value={})
+    @patch('tap_zendesk.streams.abstracts.Stream.load_schema', return_value={})
+    @patch('singer.resolve_schema_references', return_value={})
+    def test_raises_zendesk_forbidden_when_all_essential_streams_fail(
+            self, mock_resolve_schema, mock_load_schema, mock_load_metadata, mock_load_refs):
+        '''
+        If every essential (non-optional) stream fails its check_access with a
+        403-style error, discover_streams must raise ZendeskForbiddenError
+        instead of just warning.
+        '''
+        essential_streams = [name for name, cls in STREAMS.items() if not cls.is_optional]
+
+        patchers = []
+        for name in essential_streams:
+            cls = STREAMS[name]
+            patcher = patch.object(cls, 'check_access',
+                                   side_effect=zenpy.lib.exception.APIException(ACCSESS_TOKEN_ERROR))
+            patcher.start()
+            patchers.append(patcher)
+        optional_patchers = []
+        for name, cls in STREAMS.items():
+            if cls.is_optional:
+                patcher = patch.object(cls, 'check_access', return_value=None)
+                patcher.start()
+                optional_patchers.append(patcher)
+
+        try:
+            with self.assertRaises(ZendeskForbiddenError):
+                discover.discover_streams('dummy_client', self.CONFIG)
+        finally:
+            for patcher in patchers + optional_patchers:
+                patcher.stop()
