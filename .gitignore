@@ -96,5 +96,5 @@ ENV/
 env.sh
 config.json
 .autoenv.zsh
-
+.venv/
 *~
