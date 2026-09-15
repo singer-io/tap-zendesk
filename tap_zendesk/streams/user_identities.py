@@ -7,6 +7,13 @@ from tap_zendesk.streams.abstracts import (
 from tap_zendesk.streams.users import UserSubStreamMixin
 from tap_zendesk.exceptions import ZendeskNotFoundError
 
+# Caps how many identity requests are actually in-flight at once within a
+# batch. Batches are still grouped by CONCURRENCY_LIMIT (see users.py), but
+# firing all of them at the exact same instant risks bursting past Zendesk's
+# per-second rate limits, so the number of truly-simultaneous requests is
+# throttled independently via this semaphore.
+MAX_CONCURRENT_IDENTITY_REQUESTS = 5
+
 class UserIdentities(UserSubStreamMixin, ChildBookmarkMixin, PaginatedStream):
     name = "user_identities"
     replication_method = "INCREMENTAL"
@@ -18,24 +25,26 @@ class UserIdentities(UserSubStreamMixin, ChildBookmarkMixin, PaginatedStream):
     parent = "users"
     bookmark_value = None
 
-    async def _fetch_raw_records(self, session, user_id):
+    async def _fetch_raw_records(self, session, user_id, semaphore):
         """
         Fetch all identity records for a single user. 404s (e.g. unverified
         or deleted users) are treated as "no identities" rather than an error.
         """
         url = self.get_stream_endpoint(parent_obj={"id": user_id})
-        try:
-            records = await http.paginate_cursor_async(
-                session, url, self.config['access_token'], self.request_timeout,
-                self.page_size, self.item_key
-            )
-        except ZendeskNotFoundError:
-            records = []
+        async with semaphore:
+            try:
+                records = await http.paginate_cursor_async(
+                    session, url, self.config['access_token'], self.request_timeout,
+                    self.page_size, self.item_key
+                )
+            except ZendeskNotFoundError:
+                records = []
         return user_id, records
 
     async def _fetch_batch(self, user_ids):
+        semaphore = asyncio.Semaphore(MAX_CONCURRENT_IDENTITY_REQUESTS)
         async with ClientSession() as session:
-            tasks = [self._fetch_raw_records(session, user_id) for user_id in user_ids]
+            tasks = [self._fetch_raw_records(session, user_id, semaphore) for user_id in user_ids]
             results = await asyncio.gather(*tasks)
         return dict(results)
 

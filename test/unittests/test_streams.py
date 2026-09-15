@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import requests
 from aiohttp import ClientSession
@@ -10,7 +10,7 @@ from zenpy.lib.exception import APIException
 from tap_zendesk.exceptions import ZendeskNotFoundError, ZendeskForbiddenError
 from tap_zendesk.streams.abstracts import CursorBasedExportStream
 from tap_zendesk.streams.users import Users, UserSubStreamMixin
-from tap_zendesk.streams.user_identities import UserIdentities
+from tap_zendesk.streams.user_identities import UserIdentities, MAX_CONCURRENT_IDENTITY_REQUESTS
 from tap_zendesk.streams.organizations import Organizations
 from tap_zendesk.streams.ticket_metric_events import TicketMetricEvents
 from tap_zendesk.streams.group_memberships import GroupMemberships
@@ -266,7 +266,8 @@ class TestUserIdentities(unittest.TestCase):
             with patch("tap_zendesk.streams.user_identities.http.paginate_cursor_async",
                        side_effect=fake_paginate_cursor_async):
                 async with ClientSession() as session:
-                    user_id, records = await stream._fetch_raw_records(session, 1)
+                    semaphore = asyncio.Semaphore(1)
+                    user_id, records = await stream._fetch_raw_records(session, 1, semaphore)
                     self.assertEqual(user_id, 1)
                     self.assertEqual(records, [{"id": "identity-1"}])
 
@@ -282,7 +283,8 @@ class TestUserIdentities(unittest.TestCase):
             with patch("tap_zendesk.streams.user_identities.http.paginate_cursor_async",
                        side_effect=raise_not_found):
                 async with ClientSession() as session:
-                    user_id, records = await stream._fetch_raw_records(session, 1)
+                    semaphore = asyncio.Semaphore(1)
+                    user_id, records = await stream._fetch_raw_records(session, 1, semaphore)
                     self.assertEqual(user_id, 1)
                     self.assertEqual(records, [])
 
@@ -291,7 +293,7 @@ class TestUserIdentities(unittest.TestCase):
     def test_fetch_batch_gathers_records_for_all_user_ids(self):
         stream = self._make_stream()
 
-        async def fake_fetch_raw_records(session, user_id):
+        async def fake_fetch_raw_records(session, user_id, semaphore):
             return user_id, [{"id": f"identity-{user_id}"}]
 
         with patch.object(UserIdentities, "_fetch_raw_records", side_effect=fake_fetch_raw_records):
@@ -340,6 +342,85 @@ class TestUserIdentities(unittest.TestCase):
             list(stream.sync_batch({}, [{"id": 1}]))
 
         mock_process_records.assert_called_once_with({}, [], parent_obj={"id": 1})
+
+    def test_fetch_batch_never_exceeds_semaphore_limit(self):
+        """
+        Fires a batch larger than MAX_CONCURRENT_IDENTITY_REQUESTS and asserts
+        that the semaphore created in `_fetch_batch` actually caps how many
+        `_fetch_raw_records` calls are in-flight at any given instant.
+        """
+        stream = self._make_stream()
+        user_ids = list(range(1, 13))  # more than MAX_CONCURRENT_IDENTITY_REQUESTS
+        current = 0
+        peak = 0
+        lock = asyncio.Lock()
+
+        async def fake_paginate_cursor_async(session, url, access_token, request_timeout, page_size, item_key):
+            nonlocal current, peak
+            async with lock:
+                current += 1
+                peak = max(peak, current)
+            await asyncio.sleep(0.01)
+            async with lock:
+                current -= 1
+            return [{"id": "identity"}]
+
+        with patch("tap_zendesk.streams.user_identities.http.paginate_cursor_async",
+                   side_effect=fake_paginate_cursor_async):
+            result = asyncio.run(stream._fetch_batch(user_ids))
+
+        self.assertEqual(len(result), len(user_ids))
+        self.assertLessEqual(peak, MAX_CONCURRENT_IDENTITY_REQUESTS)
+        self.assertEqual(peak, MAX_CONCURRENT_IDENTITY_REQUESTS)
+
+    def test_fetch_batch_retries_after_429_for_multiple_users(self):
+        """
+        Simulates Zendesk returning a 429 on the first request for every user
+        in a concurrently-fetched batch. Each user's request should
+        transparently retry (via `call_api_async`'s backoff) without breaking
+        the semaphore-bound concurrency, and every user should still end up
+        with their identities.
+        """
+        stream = self._make_stream()
+        user_ids = list(range(1, 8))  # more than MAX_CONCURRENT_IDENTITY_REQUESTS
+        attempts_by_url = {}
+
+        class FakeGetContextManager:
+            def __init__(self, response):
+                self._response = response
+
+            async def __aenter__(self):
+                return self._response
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return False
+
+        def fake_get(url, params=None, headers=None, timeout=None):
+            attempts_by_url[url] = attempts_by_url.get(url, 0) + 1
+            response = AsyncMock()
+            if attempts_by_url[url] == 1:
+                response.status = 429
+                response.headers = {"Retry-After": "1"}
+                response.json.return_value = {}
+            else:
+                response.status = 200
+                response.json.return_value = {
+                    "identities": [{"id": f"identity-for-{url}"}],
+                    "meta": {"has_more": False},
+                }
+            return FakeGetContextManager(response)
+
+        with patch("aiohttp.ClientSession.get", side_effect=fake_get), \
+             patch("tap_zendesk.http.async_sleep", new_callable=AsyncMock) as mock_sleep:
+            result = asyncio.run(stream._fetch_batch(user_ids))
+
+        self.assertEqual(set(result.keys()), set(user_ids))
+        for user_id in user_ids:
+            self.assertEqual(len(result[user_id]), 1)
+        # Every user's request was rate-limited once and retried successfully.
+        self.assertEqual(len(attempts_by_url), len(user_ids))
+        self.assertTrue(all(count == 2 for count in attempts_by_url.values()))
+        self.assertEqual(mock_sleep.await_count, len(user_ids))
 
 
 class TestOrganizations(unittest.TestCase):
