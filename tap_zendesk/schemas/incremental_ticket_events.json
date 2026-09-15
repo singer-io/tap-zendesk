@@ -1,0 +1,231 @@
+{
+    "type": "object",
+    "properties": {
+        "child_events": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "via": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "via_reference_id": {
+                        "type": [
+                            "string",
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "comment_present": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "comment_public": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "event_type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "priority": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "subject": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tags": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "added_tags": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "removed_tags": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "assignee_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "group_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "brand_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "ticket_form_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "custom_status_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "requester_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "sla_policy": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            }
+        },
+        "id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "ticket_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "timestamp": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "updater_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "via": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "system": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "properties": {
+                "client": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "location": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "latitude": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "longitude": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                }
+            }
+        },
+        "event_type": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    }
+}

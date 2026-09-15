@@ -1,0 +1,109 @@
+{
+    "type": "object",
+    "properties": {
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "brand_url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "subdomain": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "host_mapping": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "has_help_center": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "help_center_state": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "active": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "default": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "is_deleted": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "logo": {
+            "type": [
+                "object",
+                "null"
+            ]
+        },
+        "ticket_form_ids": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": [
+                    "integer",
+                    "null"
+                ]
+            }
+        },
+        "signature_template": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        }
+    }
+}

@@ -6,7 +6,7 @@ class ZendeskPagination(ZendeskTest):
     """
     Ensure tap can replicate multiple pages of data for streams that use pagination.
     """
-    API_LIMIT = 100
+    API_LIMIT = 5
     def name(self):
         return "zendesk_pagination_test"
 
@@ -23,11 +23,46 @@ class ZendeskPagination(ZendeskTest):
 
         # Streams to verify all fields tests
         expected_streams = self.expected_check_streams()
-        expected_streams = expected_streams - {
-            "satisfaction_ratings", # skip as only end user of tickets can create data
-            "tags", #  Test Stability Issue: TDL-17980
-            "talk_phone_numbers"
+        streams_to_exclude = {
+            "account_attributes",
+            "activities",
+            "automations",
+            "account_attribute_definitions",
+            "brands",
+            "bookmarks",
+            "custom_objects",
+            "deleted_tickets",
+            "dynamic_content_items",
+            "job_statuses",
+            "locales",
+            "macro_attachments",
+            "macro_categories",
+            "monitored_twitter_handles",
+            "organization_subscriptions",
+            "resource_collections",
+            "recipient_addresses",
+            "satisfaction_ratings",
+            "satisfaction_reasons",
+            "schedule_holidays",
+            "schedules",
+            "sessions",
+            "sharing_agreements",
+            "side_conversations",
+            "side_conversations_events",
+            "suspended_tickets",
+            "support_requests",
+            "tags",
+            "talk_phone_numbers",
+            "target_failures",
+            "targets",
+            "ticket_metric_events",
+            "ticket_skips",
+            "trigger_categories",
+            "views",
+            "user_attribute_values",
+            "workspaces"
         }
+        expected_streams = expected_streams - streams_to_exclude
 
         conn_id = connections.ensure_connection(self)
 

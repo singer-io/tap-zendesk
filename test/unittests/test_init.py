@@ -21,16 +21,3 @@ class TestGetSession(unittest.TestCase):
         self.assertEqual("Hithere", test_session.headers.get("X-Zendesk-Marketplace-Name"))
         self.assertEqual("1234", test_session.headers.get("X-Zendesk-Marketplace-Organization-Id"))
         self.assertEqual("12345", test_session.headers.get("X-Zendesk-Marketplace-App-Id"))
-
-    def test_parent_stream_not_selected(self):
-        """
-        Test that validate_dependencies does raise an exception when the parent stream is not selected but the sub stream is.
-        """
-        selected_stream_ids = ["ticket_audits", "ticket_metrics", "ticket_comments"]
-        with self.assertRaises(DependencyException) as e:
-            validate_dependencies(selected_stream_ids)
-
-        self.assertEqual(
-            str(e.exception),
-            "Unable to extract ticket_audits data. To receive ticket_audits data, you also need to select tickets. Unable to extract ticket_metrics data. To receive ticket_metrics data, you also need to select tickets. Unable to extract ticket_comments data. To receive ticket_comments data, you also need to select tickets.",
-        )

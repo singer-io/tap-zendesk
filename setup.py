@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='tap-zendesk',
-      version='2.8.6',
+      version='2.9.0',
       description='Singer.io tap for extracting data from the Zendesk API',
       author='Stitch',
       url='https://singer.io',
@@ -31,6 +31,6 @@ setup(name='tap-zendesk',
           [console_scripts]
           tap-zendesk=tap_zendesk:main
       ''',
-      packages=['tap_zendesk'],
+      packages=find_packages(),
       include_package_data=True,
 )
