@@ -292,3 +292,43 @@ class TestRefreshCredentialsE2E(unittest.TestCase):
         self.assertEqual(result['refresh_token'], 'old_rt')
         mock_refresh.assert_not_called()
         mock_write.assert_not_called()
+
+
+class TestWriteConfig(unittest.TestCase):
+    """Tests for the _write_config helper, which persists refreshed tokens to disk."""
+
+    def test_write_config_updates_tokens_and_preserves_other_keys(self):
+        import json
+        import tempfile
+        import os
+        from tap_zendesk.oauth import _write_config
+
+        disk_config = {
+            'subdomain': 'acme',
+            'access_token': 'old_at',
+            'refresh_token': 'old_rt',
+            'client_id': 'cid',
+            'client_secret': 'cs',
+            'start_date': '2020-01-01T00:00:00Z',
+        }
+        fd, path = tempfile.mkstemp(suffix='.json')
+        os.close(fd)
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(disk_config, f)
+
+            updated_config = dict(disk_config)
+            updated_config['access_token'] = 'new_at'
+            updated_config['refresh_token'] = 'new_rt'
+
+            _write_config(path, updated_config)
+
+            with open(path, encoding='utf-8') as f:
+                result = json.load(f)
+
+            self.assertEqual(result['access_token'], 'new_at')
+            self.assertEqual(result['refresh_token'], 'new_rt')
+            self.assertEqual(result['subdomain'], 'acme')
+            self.assertEqual(result['start_date'], '2020-01-01T00:00:00Z')
+        finally:
+            os.remove(path)

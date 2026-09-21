@@ -1,0 +1,41 @@
+{
+    "type": "object",
+    "properties": {
+        "title": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "type": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "subject": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "group": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "nullable": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "repeatable": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        }
+    }
+}

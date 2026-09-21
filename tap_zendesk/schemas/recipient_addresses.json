@@ -1,0 +1,85 @@
+{
+    "type": "object",
+    "properties": {
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "brand_id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "default": {
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
+        "name": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "email": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "forwarding_status": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "spf_status": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "cname_status": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "domain_verification_status": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "domain_verification_code": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "updated_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        }
+    }
+}

@@ -1,0 +1,385 @@
+{
+    "type": "object",
+    "properties": {
+        "created_at": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date-time"
+        },
+        "id": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "ticket": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "properties": {
+                "requester_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "allow_attachments": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "allow_channelback": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "assignee_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "brand_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "collaborator_ids": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                },
+                "collaborators": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "email": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "name": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "created_at": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "format": "date-time"
+                },
+                "custom_fields": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "value": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "custom_status_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "due_at": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "format": "date-time"
+                },
+                "email_cc_ids": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                },
+                "encoded_id": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "external_id": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "follower_ids": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                },
+                "followup_ids": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                },
+                "forum_topic_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "from_messaging_channel": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "generated_timestamp": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "group_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "has_incidents": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "is_public": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "macro_ids": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "organization_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "priority": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "problem_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "raw_subject": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "recipient": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "satisfaction_rating": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "additionalProperties": true
+                },
+                "sharing_agreement_ids": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "subject": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "submitter_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "tags": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "ticket_form_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "type": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "updated_at": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "format": "date-time"
+                },
+                "url": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "via": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "channel": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "source": {
+                            "type": [
+                                "object",
+                                "null"
+                            ],
+                            "additionalProperties": true
+                        }
+                    }
+                },
+                "via_followup_source_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                }
+            }
+        }
+    }
+}
