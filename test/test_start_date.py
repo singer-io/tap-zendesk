@@ -134,7 +134,7 @@ class ZendeskStartDate(ZendeskTest):
                 if self.expected_replication_method().get(stream) == 'INCREMENTAL' :
                    expected_rk= self.expected_replication_keys().get(stream)
                    expected_rk = expected_rk.pop()
-                   parse_method = self.parse_unix_date if stream == "tickets" else self.parse_date
+                   parse_method = self.parse_date
                    primary_keys_list_2 = [tuple(message.get('data').get(pk) for pk in expected_primary_keys)
                                           for message in synced_records_2.get(stream, {}).get('messages', [])
                                           if message.get('action') == 'upsert' and
@@ -162,9 +162,6 @@ class ZendeskStartDate(ZendeskTest):
 
                     # Verify replication key is greater or equal to start_date for sync 1
                     for replication_date in replication_dates_1:
-                        if stream == "tickets":
-                            replication_date = self.parse_unix_date(replication_date)
-
                         self.assertGreaterEqual(
                             self.parse_date(replication_date), self.parse_date(
                                 self.start_date_1),
@@ -175,9 +172,6 @@ class ZendeskStartDate(ZendeskTest):
 
                     # Verify replication key is greater or equal to start_date for sync 2
                     for replication_date in replication_dates_2:
-                        if stream == "tickets":
-                            replication_date = self.parse_unix_date(replication_date)
-
                         self.assertGreaterEqual(
                             self.parse_date(replication_date), self.parse_date(
                                 self.start_date_2),

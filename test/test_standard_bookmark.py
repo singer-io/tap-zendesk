@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from dateutil.parser import isoparse
 
 from base import ZendeskTest
@@ -190,9 +190,6 @@ class ZendeskBookMark(ZendeskTest):
 
                         # Verify the first sync bookmark value is the max replication key value for a given stream
                         replication_key_value = record.get(replication_key)
-                        # For `ticket` stream it stores bookmarks as int timestamp. So, converting it to the string.
-                        if stream == "tickets":
-                            replication_key_value = datetime.utcfromtimestamp(replication_key_value).strftime('%Y-%m-%dT%H:%M:%SZ')
 
                         self.assertLessEqual(replication_key_value, first_bookmark_value_utc,
                             msg="First sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
@@ -201,9 +198,6 @@ class ZendeskBookMark(ZendeskTest):
                     for record in second_sync_messages:
                         # Verify the second sync replication key value is Greater or Equal to the first sync bookmark
                         replication_key_value = record.get(replication_key)
-
-                        if stream == "tickets":
-                            replication_key_value = datetime.utcfromtimestamp(replication_key_value).strftime('%Y-%m-%dT%H:%M:%SZ')
 
                         self.assertGreaterEqual(replication_key_value, simulated_bookmark_value,
                                                 msg="Second sync records do not respect the previous bookmark.")
