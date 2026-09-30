@@ -184,8 +184,16 @@ class ZendeskAllStreams(ZendeskTest):
                     # tags were already refreshed so records were missing from first sync
                     messages = tags_records.get(stream).get('messages')
 
-            if stream in  ['organizations', 'tickets', 'users']:
+            if stream in ['tickets', 'users']:
                 self.assertGreater(len(messages), 100, msg="Stream {} has fewer than 100 records synced".format(stream))
+            elif stream == 'organizations':
+                # The deprecated `incremental/organizations` endpoint returned every
+                # org ever created (including deleted ones, tagged with `deleted_at`);
+                # its replacement, the standard `/organizations` list endpoint, only
+                # returns currently-active orgs, so the replicated volume is expected
+                # to be structurally smaller going forward. Assert non-trivial volume
+                # without assuming parity with the deprecated endpoint's counts.
+                self.assertGreater(len(messages), 10, msg="Stream {} has fewer than 10 records synced".format(stream))
             for m in messages:
                 pk_set = self.expected_pks()[stream]
                 for pk in pk_set:
