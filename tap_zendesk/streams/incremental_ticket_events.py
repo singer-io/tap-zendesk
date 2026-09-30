@@ -18,6 +18,24 @@ class IncrementalTicketEvents(PaginatedStream):
     item_key = 'audits'
     pagination_type = 'cursor'
 
+    def get_objects(self, **kwargs): # pylint: disable=arguments-differ
+        """
+        The global `ticket_audits` cursor pagination is not guaranteed to be
+        stable if audits are created while a long sync is in progress (the
+        same audit can shift across the cursor boundary and be returned on
+        more than one page). Deduplicate by id per sync, mirroring the
+        `seen_ids` safeguard the old `incremental/ticket_events` endpoint's
+        client relied on.
+        """
+        seen_ids = set()
+        for record in super().get_objects(**kwargs):
+            record_id = record.get('id')
+            if record_id is not None and record_id in seen_ids:
+                continue
+            if record_id is not None:
+                seen_ids.add(record_id)
+            yield record
+
     def modify_object(self, record, **kwargs):
         record = dict(record)
         record['child_events'] = record.pop('events', None)

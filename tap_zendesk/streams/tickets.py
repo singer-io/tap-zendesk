@@ -2,6 +2,7 @@ from typing import Dict
 import time
 import asyncio
 import singer
+from singer import utils
 from tap_zendesk import http
 from tap_zendesk import metrics as zendesk_metrics
 from tap_zendesk.streams.abstracts import (
@@ -81,6 +82,16 @@ class Tickets(PaginatedStream):
             self.update_bookmark(state, self.name, ticket.get('updated_at'))
 
             ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+
+            # The standard `tickets` endpoint (unlike the deprecated incremental
+            # export it replaces) has no server-side "changed since" filter, so
+            # every ticket is returned on every sync; skip ones that haven't
+            # changed since the last bookmark instead of re-emitting them (and
+            # re-fetching their audits/comments/etc.) every time.
+            ticket_updated_at = ticket.get('updated_at')
+            if ticket_updated_at and utils.strptime_with_tz(ticket_updated_at) < bookmark:
+                continue
+
             # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
             if self.is_selected():
                 yield (self.stream, ticket)
