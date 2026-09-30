@@ -36,13 +36,14 @@ class Tickets(PaginatedStream):
     def get_objects(self, **kwargs): # pylint: disable=arguments-differ
         """
         Retrieve tickets from the standard `tickets` list endpoint, side loading
-        `metric_events` (top-level, keyed by `ticket_id`) alongside each page of
-        tickets. `self.metric_events_by_ticket` is refreshed per page and is only
-        valid for the duration of iterating that page's tickets.
+        `metric_events` (top-level, keyed by `ticket_id`) and `metric_sets` (embedded
+        per-ticket as `metric_set`, matching the old `metric_sets` side load) alongside
+        each page of tickets. `self.metric_events_by_ticket` is refreshed per page and
+        is only valid for the duration of iterating that page's tickets.
         """
         kwargs.setdefault('params', {})
         kwargs['params'].setdefault('sort', 'updated_at')
-        kwargs['params'].setdefault('include', 'metric_events')
+        kwargs['params'].setdefault('include', 'metric_events,metric_sets')
 
         parent_obj = kwargs.get('parent_obj', {})
         url = self.get_stream_endpoint(parent_obj=parent_obj)
