@@ -175,7 +175,7 @@ class ZendeskTest(unittest.TestCase):
             "tickets": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"generated_timestamp"},
+                self.REPLICATION_KEYS: {"updated_at"},
                 self.OBEYS_START_DATE: True
             },
             "users": {
