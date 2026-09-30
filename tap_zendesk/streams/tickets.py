@@ -81,7 +81,7 @@ class Tickets(PaginatedStream):
 
             self.update_bookmark(state, self.name, ticket.get('updated_at'))
 
-            ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+            ticket.pop('fields', None) # NB: Fields is a duplicate of custom_fields, remove before emitting
 
             # The standard `tickets` endpoint (unlike the deprecated incremental
             # export it replaces) has no server-side "changed since" filter, so
