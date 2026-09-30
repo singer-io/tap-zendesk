@@ -374,12 +374,6 @@
         "boolean"
       ]
     },
-    "permanently_deleted": {
-      "type": [
-        "null",
-        "boolean"
-      ]
-    },
     "locale_id": {
       "type": [
         "null",

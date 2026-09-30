@@ -105,22 +105,7 @@ class ZendeskAllFields(ZendeskTest):
                         'creator_app_name', 'max_selections'
                     }
                 elif stream == "users":  # field appeared in synced records Nov 1 - Dec 18, 2023
-                    # `permanently_deleted` is only ever populated on the dedicated
-                    # `deleted_users` endpoint (see that stream), not on the standard
-                    # `/users` list endpoint used since the incremental API migration.
-                    expected_all_keys = expected_all_keys - {'chat_only', 'suspension_details', 'permanently_deleted'}
-                elif stream == "organizations":
-                    # `deleted_at` was only ever populated by the deprecated
-                    # `incremental/organizations` endpoint for deleted orgs; the
-                    # standard `/organizations` list endpoint never returns deleted
-                    # orgs at all, so this field can no longer be produced.
-                    expected_all_keys = expected_all_keys - {'deleted_at'}
-                elif stream == "incremental_ticket_events":
-                    # `system` and `event_type` were top-level fields on the
-                    # deprecated `incremental/ticket_events` endpoint's event objects;
-                    # its replacement, `ticket_audits`, has no equivalent fields on
-                    # its child events, so they can no longer be produced.
-                    expected_all_keys = expected_all_keys - {'system', 'event_type'}
+                    expected_all_keys = expected_all_keys - {'chat_only', 'suspension_details'}
                 elif stream == "ticket_metrics":
                     expected_all_keys = expected_all_keys - {
                         'status', 'instance_id', 'metric', 'type', 'time',

@@ -102,13 +102,6 @@
         "null",
         "integer"
       ]
-    },
-    "deleted_at": {
-      "type": [
-        "null",
-        "string"
-      ],
-      "format": "date-time"
     }
   }
 }

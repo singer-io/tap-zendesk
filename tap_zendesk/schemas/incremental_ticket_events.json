@@ -188,44 +188,6 @@
                 "string",
                 "null"
             ]
-        },
-        "system": {
-            "type": [
-                "object",
-                "null"
-            ],
-            "properties": {
-                "client": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "location": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "latitude": {
-                    "type": [
-                        "number",
-                        "null"
-                    ]
-                },
-                "longitude": {
-                    "type": [
-                        "number",
-                        "null"
-                    ]
-                }
-            }
-        },
-        "event_type": {
-            "type": [
-                "string",
-                "null"
-            ]
         }
     }
 }
