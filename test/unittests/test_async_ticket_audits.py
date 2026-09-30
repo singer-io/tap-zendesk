@@ -521,6 +521,7 @@ class TestASyncTicketAudits(unittest.TestCase):
         instance.sync_ticket_audits_and_comments = MagicMock(return_value=[([], [])])
 
         with patch("tap_zendesk.streams.ticket_metrics.TicketMetrics.is_selected", return_value=True), \
+             patch("tap_zendesk.streams.ticket_metric_events.TicketMetricEvents.is_selected", return_value=False), \
              patch("tap_zendesk.streams.ticket_comments.TicketComments.is_selected", return_value=False), \
              patch("tap_zendesk.streams.ticket_audits.TicketAudits.is_selected", return_value=False), \
              patch("tap_zendesk.streams.side_conversations.SideConversations.is_selected", return_value=False):

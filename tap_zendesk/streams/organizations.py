@@ -1,18 +1,17 @@
-from datetime import datetime, timezone
 from zenpy.lib.exception import APIException
 from tap_zendesk.streams.abstracts import (
-    Stream,
+    PaginatedStream,
     process_custom_field,
     raise_or_log_zenpy_apiexception,
-    START_DATE_FORMAT
 )
 
-class Organizations(Stream):
+class Organizations(PaginatedStream):
     name = "organizations"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
     endpoint = 'organizations'
     item_key = 'organizations'
+    pagination_type = "cursor"
 
     def _add_custom_fields(self, schema):
         endpoint = self.client.organizations.endpoint
@@ -28,19 +27,3 @@ class Organizations(Stream):
             schema['properties']['organization_fields']['properties'][field.key] = process_custom_field(field)
 
         return schema
-
-    def sync(self, state):
-        bookmark = self.get_bookmark(state, self.name)
-        organizations = self.client.organizations.incremental(start_time=bookmark)
-        for organization in organizations:
-            self.update_bookmark(state, self.name, organization.updated_at)
-            yield (self.stream, organization)
-
-    def check_access(self):
-        '''
-        Check whether the permission was given to access stream resources or not.
-        '''
-        # Convert datetime object to standard format with timezone. Used utcnow to reduce API call burden at discovery time.
-        # Because API will return records from now which will be very less
-        start_time = datetime.now(timezone.utc).strftime(START_DATE_FORMAT)
-        self.client.organizations.incremental(start_time=start_time)
