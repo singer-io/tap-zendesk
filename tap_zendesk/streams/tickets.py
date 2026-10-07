@@ -1,44 +1,49 @@
-from datetime import datetime, timezone
-import time
 import asyncio
+import time
+from datetime import datetime, timezone
 from typing import Dict
+
 import pytz
 import singer
 from singer import utils
+
 from tap_zendesk import http
 from tap_zendesk import metrics as zendesk_metrics
-from tap_zendesk.streams.abstracts import (
-    CursorBasedExportStream,
-    AUDITS_REQUEST_PER_MINUTE,
-    HEADERS,
-    CONCURRENCY_LIMIT,
-    LOGGER,
-    START_DATE_FORMAT
-)
-from tap_zendesk.streams.ticket_audits import TicketAudits
-from tap_zendesk.streams.ticket_metrics import TicketMetrics
-from tap_zendesk.streams.ticket_comments import TicketComments
+from tap_zendesk.streams.abstracts import (AUDITS_REQUEST_PER_MINUTE,
+                                           CONCURRENCY_LIMIT, HEADERS, LOGGER,
+                                           START_DATE_FORMAT, PaginatedStream)
 from tap_zendesk.streams.side_conversations import SideConversations
+from tap_zendesk.streams.ticket_audits import TicketAudits
+from tap_zendesk.streams.ticket_comments import TicketComments
+from tap_zendesk.streams.ticket_metric_events import TicketMetricEvents
+from tap_zendesk.streams.ticket_metrics import TicketMetrics
 
 
-class Tickets(CursorBasedExportStream):
+class Tickets(PaginatedStream):
     name = "tickets"
     replication_method = "INCREMENTAL"
     replication_key = "generated_timestamp"
     item_key = "tickets"
-    endpoint = "incremental/tickets/cursor.json"
-    children = ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'side_conversations']
+    endpoint = "tickets"
+    pagination_type = "cursor"
+    children = ['ticket_audits', 'ticket_metrics', 'ticket_metric_events', 'ticket_comments', 'side_conversations']
 
     def sync(self, state, parent_obj: Dict = None): #pylint: disable=too-many-statements
 
         bookmark = self.get_bookmark(state, self.name)
+        epoch_bookmark = int(bookmark.timestamp())
 
-        # Fetch tickets with side loaded metrics
+        # Fetch tickets sorted by updated_at, with side loaded metrics and metric events
         # https://developer.zendesk.com/documentation/ticketing/using-the-zendesk-api/side_loading/#supported-endpoints
-        tickets = self.get_objects(bookmark, side_load='metric_sets')
+        tickets = self.get_objects(params={
+            'start_time': epoch_bookmark,
+            'sort': 'updated_at',
+            'include': 'metric_sets,metric_events'
+        })
 
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
+        metric_events_stream = TicketMetricEvents(self.client, self.config)
         comments_stream = TicketComments(self.client, self.config)
         side_conversations_stream = SideConversations(self.client, self.config)
 
@@ -58,7 +63,7 @@ class Tickets(CursorBasedExportStream):
 
             self.update_bookmark(state, self.name, utils.strftime(generated_timestamp_dt))
 
-            ticket.pop('fields') # NB: Fields is a duplicate of custom_fields, remove before emitting
+            ticket.pop('fields', None) # NB: Fields is a duplicate of custom_fields, remove before emitting. If not present, default to None
             # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
             if self.is_selected():
                 yield (self.stream, ticket)
@@ -71,6 +76,14 @@ class Tickets(CursorBasedExportStream):
                 zendesk_metrics.capture('ticket_metric')
                 metrics_stream.count+=1
                 yield (metrics_stream.stream, ticket["metric_set"])
+
+            if metric_events_stream.is_selected() and ticket.get('metric_events'):
+                # metric_events is a dict keyed by metric name, each a list of events
+                for metric_event_list in ticket["metric_events"].values():
+                    for metric_event in metric_event_list:
+                        zendesk_metrics.capture('ticket_metric_event')
+                        metric_events_stream.count += 1
+                        yield (metric_events_stream.stream, metric_event)
 
             if side_conversations_stream.is_selected():
                 yield from side_conversations_stream.sync(state=state, parent_obj=ticket)
@@ -116,6 +129,7 @@ class Tickets(CursorBasedExportStream):
 
         self.emit_sub_stream_metrics(audits_stream)
         self.emit_sub_stream_metrics(metrics_stream)
+        self.emit_sub_stream_metrics(metric_events_stream)
         self.emit_sub_stream_metrics(comments_stream)
         self.emit_sub_stream_metrics(side_conversations_stream)
         singer.write_state(state)
