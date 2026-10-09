@@ -31,12 +31,13 @@ class Tickets(PaginatedStream):
     def sync(self, state, parent_obj: Dict = None): #pylint: disable=too-many-statements
 
         bookmark = self.get_bookmark(state, self.name)
-        epoch_bookmark = int(bookmark.timestamp())
 
-        # Fetch tickets sorted by updated_at, with side loaded metrics and metric events
+        # GET /api/v2/tickets ignores `start_time` entirely (verified against a live
+        # account), unlike the deprecated incremental export endpoint it replaces. Sort
+        # ascending by the replication key and rely on client-side bookmark filtering
+        # below instead.
         # https://developer.zendesk.com/documentation/ticketing/using-the-zendesk-api/side_loading/#supported-endpoints
         tickets = self.get_objects(params={
-            'start_time': epoch_bookmark,
             'sort': 'updated_at',
             'include': 'metric_sets,metric_events'
         })
@@ -60,6 +61,11 @@ class Tickets(PaginatedStream):
             zendesk_metrics.capture('ticket')
 
             generated_timestamp_dt = datetime.fromtimestamp(ticket.get('generated_timestamp'), tz=timezone.utc).replace(tzinfo=pytz.UTC)
+
+            # Records are sorted ascending, but the API doesn't filter by start_time,
+            # so skip (and don't re-process children for) tickets already synced.
+            if generated_timestamp_dt < bookmark:
+                continue
 
             self.update_bookmark(state, self.name, utils.strftime(generated_timestamp_dt))
 

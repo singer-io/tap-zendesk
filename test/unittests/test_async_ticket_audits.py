@@ -589,6 +589,53 @@ class TestASyncTicketAudits(unittest.TestCase):
         metric_event_captures = [call for call in mock_capture.call_args_list if call.args == ('ticket_metric_event',)]
         self.assertEqual(len(metric_event_captures), 3)
 
+    @patch("tap_zendesk.streams.Tickets.update_bookmark")
+    @patch("tap_zendesk.streams.Tickets.get_bookmark")
+    @patch("tap_zendesk.streams.Tickets.get_objects")
+    @patch("tap_zendesk.streams.tickets.singer.write_state")
+    @patch("tap_zendesk.streams.tickets.zendesk_metrics.capture")
+    @patch("tap_zendesk.streams.abstracts.LOGGER.info")
+    def test_sync_skips_tickets_older_than_bookmark(
+        self,
+        mock_info,
+        mock_capture,
+        mock_write_state,
+        mock_get_objects,
+        mock_get_bookmark,
+        mock_update_bookmark,
+    ):
+        """
+        GET /api/v2/tickets ignores `start_time` and always returns tickets sorted
+        ascending from the oldest record in the account, so sync() must filter out
+        (and not re-process children for) any ticket older than the bookmark itself.
+        """
+        state = {}
+        mock_get_bookmark.return_value = utils.strptime_with_tz("2023-01-01T00:00:00Z")
+        mock_get_objects.return_value = [
+            {"id": 1, "generated_timestamp": 1522723243, "fields": "duplicate"},  # 2018, older than bookmark
+            {"id": 2, "generated_timestamp": 1672531200, "fields": "duplicate"},  # 2023-01-01, matches bookmark
+            {"id": 3, "generated_timestamp": 1672617600, "fields": "duplicate"},  # 2023-01-02, newer than bookmark
+        ]
+        config = {
+            'start_date': '2024-01-01T00:00:00Z',
+            'subdomain': 'dummy',
+            'access_token': 'dummy token',
+        }
+        instance = streams.Tickets(None, config)
+        instance.is_selected = MagicMock(return_value=True)
+        instance.emit_sub_stream_metrics = MagicMock(return_value=None)
+        instance.sync_ticket_audits_and_comments = MagicMock(return_value=[([], [])])
+
+        with patch("tap_zendesk.streams.ticket_metrics.TicketMetrics.is_selected", return_value=False), \
+             patch("tap_zendesk.streams.ticket_metric_events.TicketMetricEvents.is_selected", return_value=False), \
+             patch("tap_zendesk.streams.ticket_comments.TicketComments.is_selected", return_value=False), \
+             patch("tap_zendesk.streams.ticket_audits.TicketAudits.is_selected", return_value=False), \
+             patch("tap_zendesk.streams.side_conversations.SideConversations.is_selected", return_value=False):
+            result = list(instance.sync(state))
+
+        synced_ticket_ids = {record.get("id") for _, record in result}
+        self.assertEqual(synced_ticket_ids, {2, 3})
+
     def test_sync_ticket_audits_and_comments_runs_asyncio_when_selected(self):
         """
         sync_ticket_audits_and_comments should invoke asyncio.run(sync_in_bulk(...))
