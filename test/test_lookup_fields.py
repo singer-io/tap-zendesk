@@ -48,6 +48,9 @@ class ZendeskAllFields(ZendeskTest):
             if stream_name == "users":  # field appeared in syncd records Nov 1 - Dec 18, 2023
                 fields_from_field_level_md.remove("chat_only")
                 fields_from_field_level_md.remove("suspension_details")
+                fields_from_field_level_md.remove("permanently_deleted")
+            elif stream_name == "organizations":
+                fields_from_field_level_md.remove("deleted_at")
             stream_to_all_catalog_fields[stream_name] = set(fields_from_field_level_md)
 
         self.run_and_verify_sync(conn_id)

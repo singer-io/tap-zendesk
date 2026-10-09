@@ -38,7 +38,7 @@ API_TOKEN_CONFIG_KEYS = [
 ]
 
 SUB_STREAMS = {
-    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'side_conversations'],
+    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_metric_events', 'ticket_comments', 'side_conversations'],
     'triggers': ['trigger_revisions'],
     'macros': ['macro_attachments'],
     'users': ['user_identities', 'user_attribute_values'],
