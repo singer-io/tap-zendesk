@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.9.1
+  * Bump aiohttp to 3.14.4 for security updates [#202](https://github.com/singer-io/tap-zendesk/pull/202)
+
 ## 2.9.0
   * Added multiple new streams [#176](https://github.com/singer-io/tap-zendesk/pull/176)
   * bump singer-python to 6.8.0, zenpy to 2.0.57 and requests to 2.34.2
