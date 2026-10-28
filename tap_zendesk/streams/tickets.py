@@ -15,6 +15,7 @@ from tap_zendesk.streams.abstracts import (AUDITS_REQUEST_PER_MINUTE,
 from tap_zendesk.streams.side_conversations import SideConversations
 from tap_zendesk.streams.ticket_audits import TicketAudits
 from tap_zendesk.streams.ticket_comments import TicketComments
+from tap_zendesk.streams.ticket_metric_events import TicketMetricEvents
 from tap_zendesk.streams.ticket_metrics import TicketMetrics
 
 
@@ -25,24 +26,35 @@ class Tickets(PaginatedStream):
     item_key = "tickets"
     endpoint = "tickets"
     pagination_type = "cursor"
-    children = ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'side_conversations']
+    children = ['ticket_audits', 'ticket_metrics', 'ticket_metric_events', 'ticket_comments', 'side_conversations']
 
-    def sync(self, state, parent_obj: Dict = None): #pylint: disable=too-many-statements
+    def sync(self, state, parent_obj: Dict = None): #pylint: disable=too-many-statements,too-many-nested-blocks
 
         bookmark = self.get_bookmark(state, self.name)
 
-        # List Tickets is not full-coverage: Zendesk excludes archived tickets.
-        # The sort order is updated_at, not the generated_timestamp bookmark.
+        audits_stream = TicketAudits(self.client, self.config)
+        metrics_stream = TicketMetrics(self.client, self.config)
+        metric_events_stream = TicketMetricEvents(self.client, self.config)
+        comments_stream = TicketComments(self.client, self.config)
+        side_conversations_stream = SideConversations(self.client, self.config)
+
+        # Metric events keep their own `time` bookmark, which can differ from the
+        # tickets bookmark (e.g. a previous sync advanced one but failed before the other).
+        # An event never occurs after its ticket's generated_timestamp, so walking tickets
+        # from the earlier of the two bookmarks cannot skip events in that gap.
+        events_selected = metric_events_stream.is_selected()
+        events_bookmark = metric_events_stream.get_bookmark(state, metric_events_stream.name) if events_selected else bookmark
+        max_event_time = events_bookmark
+        traversal_floor = min(bookmark, events_bookmark)
+
+        # List Tickets does not include archived tickets, so neither they nor their
+        # side-loaded children are synced. Records are ordered by updated_at, which can
+        # differ from the generated_timestamp bookmark, so ordering is never relied upon.
         # https://developer.zendesk.com/documentation/ticketing/using-the-zendesk-api/side_loading/#supported-endpoints
         tickets = self.get_objects(params={
             'sort': 'updated_at',
-            'include': 'metric_sets'
+            'include': 'metric_sets,metric_events'
         })
-
-        audits_stream = TicketAudits(self.client, self.config)
-        metrics_stream = TicketMetrics(self.client, self.config)
-        comments_stream = TicketComments(self.client, self.config)
-        side_conversations_stream = SideConversations(self.client, self.config)
 
         if audits_stream.is_selected():
             LOGGER.info("Syncing ticket_audits per ticket...")
@@ -58,25 +70,45 @@ class Tickets(PaginatedStream):
 
             generated_timestamp_dt = datetime.fromtimestamp(ticket.get('generated_timestamp'), tz=timezone.utc).replace(tzinfo=pytz.UTC)
 
-            # Keep bookmark filtering independent of the endpoint's ordering.
-            if generated_timestamp_dt < bookmark:
+            # The API doesn't filter by start_time, so filter client side.
+            if generated_timestamp_dt < traversal_floor:
                 continue
 
-            self.update_bookmark(state, self.name, utils.strftime(generated_timestamp_dt))
+            # Tickets older than the tickets bookmark are only walked to reach events
+            # that the event bookmark has not yet covered.
+            sync_ticket = generated_timestamp_dt >= bookmark
 
-            ticket.pop('fields', None) # NB: Fields is a duplicate of custom_fields, remove before emitting. If not present, default to None
-            # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
-            if self.is_selected():
-                yield (self.stream, ticket)
+            if sync_ticket:
+                self.update_bookmark(state, self.name, utils.strftime(generated_timestamp_dt))
+
+                ticket.pop('fields', None) # NB: Fields is a duplicate of custom_fields, remove before emitting. If not present, default to None
+                # yielding stream name with record in a tuple as it is used for obtaining only the parent records while sync
+                if self.is_selected():
+                    yield (self.stream, ticket)
 
             # Skip deleted tickets because they don't have audits or comments
             if ticket.get('status') == 'deleted':
                 continue
 
-            if metrics_stream.is_selected() and ticket.get('metric_set'):
+            if sync_ticket and metrics_stream.is_selected() and ticket.get('metric_set'):
                 zendesk_metrics.capture('ticket_metric')
                 metrics_stream.count+=1
                 yield (metrics_stream.stream, ticket["metric_set"])
+
+            if events_selected and ticket.get('metric_events'):
+                # metric_events is a dict keyed by metric name, each a list of events
+                for metric_event_list in ticket["metric_events"].values():
+                    for metric_event in metric_event_list:
+                        event_time = metric_events_stream.get_replication_datetime(metric_event)
+                        if event_time < events_bookmark:
+                            continue
+                        max_event_time = max(max_event_time, event_time)
+                        zendesk_metrics.capture('ticket_metric_event')
+                        metric_events_stream.count += 1
+                        yield (metric_events_stream.stream, metric_event)
+
+            if not sync_ticket:
+                continue
 
             if side_conversations_stream.is_selected():
                 yield from side_conversations_stream.sync(state=state, parent_obj=ticket)
@@ -111,6 +143,12 @@ class Tickets(PaginatedStream):
                     start_time = time.time()
                     counter = 0
 
+        # Commit the event bookmark only after the whole list is walked: events are not
+        # ordered by the cursor, so advancing mid-run could skip older events after a failure.
+        if events_selected:
+            self.update_bookmark(state, metric_events_stream.name,
+                                 utils.strftime(max_event_time), key=metric_events_stream.replication_key)
+
         # Check if there are any remaining ticket IDs after the loop.
         if ticket_ids:
             records = self.sync_ticket_audits_and_comments(comments_stream, audits_stream, ticket_ids)
@@ -122,6 +160,7 @@ class Tickets(PaginatedStream):
 
         self.emit_sub_stream_metrics(audits_stream)
         self.emit_sub_stream_metrics(metrics_stream)
+        self.emit_sub_stream_metrics(metric_events_stream)
         self.emit_sub_stream_metrics(comments_stream)
         self.emit_sub_stream_metrics(side_conversations_stream)
         singer.write_state(state)

@@ -10,32 +10,27 @@ Tap for Zendesk
 
 ## Upgrading to 2.10.0
 
-Rediscover the catalog and reapply stream and field selections before upgrading
-if the existing catalog contains `incremental_ticket_events`, even if that stream
-is unselected. Sync rejects these catalogs with a migration error before emitting
-records. The stream has been removed; `ticket_audits` provides ticket change
-history but is not schema- or record-compatible. Consumers of
-`incremental_ticket_events` must migrate their downstream models explicitly;
-rediscovery alone does not preserve that stream's output.
+Zendesk is retiring the Incremental APIs for third-party integrations, so the tap
+now uses the paginated replacements listed in Zendesk's
+[announcement](https://support.zendesk.com/hc/en-us/articles/11249701485338-Announcing-end-of-availability-of-Incremental-APIs-for-third-party-developers).
 
-Keep the existing state. `ticket_metric_events` remains an independent incremental
-stream and resumes from its own `time` bookmark (or `start_date` when absent),
-regardless of the `tickets.generated_timestamp` bookmark. It uses Zendesk's
-[List Ticket Metric Events](https://developer.zendesk.com/api-reference/ticketing/tickets/ticket_metric_events/#list-ticket-metric-events)
-endpoint with cursor pagination, not ticket sideloads. Bookmark-boundary records
-may be replayed and should be upserted by their record keys.
-
-`tickets` uses the paginated
-[List Tickets](https://developer.zendesk.com/api-reference/ticketing/tickets/tickets/#list-tickets)
-endpoint. Zendesk excludes archived tickets from this endpoint; therefore fresh
-syncs and ongoing syncs may omit archived tickets. This limitation also applies
-to data fetched per ticket, such as ticket metrics, audits, comments, and side
-conversations, when those records are not otherwise available. Metric events are
-fetched independently using their own time bookmark, not side-loaded from tickets;
-do not assume this restores complete archived-ticket coverage. Zendesk's
-[Incremental Ticket Export](https://developer.zendesk.com/api-reference/ticketing/ticket-management/incremental_exports/#incremental-ticket-export-cursor-based)
-is the documented option when full archived-ticket coverage is required, but this
-release does not use it.
+- **Archived tickets are not synced.** `tickets` uses
+  [List Tickets](https://developer.zendesk.com/api-reference/ticketing/tickets/tickets/#list-tickets),
+  which excludes archived tickets (typically closed for about 120 days). Zendesk has no
+  non-incremental endpoint that includes them. Tickets, and their ticket metrics, metric
+  events, audits, comments and side conversations, are captured only while the ticket is
+  not yet archived, so a historical backfill of tickets older than that is incomplete.
+- **`ticket_metric_events`** is side-loaded from the tickets list
+  (`include=metric_events`) instead of the retired incremental endpoint. It keeps its
+  own `time` bookmark, so existing state works unchanged. When the `tickets` and
+  `ticket_metric_events` bookmarks differ, tickets are walked from the earlier one so no
+  events are skipped. Events at the bookmark boundary may be replayed; upsert by `id`.
+- **`incremental_ticket_events` is removed.** Zendesk recommends ticket audits instead;
+  the `ticket_audits` stream already covers this but is not schema-compatible. A catalog
+  or state that still contains `incremental_ticket_events` is ignored with a warning.
+  Rediscover the catalog to remove it, and migrate any downstream models that used it.
+- Cursor pagination now fails with an error if Zendesk reports more pages but returns a
+  missing or repeated cursor, instead of looping forever.
 
 ## Authentication
 

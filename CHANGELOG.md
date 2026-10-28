@@ -1,9 +1,9 @@
 # Changelog
 
 ## 2.10.0
-  * Migrate streams to paginated APIs. The List Tickets endpoint excludes archived tickets; see README.md for coverage and customer-communication details.
-  * Preserve independent `ticket_metric_events.time` bookmarks using the documented List Ticket Metric Events endpoint, rather than ticket sideloads.
-  * Remove `incremental_ticket_events`; existing catalogs containing it must be rediscovered and selections reapplied before upgrade. See README.md for migration details.
+  * Migrate off the deprecated Incremental APIs to Zendesk's paginated replacements. The List Tickets endpoint excludes archived tickets, so they are not synced; see README.md.
+  * `ticket_metric_events` is side-loaded from tickets again (`include=metric_events`). It keeps its own `time` bookmark, and tickets are walked from the earlier of the `tickets` and `ticket_metric_events` bookmarks so no events are skipped.
+  * Remove `incremental_ticket_events` (use `ticket_audits`). Catalogs that still contain it are ignored with a warning; rediscover the catalog to remove it.
   * Fail visibly when cursor pagination cannot progress.
 
 ## 2.9.1
