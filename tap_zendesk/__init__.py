@@ -38,7 +38,7 @@ API_TOKEN_CONFIG_KEYS = [
 ]
 
 SUB_STREAMS = {
-    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_metric_events', 'ticket_comments', 'side_conversations'],
+    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'side_conversations'],
     'triggers': ['trigger_revisions'],
     'macros': ['macro_attachments'],
     'users': ['user_identities', 'user_attribute_values'],
@@ -117,6 +117,13 @@ def validate_dependencies(selected_stream_ids):
 
 
 def populate_class_schemas(catalog):
+    if any(stream.tap_stream_id == "incremental_ticket_events" for stream in catalog.streams):
+        raise ValueError(
+            "The incremental_ticket_events stream has been removed. Rediscover the "
+            "catalog before upgrading to 2.10.0 and reapply stream selections. "
+            "Use ticket_audits for ticket change history; it is not schema-compatible "
+            "with incremental_ticket_events. See README.md for migration details."
+        )
     for stream in catalog.streams:
         STREAMS[stream.tap_stream_id].stream = stream
 

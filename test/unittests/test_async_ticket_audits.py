@@ -537,7 +537,7 @@ class TestASyncTicketAudits(unittest.TestCase):
     @patch("tap_zendesk.streams.tickets.singer.write_state")
     @patch("tap_zendesk.streams.tickets.zendesk_metrics.capture")
     @patch("tap_zendesk.streams.abstracts.LOGGER.info")
-    def test_sync_flattens_metric_events_dict_of_lists_when_selected(
+    def test_sync_does_not_emit_independent_metric_events(
         self,
         mock_info,
         mock_capture,
@@ -547,9 +547,7 @@ class TestASyncTicketAudits(unittest.TestCase):
         mock_update_bookmark,
     ):
         """
-        Zendesk's sideloaded `metric_events` is a dict keyed by metric name,
-        each value a list of event records (not a flat list). sync() must
-        flatten this into individual ticket_metric_event records.
+        Metric events use their own endpoint and bookmark, never ticket sideloads.
         """
         state = {}
         mock_get_bookmark.return_value = utils.strptime_with_tz("2023-01-01T00:00:00Z")
@@ -581,13 +579,9 @@ class TestASyncTicketAudits(unittest.TestCase):
              patch("tap_zendesk.streams.side_conversations.SideConversations.is_selected", return_value=False):
             result = list(instance.sync(state))
 
-        self.assertEqual(len(result), 3)
-        yielded_events = [record for _, record in result]
-        self.assertIn({"id": 1, "type": "agent_work_time"}, yielded_events)
-        self.assertIn({"id": 2, "type": "agent_work_time"}, yielded_events)
-        self.assertIn({"id": 3, "type": "pausable_update_time"}, yielded_events)
+        self.assertEqual(result, [])
         metric_event_captures = [call for call in mock_capture.call_args_list if call.args == ('ticket_metric_event',)]
-        self.assertEqual(len(metric_event_captures), 3)
+        self.assertEqual(len(metric_event_captures), 0)
 
     @patch("tap_zendesk.streams.Tickets.update_bookmark")
     @patch("tap_zendesk.streams.Tickets.get_bookmark")
@@ -605,9 +599,7 @@ class TestASyncTicketAudits(unittest.TestCase):
         mock_update_bookmark,
     ):
         """
-        GET /api/v2/tickets ignores `start_time` and always returns tickets sorted
-        ascending from the oldest record in the account, so sync() must filter out
-        (and not re-process children for) any ticket older than the bookmark itself.
+        Bookmark filtering must skip older tickets regardless of endpoint order.
         """
         state = {}
         mock_get_bookmark.return_value = utils.strptime_with_tz("2023-01-01T00:00:00Z")

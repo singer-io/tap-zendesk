@@ -103,6 +103,7 @@ def get_cursor_based(url, access_token, request_timeout, page_size, cursor=None,
     if cursor:
         params['page[after]'] = cursor
 
+    seen_cursors = {cursor} if cursor else set()
     while True:
         response = call_api(
             url,
@@ -118,7 +119,13 @@ def get_cursor_based(url, access_token, request_timeout, page_size, cursor=None,
         if not meta.get('has_more'):
             break
 
-        params['page[after]'] = meta.get('after_cursor')
+        next_cursor = meta.get('after_cursor')
+        if not next_cursor:
+            raise ValueError("Missing 'after_cursor' while 'has_more' is true.")
+        if next_cursor in seen_cursors:
+            raise ValueError("Repeated 'after_cursor' while 'has_more' is true.")
+        seen_cursors.add(next_cursor)
+        params['page[after]'] = next_cursor
 
 def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
     """
@@ -310,6 +317,7 @@ def get_incremental_export(url, access_token, request_timeout, start_time, side_
         'include': side_load
     }
 
+    seen_cursors = set()
     while True:
         response = call_api(url, request_timeout, params=params, headers=headers)
         response_json = response.json()
@@ -321,6 +329,9 @@ def get_incremental_export(url, access_token, request_timeout, start_time, side_
         cursor = response_json.get('after_cursor')
         if not cursor:
             raise ValueError("Missing 'after_cursor' in response during pagination.")
+        if cursor in seen_cursors:
+            raise ValueError("Repeated 'after_cursor' in response during pagination.")
+        seen_cursors.add(cursor)
 
         params = {
             'cursor': cursor,

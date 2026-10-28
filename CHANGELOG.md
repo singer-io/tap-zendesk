@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.10.0
+  * Migrate streams to paginated APIs. The List Tickets endpoint excludes archived tickets; see README.md for coverage and customer-communication details.
+  * Preserve independent `ticket_metric_events.time` bookmarks using the documented List Ticket Metric Events endpoint, rather than ticket sideloads.
+  * Remove `incremental_ticket_events`; existing catalogs containing it must be rediscovered and selections reapplied before upgrade. See README.md for migration details.
+  * Fail visibly when cursor pagination cannot progress.
+
 ## 2.9.1
   * Bump aiohttp to 3.14.4 for security updates [#202](https://github.com/singer-io/tap-zendesk/pull/202)
 

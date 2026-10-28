@@ -496,14 +496,18 @@ class TestOrganizations(unittest.TestCase):
 
 class TestTicketMetricEvents(unittest.TestCase):
 
-    def test_is_sideloaded_child_of_tickets(self):
+    def test_is_independent_of_tickets(self):
         stream = TicketMetricEvents(client=MagicMock(), config=make_config())
-        self.assertEqual(stream.parent, 'tickets')
+        self.assertEqual(stream.parent, '')
         self.assertEqual(stream.replication_key, 'time')
 
-    def test_check_access_is_noop(self):
+    @patch('tap_zendesk.streams.ticket_metric_events.http.call_api')
+    def test_check_access_uses_time_bounded_endpoint(self, mock_call_api):
         stream = TicketMetricEvents(client=MagicMock(), config=make_config())
-        self.assertIsNone(stream.check_access())
+        stream.check_access()
+        args, kwargs = mock_call_api.call_args
+        self.assertEqual(args[0], 'https://foo.zendesk.com/api/v2/incremental/ticket_metric_events')
+        self.assertEqual(kwargs['params'], {'start_time': 1577836799, 'page[size]': 1})
 
 
 class TestGroupMemberships(unittest.TestCase):

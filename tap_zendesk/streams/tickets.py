@@ -15,7 +15,6 @@ from tap_zendesk.streams.abstracts import (AUDITS_REQUEST_PER_MINUTE,
 from tap_zendesk.streams.side_conversations import SideConversations
 from tap_zendesk.streams.ticket_audits import TicketAudits
 from tap_zendesk.streams.ticket_comments import TicketComments
-from tap_zendesk.streams.ticket_metric_events import TicketMetricEvents
 from tap_zendesk.streams.ticket_metrics import TicketMetrics
 
 
@@ -26,25 +25,22 @@ class Tickets(PaginatedStream):
     item_key = "tickets"
     endpoint = "tickets"
     pagination_type = "cursor"
-    children = ['ticket_audits', 'ticket_metrics', 'ticket_metric_events', 'ticket_comments', 'side_conversations']
+    children = ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'side_conversations']
 
     def sync(self, state, parent_obj: Dict = None): #pylint: disable=too-many-statements
 
         bookmark = self.get_bookmark(state, self.name)
 
-        # GET /api/v2/tickets ignores `start_time` entirely (verified against a live
-        # account), unlike the deprecated incremental export endpoint it replaces. Sort
-        # ascending by the replication key and rely on client-side bookmark filtering
-        # below instead.
+        # List Tickets is not full-coverage: Zendesk excludes archived tickets.
+        # The sort order is updated_at, not the generated_timestamp bookmark.
         # https://developer.zendesk.com/documentation/ticketing/using-the-zendesk-api/side_loading/#supported-endpoints
         tickets = self.get_objects(params={
             'sort': 'updated_at',
-            'include': 'metric_sets,metric_events'
+            'include': 'metric_sets'
         })
 
         audits_stream = TicketAudits(self.client, self.config)
         metrics_stream = TicketMetrics(self.client, self.config)
-        metric_events_stream = TicketMetricEvents(self.client, self.config)
         comments_stream = TicketComments(self.client, self.config)
         side_conversations_stream = SideConversations(self.client, self.config)
 
@@ -62,8 +58,7 @@ class Tickets(PaginatedStream):
 
             generated_timestamp_dt = datetime.fromtimestamp(ticket.get('generated_timestamp'), tz=timezone.utc).replace(tzinfo=pytz.UTC)
 
-            # Records are sorted ascending, but the API doesn't filter by start_time,
-            # so skip (and don't re-process children for) tickets already synced.
+            # Keep bookmark filtering independent of the endpoint's ordering.
             if generated_timestamp_dt < bookmark:
                 continue
 
@@ -82,14 +77,6 @@ class Tickets(PaginatedStream):
                 zendesk_metrics.capture('ticket_metric')
                 metrics_stream.count+=1
                 yield (metrics_stream.stream, ticket["metric_set"])
-
-            if metric_events_stream.is_selected() and ticket.get('metric_events'):
-                # metric_events is a dict keyed by metric name, each a list of events
-                for metric_event_list in ticket["metric_events"].values():
-                    for metric_event in metric_event_list:
-                        zendesk_metrics.capture('ticket_metric_event')
-                        metric_events_stream.count += 1
-                        yield (metric_events_stream.stream, metric_event)
 
             if side_conversations_stream.is_selected():
                 yield from side_conversations_stream.sync(state=state, parent_obj=ticket)
@@ -135,7 +122,6 @@ class Tickets(PaginatedStream):
 
         self.emit_sub_stream_metrics(audits_stream)
         self.emit_sub_stream_metrics(metrics_stream)
-        self.emit_sub_stream_metrics(metric_events_stream)
         self.emit_sub_stream_metrics(comments_stream)
         self.emit_sub_stream_metrics(side_conversations_stream)
         singer.write_state(state)
