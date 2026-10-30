@@ -18,7 +18,6 @@ from tap_zendesk.streams.trigger_revisions import TriggerRevisions
 from tap_zendesk.streams.schedule_holidays import ScheduleHolidays
 from tap_zendesk.streams.macro_attachments import MacroAttachments
 from tap_zendesk.streams.ticket_forms import TicketForms
-from tap_zendesk.streams.incremental_ticket_events import IncrementalTicketEvents
 from tap_zendesk.streams.side_conversations import SideConversations
 from tap_zendesk.streams.macro_categories import MacroCategories
 from tap_zendesk.streams.satisfaction_ratings import SatisfactionRatings
@@ -450,12 +449,19 @@ class TestOrganizations(unittest.TestCase):
         self.assertEqual(result, {"fallback": True})
         mock_raise_or_log.assert_called_once()
 
-    def test_sync_yields_records_and_updates_bookmark(self):
-        client = MagicMock()
-        org = MagicMock(updated_at="2021-06-01T00:00:00Z")
-        client.organizations.incremental.return_value = iter([org])
-        stream = Organizations(client=client, config=make_config())
+    def test_update_params_sorts_by_updated_at(self):
+        stream = Organizations(client=MagicMock(), config=make_config())
+        stream.update_params(state={})
+        self.assertEqual(stream.params, {'sort': 'updated_at'})
+
+    @patch.object(Organizations, 'get_objects')
+    def test_sync_yields_records_and_updates_bookmark(self, mock_get_objects):
+        mock_get_objects.return_value = iter([
+            {"id": 1, "updated_at": "2021-06-01T00:00:00Z"},
+        ])
+        stream = Organizations(client=MagicMock(), config=make_config())
         stream.stream = MagicMock()
+        stream.is_selected = MagicMock(return_value=True)
 
         state = {}
         results = list(stream.sync(state))
@@ -463,60 +469,41 @@ class TestOrganizations(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(state["bookmarks"]["organizations"]["updated_at"], "2021-06-01T00:00:00Z")
 
-    def test_check_access_calls_incremental(self):
-        client = MagicMock()
-        stream = Organizations(client=client, config=make_config())
+    @patch.object(Organizations, 'get_objects')
+    def test_sync_skips_records_older_than_bookmark(self, mock_get_objects):
+        mock_get_objects.return_value = iter([
+            {"id": 1, "updated_at": "2019-01-01T00:00:00Z"},
+        ])
+        stream = Organizations(client=MagicMock(), config=make_config())
+        stream.stream = MagicMock()
+        stream.is_selected = MagicMock(return_value=True)
+
+        state = {"bookmarks": {"organizations": {"updated_at": "2020-01-01T00:00:00Z"}}}
+        results = list(stream.sync(state))
+
+        self.assertEqual(results, [])
+        self.assertEqual(state["bookmarks"]["organizations"]["updated_at"], "2020-01-01T00:00:00Z")
+
+    @patch('tap_zendesk.streams.abstracts.http.call_api')
+    def test_check_access_uses_base_implementation(self, mock_call_api):
+        stream = Organizations(client=MagicMock(), config=make_config())
         stream.check_access()
-        client.organizations.incremental.assert_called_once()
+        mock_call_api.assert_called_once()
+        args, kwargs = mock_call_api.call_args
+        self.assertIn('organizations', args[0])
+        self.assertEqual(kwargs['params'], {'per_page': 1})
 
 
 class TestTicketMetricEvents(unittest.TestCase):
 
-    def test_sync_yields_new_records_and_updates_bookmark(self):
-        client = MagicMock()
-        future_time = (datetime.datetime.now(datetime.timezone.utc) +
-                       datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
-        event = MagicMock(time=future_time)
-        client.tickets.metrics_incremental.return_value = iter([event])
+    def test_is_sideloaded_child_of_tickets(self):
+        stream = TicketMetricEvents(client=MagicMock(), config=make_config())
+        self.assertEqual(stream.parent, 'tickets')
+        self.assertEqual(stream.replication_key, 'time')
 
-        stream = TicketMetricEvents(client=client, config=make_config())
-        stream.stream = MagicMock()
-        stream.count = 0
-
-        state = {"bookmarks": {"ticket_metric_events": {"time": "2020-01-01T00:00:00Z"}}}
-        results = list(stream.sync(state))
-
-        self.assertEqual(len(results), 1)
-        self.assertEqual(state["bookmarks"]["ticket_metric_events"]["time"], future_time)
-        self.assertEqual(stream.count, 1)
-
-    def test_sync_skips_records_older_than_parsed_start(self):
-        client = MagicMock()
-        old_time = "2019-01-01T00:00:00Z"
-        event = MagicMock(time=old_time)
-        client.tickets.metrics_incremental.return_value = iter([event])
-
-        stream = TicketMetricEvents(client=client, config=make_config())
-        stream.stream = MagicMock()
-        stream.count = 0
-
-        state = {"bookmarks": {"ticket_metric_events": {"time": "2020-01-01T00:00:00Z"}}}
-        results = list(stream.sync(state))
-
-        self.assertEqual(results, [])
-        self.assertEqual(stream.count, 1)
-
-    def test_check_access_calls_metrics_incremental(self):
-        client = MagicMock()
-        stream = TicketMetricEvents(client=client, config=make_config())
-        stream.check_access()
-        client.tickets.metrics_incremental.assert_called_once()
-
-    def test_check_access_swallows_not_found_error(self):
-        client = MagicMock()
-        client.tickets.metrics_incremental.side_effect = ZendeskNotFoundError("not found")
-        stream = TicketMetricEvents(client=client, config=make_config())
-        stream.check_access()  # should not raise
+    def test_check_access_is_noop(self):
+        stream = TicketMetricEvents(client=MagicMock(), config=make_config())
+        self.assertIsNone(stream.check_access())
 
 
 class TestGroupMemberships(unittest.TestCase):
@@ -676,35 +663,6 @@ class TestTicketForms(unittest.TestCase):
         stream.check_access()
 
         mock_raise_forbidden.assert_called_once()
-
-
-class TestIncrementalTicketEvents(unittest.TestCase):
-
-    @patch('tap_zendesk.streams.incremental_ticket_events.http.call_api')
-    def test_check_access_calls_api(self, mock_call_api):
-        stream = IncrementalTicketEvents(client=MagicMock(), config=make_config())
-        stream.check_access()
-        mock_call_api.assert_called_once()
-        _, kwargs = mock_call_api.call_args
-        self.assertIn('start_time', kwargs['params'])
-
-    @patch('tap_zendesk.streams.incremental_ticket_events.http.get_incremental_export_offset')
-    def test_get_objects_deduplicates_records_by_id(self, mock_get_incremental_export_offset):
-        stream = IncrementalTicketEvents(client=MagicMock(), config=make_config())
-        mock_get_incremental_export_offset.return_value = [
-            {"ticket_events": [{"id": 1}, {"id": 2}, {"id": 1}]},
-        ]
-        results = list(stream.get_objects(0))
-        self.assertEqual(results, [{"id": 1}, {"id": 2}])
-
-    @patch('tap_zendesk.streams.incremental_ticket_events.http.get_incremental_export_offset')
-    def test_get_objects_skips_records_without_id(self, mock_get_incremental_export_offset):
-        stream = IncrementalTicketEvents(client=MagicMock(), config=make_config())
-        mock_get_incremental_export_offset.return_value = [
-            {"ticket_events": [{"foo": "bar"}]},
-        ]
-        results = list(stream.get_objects(0))
-        self.assertEqual(results, [])
 
 
 class TestSideConversations(unittest.TestCase):

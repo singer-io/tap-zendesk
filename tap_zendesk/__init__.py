@@ -38,7 +38,7 @@ API_TOKEN_CONFIG_KEYS = [
 ]
 
 SUB_STREAMS = {
-    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'side_conversations'],
+    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_metric_events', 'ticket_comments', 'side_conversations'],
     'triggers': ['trigger_revisions'],
     'macros': ['macro_attachments'],
     'users': ['user_identities', 'user_attribute_values'],
@@ -118,6 +118,12 @@ def validate_dependencies(selected_stream_ids):
 
 def populate_class_schemas(catalog):
     for stream in catalog.streams:
+        if stream.tap_stream_id not in STREAMS:
+            # e.g. `incremental_ticket_events`, retired by Zendesk with `ticket_audits` as its alternative
+            log = LOGGER.warning if stream_is_selected(metadata.to_map(stream.metadata)) else LOGGER.info
+            log("%s: Ignoring stream that is no longer supported. Rediscover the catalog to remove it.",
+                stream.tap_stream_id)
+            continue
         STREAMS[stream.tap_stream_id].stream = stream
 
 
@@ -129,6 +135,8 @@ def do_sync(client, catalog, state, config):
 
     for stream in catalog.streams:
         stream_name = stream.tap_stream_id
+        if stream_name not in STREAMS:
+            continue
         mdata = metadata.to_map(stream.metadata)
         if stream_name not in selected_stream_names:
             LOGGER.info("%s: Skipping - not selected", stream_name)

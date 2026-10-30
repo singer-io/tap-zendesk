@@ -394,12 +394,6 @@ class ZendeskTest(unittest.TestCase):
                 self.REPLICATION_KEYS: {"created_at"},
                 self.OBEYS_START_DATE: True
             },
-            "incremental_ticket_events": {
-                self.PRIMARY_KEYS: {"id"},
-                self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"created_at"},
-                self.OBEYS_START_DATE: True
-            },
             "ticket_skips": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,

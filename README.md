@@ -8,6 +8,38 @@ Tap for Zendesk
 
 ---
 
+## Upgrading to 2.10.0
+
+Zendesk is retiring the Incremental APIs for third-party integrations, so the tap
+now uses the paginated replacements listed in Zendesk's
+[announcement](https://support.zendesk.com/hc/en-us/articles/11249701485338-Announcing-end-of-availability-of-Incremental-APIs-for-third-party-developers).
+
+- **Archived tickets are not synced.** `tickets` uses
+  [List Tickets](https://developer.zendesk.com/api-reference/ticketing/tickets/tickets/#list-tickets),
+  which excludes archived tickets (typically closed for about 120 days). Zendesk has no
+  non-incremental endpoint that includes them. Tickets, and their ticket metrics, metric
+  events, audits, comments and side conversations, are captured only while the ticket is
+  not yet archived, so a historical backfill of tickets older than that is incomplete.
+- **`ticket_metric_events`** is fetched per ticket with
+  `GET /api/v2/tickets/{id}?include=metric_events`, because Zendesk documents that
+  sideload for a single ticket only, instead of the retired incremental endpoint. This
+  costs about one extra request per ticket (batched like audits). It keeps its own `time`
+  bookmark, so existing state works unchanged. When the `tickets` and
+  `ticket_metric_events` bookmarks differ, tickets are walked from the earlier one so no
+  events are skipped. Events at the bookmark boundary may be replayed; upsert by `id`.
+- **Bookmarks are saved only after every ticket page has been read.** List Tickets is
+  ordered by `updated_at` while the `tickets` bookmark is `generated_timestamp`, so a
+  bookmark saved part way through could skip tickets after an interruption. An
+  interrupted sync therefore starts the ticket walk again, and records may be replayed.
+- **Both authentication methods work for every stream.** OAuth (`access_token`) is sent
+  as a Bearer token and email + `api_token` as Basic authentication.
+- **`incremental_ticket_events` is removed.** Zendesk recommends ticket audits instead;
+  the `ticket_audits` stream already covers this but is not schema-compatible. A catalog
+  or state that still contains `incremental_ticket_events` is ignored with a warning.
+  Rediscover the catalog to remove it, and migrate any downstream models that used it.
+- Cursor pagination now fails with an error if Zendesk reports more pages but returns a
+  missing or repeated cursor, instead of looping forever.
+
 ## Authentication
 
 ### Using OAuth

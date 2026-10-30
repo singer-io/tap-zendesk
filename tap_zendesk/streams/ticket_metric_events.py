@@ -1,8 +1,29 @@
-import datetime
-import singer
-from singer import utils
-from tap_zendesk.streams.abstracts import Stream
+import asyncio
+from itertools import chain
+
+from aiohttp import ClientSession
+
+from tap_zendesk import http
 from tap_zendesk.exceptions import ZendeskNotFoundError
+from tap_zendesk.streams.abstracts import Stream
+
+
+def extract_metric_events(response):
+    """
+    Return the flat list of metric events from a Show Ticket response.
+
+    Events are read from the top-level `metric_events` collection or, failing that, from
+    the ticket itself. Either may be a flat list or a dict of lists keyed by metric name.
+    """
+    raw = response.get('metric_events')
+    if raw is None:
+        raw = (response.get('ticket') or {}).get('metric_events')
+
+    if isinstance(raw, dict):
+        return list(chain.from_iterable(raw.values()))
+    if isinstance(raw, list):
+        return raw
+    return []
 
 
 class TicketMetricEvents(Stream):
@@ -10,25 +31,35 @@ class TicketMetricEvents(Stream):
     replication_method = "INCREMENTAL"
     replication_key = "time"
     count = 0
+    parent = 'tickets'
+    # Zendesk documents the `metric_events` sideload for a single ticket only
+    endpoint = 'tickets/{ticket_id}'
 
-    def sync(self, state):
-        bookmark = self.get_bookmark(state, self.name)
-        start = bookmark - datetime.timedelta(seconds=1)
+    async def get_objects(self, session, ticket_id):
+        url = self.get_stream_endpoint(ticket_id=ticket_id)
+        headers = http.build_headers(http.get_credential(self.config))
+        try:
+            response = await http.call_api_async(
+                session, url, self.request_timeout, params={'include': 'metric_events'}, headers=headers)
+        except ZendeskNotFoundError:
+            # The ticket was deleted or archived after it was listed
+            return []
 
-        epoch_start = int(start.timestamp())
-        parsed_start = singer.strftime(start, "%Y-%m-%dT%H:%M:%SZ")
-        ticket_metric_events = self.client.tickets.metrics_incremental(start_time=epoch_start)
-        for event in ticket_metric_events:
-            self.count += 1
-            if bookmark < utils.strptime_with_tz(event.time):
-                self.update_bookmark(state, self.name, event.time)
-            if parsed_start <= event.time:
-                yield (self.stream, event)
+        events = extract_metric_events(response)
+        for event in events:
+            event.setdefault('ticket_id', ticket_id)
+        return events
+
+    async def sync_in_bulk(self, ticket_ids):
+        """
+        Concurrently fetch the metric events of several tickets, in the order of `ticket_ids`.
+        """
+        async with ClientSession() as session:
+            return await asyncio.gather(*(self.get_objects(session, ticket_id) for ticket_id in ticket_ids))
 
     def check_access(self):
-        try:
-            epoch_start = int(utils.now().timestamp())
-            self.client.tickets.metrics_incremental(start_time=epoch_start)
-        except ZendeskNotFoundError:
-            #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
-            pass
+        '''
+        Check whether the permission was given to access stream resources or not.
+        '''
+        # Metric events are read with the same permission as tickets, so tickets covers the check
+        return
