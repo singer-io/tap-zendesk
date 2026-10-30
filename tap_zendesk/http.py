@@ -1,3 +1,4 @@
+import base64
 from time import sleep
 from asyncio import sleep as async_sleep
 import backoff
@@ -20,6 +21,7 @@ DEFAULT_WAIT = 60
 DEFAULT_WAIT_FOR_CONFLICT_ERROR = 10
 
 BASE_URL = "https://{subdomain}.zendesk.com/api/v2/"
+BASIC_AUTH_PREFIX = "Basic "
 
 def is_fatal(exception):
     status_code = exception.response.status_code
@@ -67,10 +69,31 @@ def build_headers(access_token: str, additional_headers: dict = None) -> dict:
         'Authorization': f'Bearer {access_token}'
     }
 
+    # API-token credentials arrive as a complete `Basic ...` header value (see get_credential)
+    if access_token and access_token.startswith(BASIC_AUTH_PREFIX):
+        headers['Authorization'] = access_token
+
     if additional_headers:
         headers.update(additional_headers)
 
     return headers
+
+def get_credential(config: dict) -> str:
+    """
+    Return the credential to pass to the request helpers' `access_token` argument.
+
+    OAuth has precedence, as when creating the Zenpy client: the access token is returned
+    and sent as a Bearer token. Otherwise email + api_token are sent as Basic authentication
+    (`{email}/token:{api_token}`), which Zendesk documents for API tokens.
+    """
+    if config.get('access_token'):
+        return config['access_token']
+
+    if config.get('email') and config.get('api_token'):
+        credentials = f"{config['email']}/token:{config['api_token']}"
+        return BASIC_AUTH_PREFIX + base64.b64encode(credentials.encode('utf-8')).decode('ascii')
+
+    raise ValueError("No suitable authentication keys provided. Set 'access_token', or 'email' and 'api_token'.")
 
 @backoff.on_exception(backoff.expo,
                       (HTTPError, ZendeskError), # Added support of backoff for all unhandled status codes.

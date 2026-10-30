@@ -2,7 +2,10 @@
 
 ## 2.10.0
   * Migrate off the deprecated Incremental APIs to Zendesk's paginated replacements. The List Tickets endpoint excludes archived tickets, so they are not synced; see README.md.
-  * `ticket_metric_events` is side-loaded from tickets again (`include=metric_events`). It keeps its own `time` bookmark, and tickets are walked from the earlier of the `tickets` and `ticket_metric_events` bookmarks so no events are skipped.
+  * `ticket_metric_events` is fetched per ticket (`GET /api/v2/tickets/{id}?include=metric_events`), as Zendesk documents that sideload for a single ticket only. It keeps its own `time` bookmark, and tickets are walked from the earlier of the `tickets` and `ticket_metric_events` bookmarks so no events are skipped.
+  * The `tickets` and `ticket_metric_events` bookmarks are saved only after all ticket pages are read, so an interrupted sync cannot skip tickets (List Tickets is ordered by `updated_at`, not by the `generated_timestamp` bookmark).
+  * Ticket metric sets are read whether Zendesk returns them as a top-level `metric_sets` collection or nested in each ticket.
+  * Streams using the REST client support both OAuth (`access_token`) and email + `api_token` authentication.
   * Remove `incremental_ticket_events` (use `ticket_audits`). Catalogs that still contain it are ignored with a warning; rediscover the catalog to remove it.
   * Fail visibly when cursor pagination cannot progress.
 

@@ -20,11 +20,19 @@ now uses the paginated replacements listed in Zendesk's
   non-incremental endpoint that includes them. Tickets, and their ticket metrics, metric
   events, audits, comments and side conversations, are captured only while the ticket is
   not yet archived, so a historical backfill of tickets older than that is incomplete.
-- **`ticket_metric_events`** is side-loaded from the tickets list
-  (`include=metric_events`) instead of the retired incremental endpoint. It keeps its
-  own `time` bookmark, so existing state works unchanged. When the `tickets` and
+- **`ticket_metric_events`** is fetched per ticket with
+  `GET /api/v2/tickets/{id}?include=metric_events`, because Zendesk documents that
+  sideload for a single ticket only, instead of the retired incremental endpoint. This
+  costs about one extra request per ticket (batched like audits). It keeps its own `time`
+  bookmark, so existing state works unchanged. When the `tickets` and
   `ticket_metric_events` bookmarks differ, tickets are walked from the earlier one so no
   events are skipped. Events at the bookmark boundary may be replayed; upsert by `id`.
+- **Bookmarks are saved only after every ticket page has been read.** List Tickets is
+  ordered by `updated_at` while the `tickets` bookmark is `generated_timestamp`, so a
+  bookmark saved part way through could skip tickets after an interruption. An
+  interrupted sync therefore starts the ticket walk again, and records may be replayed.
+- **Both authentication methods work for every stream.** OAuth (`access_token`) is sent
+  as a Bearer token and email + `api_token` as Basic authentication.
 - **`incremental_ticket_events` is removed.** Zendesk recommends ticket audits instead;
   the `ticket_audits` stream already covers this but is not schema-compatible. A catalog
   or state that still contains `incremental_ticket_events` is ignored with a warning.

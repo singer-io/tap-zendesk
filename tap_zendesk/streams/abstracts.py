@@ -171,9 +171,9 @@ class Stream():
         Check whether the permission was given to access stream resources or not.
         '''
         url = self.get_stream_endpoint()
-        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
 
-        http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+        http.call_api(url, self.request_timeout, params={'per_page': 1},
+                      headers=http.build_headers(http.get_credential(self.config)))
 
     def update_params(self, **kwargs) -> None:  # pylint: disable=unused-argument
         """
@@ -257,7 +257,7 @@ class PaginatedStream(Stream):
 
         pages = pagination_func(
             url,
-            self.config['access_token'],
+            http.get_credential(self.config),
             self.request_timeout,
             self.page_size,
             **kwargs
@@ -335,7 +335,7 @@ class CursorBasedExportStream(Stream):
         Retrieve objects from the incremental exports endpoint using cursor based pagination
         '''
         url = self.get_stream_endpoint()
-        for page in http.get_incremental_export(url, self.config['access_token'], self.request_timeout, start_time, side_load):
+        for page in http.get_incremental_export(url, http.get_credential(self.config), self.request_timeout, start_time, side_load):
             yield from page[self.item_key]
 
     def sync(self, state, parent_obj: Dict = None):

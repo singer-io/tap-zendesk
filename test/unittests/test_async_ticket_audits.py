@@ -537,7 +537,7 @@ class TestASyncTicketAudits(unittest.TestCase):
     @patch("tap_zendesk.streams.tickets.singer.write_state")
     @patch("tap_zendesk.streams.tickets.zendesk_metrics.capture")
     @patch("tap_zendesk.streams.abstracts.LOGGER.info")
-    def test_sync_flattens_metric_events_dict_of_lists_when_selected(
+    def test_sync_emits_metric_events_fetched_per_ticket(
         self,
         mock_info,
         mock_capture,
@@ -547,27 +547,13 @@ class TestASyncTicketAudits(unittest.TestCase):
         mock_update_bookmark,
     ):
         """
-        Zendesk's sideloaded `metric_events` is a dict keyed by metric name,
-        each value a list of event records (not a flat list). sync() must
-        flatten this into individual ticket_metric_event records.
+        Metric events are fetched per ticket (the sideload is documented for a single
+        ticket only), so sync() must emit what the per-ticket fetch returns.
         """
         state = {"bookmarks": {"ticket_metric_events": {"time": "2023-01-01T00:00:00Z"}}}
         mock_get_bookmark.return_value = utils.strptime_with_tz("2023-01-01T00:00:00Z")
         mock_get_objects.return_value = [
-            {
-                "id": 1,
-                "generated_timestamp": 1672531200,
-                "fields": "duplicate",
-                "metric_events": {
-                    "agent_work_time": [
-                        {"id": 1, "type": "agent_work_time", "time": "2023-01-01T00:00:01Z"},
-                        {"id": 2, "type": "agent_work_time", "time": "2023-01-01T00:00:02Z"},
-                    ],
-                    "pausable_update_time": [
-                        {"id": 3, "type": "pausable_update_time", "time": "2023-01-01T00:00:03Z"},
-                    ],
-                },
-            },
+            {"id": 1, "generated_timestamp": 1672531200, "fields": "duplicate"},
         ]
         config = {
             'start_date': '2024-01-01T00:00:00Z',
@@ -578,6 +564,11 @@ class TestASyncTicketAudits(unittest.TestCase):
         instance.is_selected = MagicMock(return_value=False)
         instance.emit_sub_stream_metrics = MagicMock(return_value=None)
         instance.sync_ticket_audits_and_comments = MagicMock(return_value=[([], [])])
+        instance.sync_ticket_metric_events = MagicMock(return_value=[[
+            {"id": 1, "type": "agent_work_time", "time": "2023-01-01T00:00:01Z"},
+            {"id": 2, "type": "agent_work_time", "time": "2023-01-01T00:00:02Z"},
+            {"id": 3, "type": "pausable_update_time", "time": "2023-01-01T00:00:03Z"},
+        ]])
 
         with patch("tap_zendesk.streams.ticket_metrics.TicketMetrics.is_selected", return_value=False), \
              patch("tap_zendesk.streams.ticket_metric_events.TicketMetricEvents.is_selected", return_value=True), \
@@ -589,6 +580,8 @@ class TestASyncTicketAudits(unittest.TestCase):
         self.assertEqual(len(result), 3)
         yielded_ids = sorted(record["id"] for _, record in result)
         self.assertEqual(yielded_ids, [1, 2, 3])
+        instance.sync_ticket_metric_events.assert_called_once()
+        self.assertEqual(instance.sync_ticket_metric_events.call_args.args[1], [1])
         metric_event_captures = [call for call in mock_capture.call_args_list if call.args == ('ticket_metric_event',)]
         self.assertEqual(len(metric_event_captures), 3)
         mock_update_bookmark.assert_any_call(
