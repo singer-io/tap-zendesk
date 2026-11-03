@@ -8,6 +8,7 @@
   * Streams using the REST client support both OAuth (`access_token`) and email + `api_token` authentication.
   * Remove `incremental_ticket_events` (use `ticket_audits`). Catalogs that still contain it are ignored with a warning; rediscover the catalog to remove it.
   * Fail visibly when cursor pagination cannot progress.
+  * Document recurring full-account scans for users, organizations, and tickets, including request/runtime estimates and large-account customer-acceptance requirements. Add simulated HTTP request-count regression coverage; live-account throughput is not certified.
 
 ## 2.9.1
   * Bump aiohttp to 3.14.4 for security updates [#202](https://github.com/singer-io/tap-zendesk/pull/202)

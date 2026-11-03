@@ -341,6 +341,86 @@ class TestInterruptedTicketSync(unittest.TestCase):
         self.assertEqual(run.state_writes[-1], state)
 
 
+class TestFullAccountScans(unittest.TestCase):
+    """Validate scan cost independently of the number of qualifying records."""
+
+    stream_classes = (streams.Users, streams.Organizations, streams.Tickets)
+    bookmark = "2023-01-10T00:00:00Z"
+    old_timestamp = "2023-01-05T00:00:00Z"
+    new_timestamp = "2023-01-12T00:00:00Z"
+
+    def assert_scan(self, stream_class, state, record_count, last_timestamp):
+        stream = stream_class(config=CONFIG)
+        stream.child_to_sync = []
+        self.assertEqual(stream.page_size, 100)
+
+        def list_page(url, params, headers, timeout):
+            self.assertEqual(url, f"https://example.zendesk.com/api/v2/{stream.name}")
+            offset = (request.call_count - 1) * stream.page_size
+            expected_params = {"page[size]": 100, "sort": "updated_at"}
+            if stream.name == "tickets":
+                expected_params["include"] = "metric_sets"
+            if offset:
+                expected_params["page[after]"] = str(offset)
+            self.assertEqual(params, expected_params)
+
+            end = min(offset + stream.page_size, record_count)
+            records = []
+            for record_id in range(offset + 1, end + 1):
+                timestamp = last_timestamp if record_id == record_count else self.old_timestamp
+                if stream.name == "tickets":
+                    record = make_ticket(record_id, timestamp)
+                else:
+                    record = {"id": record_id, "updated_at": timestamp}
+                records.append(record)
+
+            meta = {"has_more": end < record_count}
+            if meta["has_more"]:
+                meta["after_cursor"] = str(end)
+            return Mock(status_code=200, json=Mock(return_value={stream.item_key: records, "meta": meta}))
+
+        with ExitStack() as stack:
+            for name in [stream.name, *stream.children]:
+                stack.enter_context(patch.object(
+                    streams.STREAMS[name], "stream", catalog_entry(name, name == stream.name)))
+            stack.enter_context(patch("tap_zendesk.streams.tickets.singer.write_state"))
+            stack.enter_context(patch("tap_zendesk.streams.tickets.zendesk_metrics.capture"))
+            child_request = stack.enter_context(patch("tap_zendesk.http.call_api_async"))
+            request = stack.enter_context(patch("tap_zendesk.http.requests.get", side_effect=list_page))
+            records = list(stream.sync(state))
+
+            self.assertEqual(request.call_count, max(1, (record_count + 99) // 100))
+            child_request.assert_not_called()
+        return [record["id"] for _, record in records]
+
+    def test_unchanged_accounts_repeat_the_full_scan_without_emitting_old_records(self):
+        for stream_class in self.stream_classes:
+            with self.subTest(stream=stream_class.name):
+                state = {"bookmarks": {stream_class.name: {stream_class.replication_key: self.bookmark}}}
+                original = copy.deepcopy(state)
+                for _ in range(2):
+                    self.assertEqual(self.assert_scan(stream_class, state, 10001, self.old_timestamp), [])
+                    self.assertEqual(state, original)
+
+    def test_final_page_change_and_boundary_replay_each_require_a_full_scan(self):
+        for stream_class in self.stream_classes:
+            with self.subTest(stream=stream_class.name):
+                state = {"bookmarks": {stream_class.name: {stream_class.replication_key: self.bookmark}}}
+                for _ in range(2):
+                    self.assertEqual(self.assert_scan(stream_class, state, 10001, self.new_timestamp), [10001])
+                    self.assertEqual(state["bookmarks"][stream_class.name][stream_class.replication_key],
+                                     self.new_timestamp)
+
+    def test_empty_and_exact_page_size_accounts(self):
+        for stream_class in self.stream_classes:
+            for record_count in (0, 100):
+                with self.subTest(stream=stream_class.name, record_count=record_count):
+                    state = {"bookmarks": {stream_class.name: {stream_class.replication_key: self.bookmark}}}
+                    original = copy.deepcopy(state)
+                    self.assertEqual(self.assert_scan(stream_class, state, record_count, self.old_timestamp), [])
+                    self.assertEqual(state, original)
+
+
 class TestRetiredStreams(unittest.TestCase):
     def make_catalog(self, retired_selected):
         return Catalog(streams=[
