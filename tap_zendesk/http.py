@@ -1,6 +1,8 @@
 import base64
+import re
 from time import sleep
 from asyncio import sleep as async_sleep
+from urllib.parse import urlsplit
 import backoff
 import requests
 import singer
@@ -22,6 +24,52 @@ DEFAULT_WAIT_FOR_CONFLICT_ERROR = 10
 
 BASE_URL = "https://{subdomain}.zendesk.com/api/v2/"
 BASIC_AUTH_PREFIX = "Basic "
+
+def validate_subdomain(subdomain):
+    """Require a single ASCII DNS label, not a URL or hostname."""
+    if not isinstance(subdomain, str) or not re.fullmatch(
+            r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", subdomain):
+        raise ValueError("Zendesk subdomain must be a single DNS label of 1-63 letters, digits, or hyphens.")
+    return subdomain
+
+def validate_url(url, expected_url=None):
+    """Reject credential destinations outside HTTPS Zendesk tenant origins."""
+    if not isinstance(url, str) or not url.isascii() or any(
+            char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url) or "\\" in url:
+        raise ValueError("Invalid Zendesk request URL.")
+    parsed = urlsplit(url)
+    hostname = parsed.hostname or ""
+    suffix = ".zendesk.com"
+    if not hostname.endswith(suffix):
+        raise ValueError("Zendesk requests must target a Zendesk tenant origin.")
+    validate_subdomain(hostname[:-len(suffix)])
+    if (parsed.scheme != "https"
+            or parsed.netloc.lower() not in (hostname, hostname + ":443")
+            or "#" in url):
+        raise ValueError("Zendesk requests require HTTPS without user information, fragments, or nonstandard ports.")
+    origin = "https://" + hostname
+    if expected_url is not None and origin != validate_url(expected_url):
+        raise ValueError("Zendesk request URL must remain on the configured tenant origin.")
+    return origin
+
+def reject_redirect(status):
+    """Do not forward credentials or OAuth POST bodies via redirects."""
+    if status in range(300, 400):
+        raise ValueError("Zendesk request redirects are not supported; refusing to forward credentials.")
+
+class ZendeskSession(requests.Session):
+    """Keep Zenpy requests, including pagination, on the configured tenant."""
+
+    def __init__(self, subdomain):
+        super().__init__()
+        self.origin = f"https://{validate_subdomain(subdomain)}.zendesk.com"
+
+    def send(self, request, **kwargs):
+        validate_url(request.url, self.origin)
+        kwargs["allow_redirects"] = False
+        response = super().send(request, **kwargs)
+        reject_redirect(response.status_code)
+        return response
 
 def is_fatal(exception):
     status_code = exception.response.status_code
@@ -104,7 +152,9 @@ def get_credential(config: dict) -> str:
                     max_tries=5, # here we added another backoff expression.
                     factor=2)
 def call_api(url, request_timeout, params, headers):
-    response = requests.get(url, params=params, headers=headers, timeout=request_timeout) # Pass request timeout
+    validate_url(url)
+    response = requests.get(url, params=params, headers=headers, timeout=request_timeout, allow_redirects=False)
+    reject_redirect(response.status_code)
     raise_for_error(response)
     return response
 
@@ -156,6 +206,7 @@ def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
     Yields:
         dict: Parsed JSON response from each page.
     """
+    validate_url(url)
     custom_headers = kwargs.pop('headers', {})
     query_params = kwargs.pop('params', {})
 
@@ -167,6 +218,7 @@ def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
     }
 
     while next_url:
+        validate_url(next_url, url)
         response = call_api(
             next_url,
             request_timeout,
@@ -251,9 +303,11 @@ async def call_api_async(session, url, request_timeout, params, headers):
     """
     Perform an asynchronous GET request
     """
+    validate_url(url)
     async with session.get(
-        url, params=params, headers=headers, timeout=request_timeout
+        url, params=params, headers=headers, timeout=request_timeout, allow_redirects=False
     ) as response:
+        reject_redirect(response.status)
         response_json = await raise_for_error_for_async(response)
 
         return response_json
@@ -365,6 +419,7 @@ def get_incremental_export_offset(url, access_token, request_timeout, page_size,
     """
     Generator to handle Zendesk's incremental export API using offset pagination.
     """
+    validate_url(url)
     headers = build_headers(access_token=access_token)
     next_url = url
 
@@ -377,6 +432,7 @@ def get_incremental_export_offset(url, access_token, request_timeout, page_size,
     }
 
     while next_url:
+        validate_url(next_url, url)
         response = call_api(
             next_url,
             request_timeout,

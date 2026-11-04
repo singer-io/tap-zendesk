@@ -94,7 +94,7 @@ class TestBackoff(unittest.TestCase):
     def test_get_cursor_based_gets_one_page(self, mock_get, mock_sleep):
         responses = [
             response
-            for response in http.get_cursor_based(url="some_url",
+            for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                   access_token="some_token",
                                                   request_timeout=REQUEST_TIMEOUT,
                                                   page_size=PAGE_SIZE)
@@ -116,7 +116,7 @@ class TestBackoff(unittest.TestCase):
     def test_get_cursor_based_can_paginate(self, mock_get, mock_sleep):
         responses = [
             response
-            for response in http.get_cursor_based(url="some_url",
+            for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                   access_token="some_token",
                                                   request_timeout=REQUEST_TIMEOUT,
                                                   page_size=PAGE_SIZE)
@@ -153,7 +153,7 @@ class TestBackoff(unittest.TestCase):
         """
         responses = [
             response
-            for response in http.get_cursor_based(url="some_url",
+            for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                   access_token="some_token",
                                                   request_timeout=REQUEST_TIMEOUT,
                                                   page_size=PAGE_SIZE)
@@ -172,7 +172,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -198,7 +198,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -221,7 +221,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -244,7 +244,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -266,7 +266,7 @@ class TestBackoff(unittest.TestCase):
         with self.assertRaises(ZendeskConflictError) as e:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -284,7 +284,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -308,7 +308,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -335,7 +335,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -359,7 +359,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -383,7 +383,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -414,7 +414,7 @@ class TestBackoff(unittest.TestCase):
 
         try:
             responses = http.call_api(
-                url="some_url", request_timeout=300, params={}, headers={}
+                url="https://example.zendesk.com/resource", request_timeout=300, params={}, headers={}
             )
         except requests.exceptions.Timeout as e:
             pass
@@ -428,7 +428,7 @@ class TestBackoff(unittest.TestCase):
 
         try:
             responses = http.call_api(
-                url="some_url", request_timeout=300, params={}, headers={}
+                url="https://example.zendesk.com/resource", request_timeout=300, params={}, headers={}
             )
         except ConnectionError as e:
             pass
@@ -447,7 +447,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -471,7 +471,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -495,7 +495,7 @@ class TestBackoff(unittest.TestCase):
         try:
             responses = [
                 response
-                for response in http.get_cursor_based(url="some_url",
+                for response in http.get_cursor_based(url="https://example.zendesk.com/resource",
                                                       access_token="some_token",
                                                       request_timeout=300,
                                                       page_size=PAGE_SIZE)
@@ -518,7 +518,7 @@ class TestBackoff(unittest.TestCase):
 
         with self.assertRaises(ProtocolError) as _:
             http.call_api(
-                url="some_url", request_timeout=300, params={}, headers={}
+                url="https://example.zendesk.com/resource", request_timeout=300, params={}, headers={}
             )
         self.assertEqual(mock_get.call_count, 5)
 
@@ -530,7 +530,7 @@ class TestBackoff(unittest.TestCase):
 
         with self.assertRaises(ChunkedEncodingError) as _:
             http.call_api(
-                url="some_url", request_timeout=300, params={}, headers={}
+                url="https://example.zendesk.com/resource", request_timeout=300, params={}, headers={}
             )
         self.assertEqual(mock_get.call_count, 5)
 
@@ -542,7 +542,7 @@ class TestBackoff(unittest.TestCase):
 
         with self.assertRaises(ConnectionResetError) as _:
             http.call_api(
-                url="some_url", request_timeout=300, params={}, headers={}
+                url="https://example.zendesk.com/resource", request_timeout=300, params={}, headers={}
             )
         self.assertEqual(mock_get.call_count, 5)
 
@@ -554,7 +554,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that call_api_async successfully retrieves data when the response status is 200.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         response_data = {"key": "value"}
         mock_response = AsyncMock()
         mock_response.status = 200
@@ -574,7 +574,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that call_api_async retries the request when the response status is 429 (Too Many Requests) and Retry-After header is present with value 10.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         retry_after = "10"
         response_data = {"key": "value"}
         mock_error_response = AsyncMock()
@@ -605,7 +605,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that call_api_async retries the request when the response status is 429 (Too Many Requests) and Retry-After header is present with value 0
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         retry_after = "0"
         response_data = {"key": "value"}
         mock_error_response = AsyncMock()
@@ -636,7 +636,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that call_api_async retries the request when the response status is 429 (Too Many Requests) and Retry-After header is missing.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         response_data = {"key": "value"}
         mock_error_response = AsyncMock()
         mock_error_response.status = 429
@@ -669,7 +669,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that call_api_async raises an exception after 5 retries when the response status is 429 (Too Many Requests).
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         retry_after = "1"
         mock_error_response = AsyncMock()
         mock_error_response.status = 429
@@ -702,7 +702,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that call_api_async retries the request when the response status is 409 (Conflict).
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         response_data = {"key": "value"}
         mock_error_response = AsyncMock()
         mock_error_response.status = 409
@@ -732,7 +732,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that call_api_async retries the request when the response status is 409 (Conflict) with backoff.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         response_data = {"key": "value"}
         mock_error_response = AsyncMock()
         mock_error_response.status = 409
@@ -763,7 +763,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that call_api_async raises an exception for 500 (Internal Server Error) after 5 retries.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         error_message = "Internal Server Error"
         response_data = {"error": error_message}
         mock_error_response = AsyncMock()
@@ -793,7 +793,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that call_api_async raises an exception for 502 (Bad Gateway Error) after 5 retries.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         error_message = "Bad Gateway Error"
         response_data = {"error": error_message}
         mock_error_response = AsyncMock()
@@ -823,7 +823,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that call_api_async raises an exception for 524 (Unknown Error) after 5 retries.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         error_message = "Unknown Error"
         response_data = {"error": error_message}
         mock_error_response = AsyncMock()
@@ -853,7 +853,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that call_api_async raises an exception for 401 (Bad Request) responses without retrying.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         error_message = "Bad Request"
         response_data = {"error": error_message}
         mock_error_response = AsyncMock()
@@ -876,7 +876,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         Test that paginate_ticket_audits correctly paginates through multiple pages of results.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         access_token = "test_token"
         page_size = 2
         first_page = {
@@ -940,7 +940,7 @@ class TestAPIAsync(unittest.TestCase):
         """
         A response with has_more=False should return immediately after one page.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         response_data = {
             "identities": [{"id": 1}, {"id": 2}],
             "meta": {"has_more": False},
@@ -965,7 +965,7 @@ class TestAPIAsync(unittest.TestCase):
         Multiple pages linked via meta.after_cursor should be aggregated into
         a single list of records, in order.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         first_page = {
             "identities": [{"id": 1}],
             "meta": {"has_more": True, "after_cursor": "cursor-1"},
@@ -1003,7 +1003,7 @@ class TestAPIAsync(unittest.TestCase):
         If has_more is True but no after_cursor is present, pagination should
         stop rather than loop forever.
         """
-        url = "https://api.example.com/resource"
+        url = "https://example.zendesk.com/resource"
         response_data = {
             "identities": [{"id": 1}],
             "meta": {"has_more": True},
@@ -1083,7 +1083,7 @@ class TestHttpPaginationHelpers(unittest.TestCase):
         async def run_test():
             async with ClientSession() as session:
                 result = await http.paginate_ticket_audits(
-                    session, "https://api.example.com/resource", "token", 10, 2
+                    session, "https://example.zendesk.com/resource", "token", 10, 2
                 )
                 self.assertEqual(result["audits"], [{"id": 1}, {"id": 2}, {"id": 3}])
 
@@ -1140,7 +1140,7 @@ class TestHttpPaginationHelpers(unittest.TestCase):
         async def run_test():
             async with ClientSession() as session:
                 with self.assertRaises(ZendeskNotFoundError) as context:
-                    await http.call_api_async(session, "https://api.example.com/resource", 10, {}, {})
+                    await http.call_api_async(session, "https://example.zendesk.com/resource", 10, {}, {})
                 self.assertIn("HTTP-error-code: 404", str(context.exception))
 
         asyncio.run(run_test())

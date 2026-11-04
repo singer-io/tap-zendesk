@@ -354,7 +354,8 @@ class TestFullAccountScans(unittest.TestCase):
         stream.child_to_sync = []
         self.assertEqual(stream.page_size, 100)
 
-        def list_page(url, params, headers, timeout):
+        def list_page(url, params, headers, timeout, allow_redirects):
+            self.assertFalse(allow_redirects)
             self.assertEqual(url, f"https://example.zendesk.com/api/v2/{stream.name}")
             offset = (request.call_count - 1) * stream.page_size
             expected_params = {"page[size]": 100, "sort": "updated_at"}

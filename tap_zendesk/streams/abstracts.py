@@ -187,11 +187,14 @@ class Stream():
         """
         format_values = self.config.copy()
         try:
+            http.validate_subdomain(format_values["subdomain"])
             base_url = http.BASE_URL.format(**format_values)
             endpoint_path = self.endpoint.format(**kwargs)
         except KeyError as e:
             raise ValueError(f"Missing required placeholder in config: {e}") from e
-        return urljoin(base_url + '/', endpoint_path.lstrip('/'))
+        url = urljoin(base_url + '/', endpoint_path.lstrip('/'))
+        http.validate_url(url, base_url)
+        return url
 
     def modify_object(self, record: Dict, **_kwargs) -> Dict:
         """

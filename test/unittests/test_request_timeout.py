@@ -12,7 +12,7 @@ PAGINATE_RESPONSE = {
              'after_cursor': 'some_cursor'},
     'end_of_stream': False,
     'after_cursor': 'some_cursor',
-    'next_page': '3'
+    'next_page': 'https://example.zendesk.com/resource?page=3'
 }
 REQUEST_TIMEOUT = 300
 REQUEST_TIMEOUT_STR = "300"
@@ -47,7 +47,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         mock_get.side_effect = requests.exceptions.Timeout
 
         try:
-            responses = http.call_api(url='some_url', request_timeout=300, params={}, headers={})
+            responses = http.call_api(url='https://example.zendesk.com/resource', request_timeout=300, params={}, headers={})
         except requests.exceptions.Timeout as e:
             pass
 
@@ -60,7 +60,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """
 
         try:
-            responses = [response for response in http.get_cursor_based(url='some_url',
+            responses = [response for response in http.get_cursor_based(url='https://example.zendesk.com/resource',
                                                                         access_token='some_token',
                                                                         request_timeout=REQUEST_TIMEOUT,
                                                                         page_size=PAGE_SIZE)]
@@ -78,7 +78,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """
 
         try:
-            responses = [response for response in http.get_cursor_based(url='some_url',
+            responses = [response for response in http.get_cursor_based(url='https://example.zendesk.com/resource',
                                                                         access_token='some_token',
                                                                         request_timeout=REQUEST_TIMEOUT,
                                                                         page_size=PAGE_SIZE)]
@@ -94,7 +94,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """
 
         try:
-            responses = [response for response in http.get_offset_based(url='some_url',
+            responses = [response for response in http.get_offset_based(url='https://example.zendesk.com/resource',
                                                                         access_token='some_token',
                                                                         request_timeout=REQUEST_TIMEOUT,
                                                                         page_size=PAGE_SIZE)]
@@ -112,7 +112,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """
 
         try:
-            responses = [response for response in http.get_offset_based(url='some_url',
+            responses = [response for response in http.get_offset_based(url='https://example.zendesk.com/resource',
                                                                         access_token='some_token',
                                                                         request_timeout=REQUEST_TIMEOUT,
                                                                         page_size=PAGE_SIZE)]
@@ -128,7 +128,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """
 
         try:
-            responses = [response for response in http.get_incremental_export(url='some_url',access_token='some_token', 
+            responses = [response for response in http.get_incremental_export(url='https://example.zendesk.com/resource',access_token='some_token',
                                                                               request_timeout=REQUEST_TIMEOUT, start_time= datetime.datetime.utcnow(), side_load=None)]
         except requests.exceptions.Timeout as e:
             pass

@@ -130,6 +130,14 @@ the offline tests do not substitute for them.
 
 ## Authentication
 
+`subdomain` must be a single DNS label (1-63 ASCII letters, digits, or hyphens,
+with no leading/trailing hyphen), for example `acme`, not a URL or full hostname.
+Authenticated requests use HTTPS on that tenant's `*.zendesk.com` origin.
+Absolute pagination URLs must remain on the initial tenant origin; user
+information, fragments, nonstandard ports, and foreign hosts are rejected.
+HTTP redirects are rejected rather than followed, including during OAuth token
+inspection/refresh and Zenpy requests, to prevent forwarding credentials.
+
 ### Using OAuth
 
 OAuth is the default authentication method for `tap-zendesk`. To use OAuth, you will need to fetch an `access_token` from a configured Zendesk integration. See https://support.zendesk.com/hc/en-us/articles/203663836 for more details on how to integrate your application with Zendesk.

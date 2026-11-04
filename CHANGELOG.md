@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2.10.0
+  * Validate tenant subdomains and credential-bearing request origins, pin absolute pagination URLs to the tenant, and reject redirects in REST, OAuth, and Zenpy requests.
   * Migrate off the deprecated Incremental APIs to Zendesk's paginated replacements. The List Tickets endpoint excludes archived tickets, so they are not synced; see README.md.
   * `ticket_metric_events` is fetched per ticket (`GET /api/v2/tickets/{id}?include=metric_events`), as Zendesk documents that sideload for a single ticket only. It keeps its own `time` bookmark, and tickets are walked from the earlier of the `tickets` and `ticket_metric_events` bookmarks so no events are skipped.
   * The `tickets` and `ticket_metric_events` bookmarks are saved only after all ticket pages are read, so an interrupted sync cannot skip tickets (List Tickets is ordered by `updated_at`, not by the `generated_timestamp` bookmark).

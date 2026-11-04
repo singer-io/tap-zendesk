@@ -394,7 +394,8 @@ class TestUserIdentities(unittest.TestCase):
             async def __aexit__(self, exc_type, exc, tb):
                 return False
 
-        def fake_get(url, params=None, headers=None, timeout=None):
+        def fake_get(url, params=None, headers=None, timeout=None, allow_redirects=True):
+            self.assertFalse(allow_redirects)
             attempts_by_url[url] = attempts_by_url.get(url, 0) + 1
             response = AsyncMock()
             if attempts_by_url[url] == 1:
