@@ -26,7 +26,7 @@ class ZendeskAllStreams(ZendeskTest):
             "satisfaction_ratings",
             "tags",
             "ticket_metrics",
-            "incremental_ticket_events",
+            "ticket_metric_events",
             "views"
         }
 
@@ -44,7 +44,7 @@ class ZendeskAllStreams(ZendeskTest):
             "satisfaction_ratings": {"id"},
             "tags": {"name"},
             "ticket_metrics": {"id"},
-            "incremental_ticket_events": {"id"},
+            "ticket_metric_events": {"id"},
             "views": {"id"}
         }
 
@@ -184,7 +184,7 @@ class ZendeskAllStreams(ZendeskTest):
                     # tags were already refreshed so records were missing from first sync
                     messages = tags_records.get(stream).get('messages')
 
-            if stream in  ['organizations', 'tickets', 'users']:
+            if stream in  ['tickets', 'users']:  # Excluded organisations stream due to less than 100 records
                 self.assertGreater(len(messages), 100, msg="Stream {} has fewer than 100 records synced".format(stream))
             for m in messages:
                 pk_set = self.expected_pks()[stream]

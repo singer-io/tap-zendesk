@@ -2,7 +2,7 @@ import asyncio
 from aiohttp import ClientSession
 from tap_zendesk import http
 from tap_zendesk import metrics as zendesk_metrics
-from tap_zendesk.streams.abstracts import Stream, HEADERS
+from tap_zendesk.streams.abstracts import Stream
 from tap_zendesk.exceptions import (
     ZendeskNotFoundError
 )
@@ -30,7 +30,7 @@ class TicketAudits(Stream):
     async def get_objects(self, session, ticket_id):
         url = self.get_stream_endpoint(ticket_id=ticket_id)
         # Fetch the ticket audits using pagination
-        records = await http.paginate_ticket_audits(session, url, self.config['access_token'], self.request_timeout, self.page_size)
+        records = await http.paginate_ticket_audits(session, url, http.get_credential(self.config), self.request_timeout, self.page_size)
 
         return records[self.item_key]
 
@@ -76,9 +76,9 @@ class TicketAudits(Stream):
         '''
         ticket_id = '1'
         url = self.get_stream_endpoint(ticket_id=ticket_id)
-        HEADERS['Authorization'] = 'Bearer {}'.format(self.config["access_token"])
         try:
-            http.call_api(url, self.request_timeout, params={'per_page': 1}, headers=HEADERS)
+            http.call_api(url, self.request_timeout, params={'per_page': 1},
+                          headers=http.build_headers(http.get_credential(self.config)))
         except ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
             pass
