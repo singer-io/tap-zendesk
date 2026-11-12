@@ -172,8 +172,8 @@ class Stream():
         '''
         url = self.get_stream_endpoint()
 
-        http.call_api(url, self.request_timeout, params={'per_page': 1},
-                      headers=http.build_headers(http.get_credential(self.config)))
+        http.probe_api(url, self.request_timeout, params={'per_page': 1},
+                       headers=http.build_headers(http.get_credential(self.config)))
 
     def update_params(self, **kwargs) -> None:  # pylint: disable=unused-argument
         """

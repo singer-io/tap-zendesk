@@ -504,17 +504,17 @@ class TestCheckAccessOptionalStreams(unittest.TestCase):
         stream.check_access()
 
     # -----------------------------------------------------------------------
-    # SatisfactionRatings: base class check_access() via http.call_api
-    # Confirms the implicit contract: http.call_api → raise_for_error maps
+    # SatisfactionRatings: base class check_access() via http.probe_api
+    # Confirms the implicit contract: http.probe_api → raise_for_error maps
     # HTTP 403 to ZendeskForbiddenError, so no dedicated override is needed.
     # -----------------------------------------------------------------------
     def test_satisfaction_ratings_403_raises_zendesk_forbidden(self):
         '''
         SatisfactionRatings.is_optional=True relies on the base Stream.check_access()
-        which calls http.call_api(). raise_for_error() maps HTTP 403 directly to
+        which calls http.probe_api(). raise_for_error() maps HTTP 403 directly to
         ZendeskForbiddenError via ERROR_CODE_EXCEPTION_MAPPING — no override is
         needed. This test explicitly guards that contract so the implicit dependency
-        on http.call_api behaviour is visible and regression-protected.
+        on http.probe_api behaviour is visible and regression-protected.
         '''
         with patch('requests.get', return_value=mocked_get(
                 status_code=403, json={'error': 'Forbidden'})):
@@ -524,11 +524,11 @@ class TestCheckAccessOptionalStreams(unittest.TestCase):
 
     def test_satisfaction_ratings_non_403_reraises_unchanged(self):
         '''
-        A non-403 error raised by http.call_api must propagate unchanged.
-        We patch http.call_api directly to avoid triggering the backoff decorator
+        A non-403 error raised by http.probe_api must propagate unchanged.
+        We patch http.probe_api directly to avoid triggering the backoff decorator
         (which retries 5xx errors up to 10 times, causing the test to hang).
         '''
-        with patch('tap_zendesk.streams.http.call_api',
+        with patch('tap_zendesk.streams.http.probe_api',
                    side_effect=ZendeskInternalServerError('500 Server Error')):
             stream = SatisfactionRatings(MagicMock(), self.CONFIG)
             with self.assertRaises(ZendeskInternalServerError):
