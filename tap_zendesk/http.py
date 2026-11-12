@@ -1,4 +1,6 @@
 import base64
+import logging
+import traceback
 import re
 from time import sleep
 from asyncio import sleep as async_sleep
@@ -13,6 +15,8 @@ from tap_zendesk.exceptions import (
     ERROR_CODE_EXCEPTION_MAPPING,
     ZendeskError,
     ZendeskBackoffError,
+    ZendeskForbiddenError,
+    ZendeskNotFoundError,
 )
 
 
@@ -152,11 +156,47 @@ def get_credential(config: dict) -> str:
                     max_tries=5, # here we added another backoff expression.
                     factor=2)
 def call_api(url, request_timeout, params, headers):
+    return _request(url, request_timeout, params, headers)
+
+def _request(url, request_timeout, params, headers):
     validate_url(url)
     response = requests.get(url, params=params, headers=headers, timeout=request_timeout, allow_redirects=False)
     reject_redirect(response.status_code)
     raise_for_error(response)
     return response
+
+BACKOFF_LOGGER = logging.getLogger("backoff")
+
+def _format_exception(exc):
+    return traceback.format_exception_only(type(exc), exc)[-1].rstrip("\n")
+
+def _log_probe_backoff(details):
+    BACKOFF_LOGGER.info("Backing off %s(...) for %.1fs (%s)",
+                        details["target"].__name__, details["wait"], _format_exception(details["exception"]))
+
+def _log_probe_giveup(details):
+    """Log at WARNING only for errors the probe's caller handles; everything else stays at ERROR."""
+    exc = details["exception"]
+    expected = (ZendeskForbiddenError, ZendeskNotFoundError) if details["kwargs"].get("not_found_ok") \
+        else (ZendeskForbiddenError,)
+    level = logging.WARNING if isinstance(exc, expected) else logging.ERROR
+    BACKOFF_LOGGER.log(level, "Giving up %s(...) after %d tries (%s)",
+                       details["target"].__name__, details["tries"], _format_exception(exc))
+
+@backoff.on_exception(backoff.expo,
+                      (HTTPError, ZendeskError),
+                      max_tries=10,
+                      giveup=is_fatal,
+                      logger=None,
+                      on_backoff=_log_probe_backoff,
+                      on_giveup=_log_probe_giveup)
+@backoff.on_exception(backoff.expo,
+                      (ConnectionError, ConnectionResetError, Timeout, ChunkedEncodingError, ProtocolError),
+                      max_tries=5,
+                      factor=2)
+def probe_api(url, request_timeout, params, headers, not_found_ok=False): # pylint: disable=unused-argument
+    """call_api for check_access probes. 403 (and 404 when not_found_ok) are expected and handled by the caller."""
+    return _request(url, request_timeout, params, headers)
 
 def get_cursor_based(url, access_token, request_timeout, page_size, cursor=None, **kwargs):
     """

@@ -181,12 +181,12 @@ class TestIsSelected(unittest.TestCase):
 
 class TestCheckAccess(unittest.TestCase):
 
-    @patch('tap_zendesk.streams.abstracts.http.call_api')
-    def test_calls_api_with_stream_endpoint(self, mock_call_api):
+    @patch('tap_zendesk.streams.abstracts.http.probe_api')
+    def test_calls_api_with_stream_endpoint(self, mock_probe_api):
         stream = Stream(client=MagicMock(), config=make_config())
         stream.endpoint = "bookmarks"
         stream.check_access()
-        mock_call_api.assert_called_once()
+        mock_probe_api.assert_called_once()
 
 
 class TestUpdateParams(unittest.TestCase):

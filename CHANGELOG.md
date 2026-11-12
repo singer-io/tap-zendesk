@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.10.1
+  * Log expected discovery permission-probe give-ups (403, and 404 for `ticket_audits`) at WARNING instead of ERROR. Other errors stay at ERROR.
+
 ## 2.10.0
   * Validate tenant subdomains and credential-bearing request origins, pin absolute pagination URLs to the tenant, and reject redirects in REST, OAuth, and Zenpy requests.
   * Migrate off the deprecated Incremental APIs to Zendesk's paginated replacements. The List Tickets endpoint excludes archived tickets, so they are not synced; see README.md.

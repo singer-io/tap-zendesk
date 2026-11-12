@@ -485,12 +485,12 @@ class TestOrganizations(unittest.TestCase):
         self.assertEqual(results, [])
         self.assertEqual(state["bookmarks"]["organizations"]["updated_at"], "2020-01-01T00:00:00Z")
 
-    @patch('tap_zendesk.streams.abstracts.http.call_api')
-    def test_check_access_uses_base_implementation(self, mock_call_api):
+    @patch('tap_zendesk.streams.abstracts.http.probe_api')
+    def test_check_access_uses_base_implementation(self, mock_probe_api):
         stream = Organizations(client=MagicMock(), config=make_config())
         stream.check_access()
-        mock_call_api.assert_called_once()
-        args, kwargs = mock_call_api.call_args
+        mock_probe_api.assert_called_once()
+        args, kwargs = mock_probe_api.call_args
         self.assertIn('organizations', args[0])
         self.assertEqual(kwargs['params'], {'per_page': 1})
 

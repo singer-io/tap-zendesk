@@ -221,5 +221,5 @@ class Tickets(PaginatedStream):
         # Convert start_date parameter to timestamp to pass with request param
         start_time = datetime.strptime(self.config['start_date'], START_DATE_FORMAT).timestamp()
 
-        http.call_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1},
-                      headers=http.build_headers(http.get_credential(self.config)))
+        http.probe_api(url, self.request_timeout, params={'start_time': start_time, 'per_page': 1},
+                       headers=http.build_headers(http.get_credential(self.config)))

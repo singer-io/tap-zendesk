@@ -77,8 +77,9 @@ class TicketAudits(Stream):
         ticket_id = '1'
         url = self.get_stream_endpoint(ticket_id=ticket_id)
         try:
-            http.call_api(url, self.request_timeout, params={'per_page': 1},
-                          headers=http.build_headers(http.get_credential(self.config)))
+            http.probe_api(url, self.request_timeout, params={'per_page': 1},
+                           headers=http.build_headers(http.get_credential(self.config)),
+                           not_found_ok=True)
         except ZendeskNotFoundError:
             #Skip 404 ZendeskNotFoundError error as goal is just to check whether TicketComments have read permission or not
             pass

@@ -456,27 +456,27 @@ class TestASyncTicketAudits(unittest.TestCase):
             asyncio.run(run_test())
 
     @patch("tap_zendesk.streams.TicketAudits.get_stream_endpoint")
-    @patch("tap_zendesk.streams.http.call_api")
-    def test_check_access_success(self, mock_call_api, mock_get_endpoint):
+    @patch("tap_zendesk.streams.http.probe_api")
+    def test_check_access_success(self, mock_probe_api, mock_get_endpoint):
         """
-        check_access should call http.call_api and pass through when it succeeds.
+        check_access should call http.probe_api and pass through when it succeeds.
         """
         mock_get_endpoint.return_value = "https://example.zendesk.com/tickets/1/audits.json"
         instance = streams.TicketAudits("client", {"access_token": "token"})
 
         instance.check_access()
 
-        mock_call_api.assert_called_once()
+        mock_probe_api.assert_called_once()
 
     @patch("tap_zendesk.streams.TicketAudits.get_stream_endpoint")
-    @patch("tap_zendesk.streams.http.call_api")
-    def test_check_access_swallows_404(self, mock_call_api, mock_get_endpoint):
+    @patch("tap_zendesk.streams.http.probe_api")
+    def test_check_access_swallows_404(self, mock_probe_api, mock_get_endpoint):
         """
         check_access should silently ignore a ZendeskNotFoundError since the
         goal is only to verify read permission, not that ticket 1 exists.
         """
         mock_get_endpoint.return_value = "https://example.zendesk.com/tickets/1/audits.json"
-        mock_call_api.side_effect = ZendeskNotFoundError("not found")
+        mock_probe_api.side_effect = ZendeskNotFoundError("not found")
         instance = streams.TicketAudits("client", {"access_token": "token"})
 
         # Should not raise
