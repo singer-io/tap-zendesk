@@ -5,6 +5,12 @@
   ],
   "properties": {
     "custom": {},
+    "parent_audit_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
     "trusted": {
       "type": [
         "null",
