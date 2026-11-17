@@ -277,17 +277,19 @@
             ]
           },
           "value": {
-            "type": [
-              "null",
-              "array",
-              "string"
-            ],
-            "items": {
-              "type": [
-                "null",
-                "string"
-              ]
-            }
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "object"
+              },
+              {},
+              {
+                "type": "null"
+              }
+            ]
           },
           "author_id": {
             "type": [
@@ -404,6 +406,12 @@
                   "null",
                   "object"
                 ]
+              },
+              "current_sla_policy": {
+                "type": [
+                  "null",
+                  "string"
+                ]
               }
             },
             "type": [
@@ -460,17 +468,19 @@
             ]
           },
           "previous_value": {
-            "type": [
-              "null",
-              "array",
-              "string"
-            ],
-            "items": {
-              "type": [
-                "null",
-                "string"
-              ]
-            }
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "object"
+              },
+              {},
+              {
+                "type": "null"
+              }
+            ]
           },
           "macro_title": {
             "type": [
@@ -506,6 +516,12 @@
       ],
       "properties": {
         "custom": {},
+        "parent_audit_id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
         "trusted": {
           "type": [
             "null",
