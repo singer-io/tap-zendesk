@@ -85,6 +85,35 @@ class TestTicketAuditsEventValues(unittest.TestCase):
         self.assertEqual(out["previous_value"], 3)
 
 
+class TestTicketAuditsEventValueNullability(unittest.TestCase):
+    """ `null` must be declared explicitly so downstream parsers see the fields as nullable. """
+
+    FIELDS = ("value", "previous_value")
+
+    def event_props(self, schema):
+        return schema["properties"]["events"]["items"]["properties"]
+
+    def test_null_branch_is_declared(self):
+        for schema in (load_schema("ticket_audits.json"),
+                       Schema.from_dict(load_schema("ticket_audits.json")).to_dict()):
+            for field in self.FIELDS:
+                with self.subTest(field=field):
+                    self.assertIn({"type": "null"}, self.event_props(schema)[field]["anyOf"])
+
+    def test_null_branch_is_after_catch_all(self):
+        # `null` also matches "", so placing it before `{}` would turn "" into None.
+        for field in self.FIELDS:
+            with self.subTest(field=field):
+                branches = self.event_props(load_schema("ticket_audits.json"))[field]["anyOf"]
+                self.assertLess(branches.index({}), branches.index({"type": "null"}))
+
+    def test_empty_string_is_not_converted_to_null(self):
+        for field in self.FIELDS:
+            with self.subTest(field=field):
+                out = transform(audit_with_event(**{field: ""}))["events"][0][field]
+                self.assertEqual(out, "")
+
+
 class TestTicketAuditsAttributes(unittest.TestCase):
     """ Attributes returned by the API must not be dropped. """
 

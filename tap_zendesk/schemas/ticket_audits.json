@@ -285,7 +285,10 @@
               {
                 "type": "object"
               },
-              {}
+              {},
+              {
+                "type": "null"
+              }
             ]
           },
           "author_id": {
@@ -473,7 +476,10 @@
               {
                 "type": "object"
               },
-              {}
+              {},
+              {
+                "type": "null"
+              }
             ]
           },
           "macro_title": {
