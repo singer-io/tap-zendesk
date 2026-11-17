@@ -105,12 +105,14 @@ class ZendeskAllFields(ZendeskTest):
                         'creator_app_name', 'max_selections'
                     }
                 elif stream == "users":  # field appeared in synced records Nov 1 - Dec 18, 2023
-                    expected_all_keys = expected_all_keys - {'chat_only', 'suspension_details'}
+                    expected_all_keys = expected_all_keys - {'chat_only', 'suspension_details', 'permanently_deleted'}
                 elif stream == "ticket_metrics":
                     expected_all_keys = expected_all_keys - {
                         'status', 'instance_id', 'metric', 'type', 'time',
                         'custom_status_updated_at', 'reply_time_in_seconds'
                     }
+                elif stream == 'organizations':
+                    expected_all_keys = expected_all_keys - {'deleted_at'}
                 elif stream == "talk_phone_numbers":
                     expected_all_keys = expected_all_keys - {'token'}
                 elif stream == "support_requests":

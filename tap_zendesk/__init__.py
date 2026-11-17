@@ -3,7 +3,6 @@ import json
 import sys
 
 from zenpy import Zenpy
-import requests
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import Timeout, ChunkedEncodingError
@@ -12,6 +11,7 @@ import singer
 from singer import metadata, metrics as singer_metrics
 import backoff
 from tap_zendesk import metrics as zendesk_metrics
+from tap_zendesk.http import ZendeskSession, validate_subdomain
 from tap_zendesk.discover import discover_streams
 from tap_zendesk.oauth import refresh_credentials
 from tap_zendesk.streams import STREAMS
@@ -38,7 +38,7 @@ API_TOKEN_CONFIG_KEYS = [
 ]
 
 SUB_STREAMS = {
-    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_comments', 'side_conversations'],
+    'tickets': ['ticket_audits', 'ticket_metrics', 'ticket_metric_events', 'ticket_comments', 'side_conversations'],
     'triggers': ['trigger_revisions'],
     'macros': ['macro_attachments'],
     'users': ['user_identities', 'user_attribute_values'],
@@ -118,6 +118,12 @@ def validate_dependencies(selected_stream_ids):
 
 def populate_class_schemas(catalog):
     for stream in catalog.streams:
+        if stream.tap_stream_id not in STREAMS:
+            # e.g. `incremental_ticket_events`, retired by Zendesk with `ticket_audits` as its alternative
+            log = LOGGER.warning if stream_is_selected(metadata.to_map(stream.metadata)) else LOGGER.info
+            log("%s: Ignoring stream that is no longer supported. Rediscover the catalog to remove it.",
+                stream.tap_stream_id)
+            continue
         STREAMS[stream.tap_stream_id].stream = stream
 
 
@@ -129,6 +135,8 @@ def do_sync(client, catalog, state, config):
 
     for stream in catalog.streams:
         stream_name = stream.tap_stream_id
+        if stream_name not in STREAMS:
+            continue
         mdata = metadata.to_map(stream.metadata)
         if stream_name not in selected_stream_names:
             LOGGER.info("%s: Skipping - not selected", stream_name)
@@ -197,15 +205,13 @@ def api_token_auth(args):
 
 
 def get_session(config):
-    """ Add partner information to requests Session object if specified in the config. """
+    """Create an origin-pinned Zenpy session, adding optional partner headers."""
+    session = ZendeskSession(config["subdomain"])
+    session.mount("https://", HTTPAdapter(**Zenpy.http_adapter_kwargs()))
     if not all(k in config for k in ["marketplace_name",
                                      "marketplace_organization_id",
                                      "marketplace_app_id"]):
-        return None
-    session = requests.Session()
-    # Using Zenpy's default adapter args, following the method outlined here:
-    # https://github.com/facetoe/zenpy/blob/master/docs/zenpy.rst#usage
-    session.mount("https://", HTTPAdapter(**Zenpy.http_adapter_kwargs()))
+        return session
     session.headers["X-Zendesk-Marketplace-Name"] = config.get("marketplace_name", "")
     session.headers["X-Zendesk-Marketplace-Organization-Id"] = str(
         config.get("marketplace_organization_id", ""))
@@ -216,6 +222,7 @@ def get_session(config):
 @singer.utils.handle_top_exception(LOGGER)
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
+    validate_subdomain(parsed_args.config["subdomain"])
 
     dev_mode = getattr(parsed_args, 'dev', False)
     if dev_mode:

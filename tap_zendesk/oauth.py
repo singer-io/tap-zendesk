@@ -21,7 +21,7 @@ import time
 from datetime import datetime
 import requests
 import singer
-from tap_zendesk.http import ZendeskError
+from tap_zendesk.http import ZendeskError, validate_subdomain, validate_url, reject_redirect
 
 LOGGER = singer.get_logger()
 
@@ -49,19 +49,21 @@ def is_token_valid(_config):
 
     Returns True if the token is still valid beyond the buffer.
     """
-    subdomain = _config['subdomain']
+    subdomain = validate_subdomain(_config['subdomain'])
     url = TOKEN_INFO_URL.format(subdomain=subdomain)
+    validate_url(url, f"https://{subdomain}.zendesk.com")
     headers = {
         'Authorization': 'Bearer {}'.format(_config['access_token']),
         'Accept': 'application/json',
     }
 
     try:
-        response = requests.get(url, headers=headers, timeout=60)
+        response = requests.get(url, headers=headers, timeout=60, allow_redirects=False)
     except requests.RequestException as exc:
         LOGGER.warning("Token info request failed: %s. Will attempt token refresh.", exc)
         return False
 
+    reject_redirect(response.status_code)
     if response.status_code != 200:
         LOGGER.info("Token info endpoint returned HTTP %s. Token needs to be refreshed.", response.status_code)
         return False
@@ -90,8 +92,9 @@ def _refresh_access_token(_config):
     POST to Zendesk /oauth/tokens with grant_type=refresh_token.
     Returns the full token response dict.
     """
-    subdomain = _config['subdomain']
+    subdomain = validate_subdomain(_config['subdomain'])
     url = TOKEN_REFRESH_URL.format(subdomain=subdomain)
+    validate_url(url, f"https://{subdomain}.zendesk.com")
 
     payload = {
         'grant_type': 'refresh_token',
@@ -101,7 +104,8 @@ def _refresh_access_token(_config):
         'expires_in': ACCESS_TOKEN_VALIDITY_SECONDS
     }
 
-    response = requests.post(url, json=payload, timeout=60)
+    response = requests.post(url, json=payload, timeout=60, allow_redirects=False)
+    reject_redirect(response.status_code)
 
     if response.status_code != 200:
         raise ZendeskError("Failed to refresh access token. Refresh token might have expired or been revoked. Please re-authorize the connection.")
@@ -131,6 +135,7 @@ def refresh_credentials(_config, config_path, dev_mode=False):
     Main entry point for OAuth credential management.
     """
 
+    validate_subdomain(_config['subdomain'])
     if dev_mode:
         return _config
 

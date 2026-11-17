@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from zenpy.lib.exception import APIException
 from tap_zendesk.streams.abstracts import (
-    CursorBasedExportStream,
+    PaginatedStream,
     ParentChildBookmarkMixin,
     process_custom_field,
     raise_or_log_zenpy_apiexception,
@@ -10,12 +10,14 @@ from tap_zendesk.streams.abstracts import (
 )
 from tap_zendesk.exceptions import ZendeskNotFoundError
 
-class Users(ParentChildBookmarkMixin, CursorBasedExportStream):
+
+class Users(ParentChildBookmarkMixin, PaginatedStream):
     name = "users"
     replication_method = "INCREMENTAL"
     replication_key = "updated_at"
     item_key = "users"
-    endpoint = "incremental/users/cursor.json"
+    endpoint = "users"
+    pagination_type = "cursor"
     children = ['user_identities', 'user_attribute_values']
 
     def sync(self, state, parent_obj=None):
@@ -26,8 +28,9 @@ class Users(ParentChildBookmarkMixin, CursorBasedExportStream):
         """
         bookmark_date = self.get_bookmark(state, self.name)
         current_max_bookmark_date = bookmark_date
-        epoch_bookmark = int(bookmark_date.timestamp())
-        records = self.get_objects(epoch_bookmark)
+        # No start_time filter on this endpoint; sort ascending by the replication key
+        # and rely on client-side filtering below.
+        records = self.get_objects(params={'sort': 'updated_at'})
 
         identities_stream = next(
             (child for child in self.child_to_sync if child.name == "user_identities"), None

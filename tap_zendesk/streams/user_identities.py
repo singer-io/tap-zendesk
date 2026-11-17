@@ -34,7 +34,7 @@ class UserIdentities(UserSubStreamMixin, ChildBookmarkMixin, PaginatedStream):
         async with semaphore:
             try:
                 records = await http.paginate_cursor_async(
-                    session, url, self.config['access_token'], self.request_timeout,
+                    session, url, http.get_credential(self.config), self.request_timeout,
                     self.page_size, self.item_key
                 )
             except ZendeskNotFoundError:
