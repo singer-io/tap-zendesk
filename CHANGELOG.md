@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.0
+## 2.11.0
   * Added new field in `ticket_audits` schema and updated existing schema definition [#205](https://github.com/singer-io/tap-zendesk/pull/205)
 
 ## 2.10.0
