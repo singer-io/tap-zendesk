@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2.11.0
-  * Added new field in `ticket_audits` schema and updated existing schema definition [#205](https://github.com/singer-io/tap-zendesk/pull/205)
+  * Add new field in `ticket_audits` schema and updated existing schema definition [#205](https://github.com/singer-io/tap-zendesk/pull/205)
 
 ## 2.10.0
   * Validate tenant subdomains and credential-bearing request origins, pin absolute pagination URLs to the tenant, and reject redirects in REST, OAuth, and Zenpy requests.
