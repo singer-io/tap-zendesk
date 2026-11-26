@@ -204,7 +204,7 @@ class TestASyncTicketAudits(unittest.TestCase):
         mock_is_selected.return_value = False
 
         # Create an instance of the Tickets class
-        instance = streams.Tickets(None, {})
+        instance = streams.Tickets(None, {"search_archived_tickets": False})
         instance.is_selected = MagicMock(return_value=True)
         audits_stream = streams.TicketAudits(None, {})
         comments_stream = streams.TicketComments(None, {})
