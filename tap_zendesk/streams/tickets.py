@@ -1,6 +1,6 @@
 import asyncio
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict
 
 import pytz
@@ -17,6 +17,12 @@ from tap_zendesk.streams.ticket_audits import TicketAudits
 from tap_zendesk.streams.ticket_comments import TicketComments
 from tap_zendesk.streams.ticket_metric_events import TicketMetricEvents
 from tap_zendesk.streams.ticket_metrics import TicketMetrics
+
+# Archived-ticket backfill constants. Steady-state daily syncs use the smaller
+# step; initial backfill walks the archive in wider windows that bisect on overflow.
+ARCHIVED_BOOKMARK_KEY = "archived_tickets_updated_at"
+ARCHIVED_SEARCH_STEP_DAYS = 7
+ARCHIVED_SEARCH_MIN_STEP_SECONDS = 60
 
 
 class Tickets(PaginatedStream):
@@ -66,10 +72,11 @@ class Tickets(PaginatedStream):
         max_event_time = events_bookmark
         traversal_floor = min(bookmark, events_bookmark)
 
-        # List Tickets does not include archived tickets, so neither they nor their
-        # children are synced. Records are ordered by updated_at, which can differ from the
-        # generated_timestamp bookmark, so the order is never relied upon: both bookmarks are
-        # committed only after every page has been walked, never part way through.
+        # List Tickets does not include archived tickets; those are backfilled below
+        # via the Search + Show Many archived pass, gated by `search_archived_tickets`.
+        # Records are ordered by updated_at, which can differ from the generated_timestamp
+        # bookmark, so the order is never relied upon: both bookmarks are committed
+        # only after every page has been walked, never part way through.
         # Metric events are not requested here, as Zendesk documents that sideload for a single
         # ticket only; they are fetched per ticket instead.
         # https://developer.zendesk.com/documentation/ticketing/using-the-zendesk-api/side_loading/#supported-endpoints
@@ -88,6 +95,7 @@ class Tickets(PaginatedStream):
         event_ticket_ids = []
         counter = 0
         start_time = time.time()
+        seen_ticket_ids = set()
 
         def throttle():
             # Check if the number of records processed in a minute has reached the limit.
@@ -118,6 +126,8 @@ class Tickets(PaginatedStream):
 
         for ticket in tickets:
             zendesk_metrics.capture('ticket')
+            if ticket.get('id') is not None:
+                seen_ticket_ids.add(ticket['id'])
 
             generated_timestamp_dt = datetime.fromtimestamp(ticket.get('generated_timestamp'), tz=timezone.utc).replace(tzinfo=pytz.UTC)
 
@@ -190,6 +200,22 @@ class Tickets(PaginatedStream):
         if event_ticket_ids:
             yield from new_metric_events(event_ticket_ids)
 
+        # Archived-ticket backfill. List Tickets excludes archived tickets, so we
+        # discover their ids via the Search API (bookmark-windowed), hydrate the
+        # full payload via Show Many Tickets, and emit them through the same
+        # stream path so the child streams populate via their per-ticket endpoints.
+        if self.config.get('search_archived_tickets', True):
+            yield from self._sync_archived_tickets(
+                state=state,
+                seen_ticket_ids=seen_ticket_ids,
+                audits_stream=audits_stream,
+                metrics_stream=metrics_stream,
+                metric_events_stream=metric_events_stream,
+                comments_stream=comments_stream,
+                side_conversations_stream=side_conversations_stream,
+                events_selected=events_selected,
+            )
+
         # Commit the bookmarks only once everything was fetched. Neither is ordered like the
         # cursor, so advancing mid-run could skip older records if the sync is interrupted.
         self.update_bookmark(state, self.name, utils.strftime(max_generated_timestamp))
@@ -203,6 +229,168 @@ class Tickets(PaginatedStream):
         self.emit_sub_stream_metrics(comments_stream)
         self.emit_sub_stream_metrics(side_conversations_stream)
         singer.write_state(state)
+
+    def _search_archived_ticket_ids(self, window_start, window_end):
+        """
+        Yield (id, updated_at) tuples for archived tickets whose `updated_at` falls
+        inside [window_start, window_end). If a window's result set hits Zendesk's
+        1,000-result cap, the window is bisected recursively until each sub-window
+        fits. The caller is expected to pass UTC datetimes.
+        """
+        start_iso = window_start.strftime('%Y-%m-%dT%H:%M:%SZ')
+        end_iso = window_end.strftime('%Y-%m-%dT%H:%M:%SZ')
+        query = (
+            f"type:ticket status:closed "
+            f"updated>={start_iso} updated<{end_iso}"
+        )
+        pages = http.get_search_results(
+            subdomain=self.config['subdomain'],
+            access_token=http.get_credential(self.config),
+            request_timeout=self.request_timeout,
+            query=query,
+            page_size=self.page_size,
+        )
+        total_count = None
+        for page in pages:
+            if total_count is None:
+                total_count = page.get('count', 0)
+                if total_count >= http.SEARCH_RESULT_CAP:
+                    # Overflow: bisect the window and retry both halves. Stop
+                    # bisecting if the window is already smaller than the floor.
+                    span_seconds = (window_end - window_start).total_seconds()
+                    if span_seconds <= ARCHIVED_SEARCH_MIN_STEP_SECONDS:
+                        LOGGER.warning(
+                            "Archived-ticket search window %s to %s hit the "
+                            "result cap at minimum step; results beyond %s may be missed.",
+                            start_iso, end_iso, http.SEARCH_RESULT_CAP,
+                        )
+                    else:
+                        midpoint = window_start + (window_end - window_start) / 2
+                        yield from self._search_archived_ticket_ids(window_start, midpoint)
+                        yield from self._search_archived_ticket_ids(midpoint, window_end)
+                        return
+            for result in page.get('results') or []:
+                ticket_id = result.get('id')
+                updated_at = result.get('updated_at')
+                if ticket_id is not None and updated_at is not None:
+                    yield ticket_id, updated_at
+
+    def _sync_archived_tickets(self, state, seen_ticket_ids, audits_stream,
+                               metrics_stream, metric_events_stream,
+                               comments_stream, side_conversations_stream,
+                               events_selected):
+        """
+        Walk archived tickets in bookmark-windowed chunks. Hydrate each window's
+        ids via Show Many Tickets and emit the ticket plus the selected child
+        streams through the normal emit path. The `archived_tickets_updated_at`
+        bookmark advances only after a window's children have been emitted, so
+        an interrupted sync resumes without losing or duplicating tickets.
+        """
+        archived_bookmark = self.get_bookmark(state, self.name, key=ARCHIVED_BOOKMARK_KEY)
+        now = datetime.now(tz=timezone.utc)
+        if archived_bookmark >= now:
+            return
+
+        window_start = archived_bookmark
+        step = timedelta(days=ARCHIVED_SEARCH_STEP_DAYS)
+
+        while window_start < now:
+            window_end = min(window_start + step, now)
+            LOGGER.info(
+                "Archived tickets: searching window %s to %s",
+                window_start.isoformat(), window_end.isoformat(),
+            )
+
+            ids_to_hydrate = []
+            max_updated_at = window_start
+            for ticket_id, updated_at_str in self._search_archived_ticket_ids(window_start, window_end):
+                if ticket_id in seen_ticket_ids:
+                    continue
+                seen_ticket_ids.add(ticket_id)
+                ids_to_hydrate.append(ticket_id)
+                updated_dt = utils.strptime_with_tz(updated_at_str)
+                if updated_dt > max_updated_at:
+                    max_updated_at = updated_dt
+
+            if ids_to_hydrate:
+                yield from self._hydrate_and_emit_archived_tickets(
+                    ids_to_hydrate,
+                    audits_stream=audits_stream,
+                    metrics_stream=metrics_stream,
+                    metric_events_stream=metric_events_stream,
+                    comments_stream=comments_stream,
+                    side_conversations_stream=side_conversations_stream,
+                    events_selected=events_selected,
+                    state=state,
+                )
+
+            self.update_bookmark(
+                state, self.name,
+                utils.strftime(window_end),
+                key=ARCHIVED_BOOKMARK_KEY,
+            )
+            singer.write_state(state)
+            window_start = window_end
+
+    def _hydrate_and_emit_archived_tickets(self, ticket_ids, audits_stream,
+                                           metrics_stream, metric_events_stream,
+                                           comments_stream, side_conversations_stream,
+                                           events_selected, state):
+        """
+        Call Show Many Tickets on `ticket_ids` and emit each hydrated ticket plus
+        its selected child streams. Reuses the batching helpers used by the main
+        cursor pass so audits + comments and metric events are fetched with the
+        same concurrency semantics.
+        """
+        hydrated = list(http.get_show_many_tickets(
+            subdomain=self.config['subdomain'],
+            access_token=http.get_credential(self.config),
+            request_timeout=self.request_timeout,
+            ticket_ids=ticket_ids,
+        ))
+        if not hydrated:
+            return
+
+        child_ticket_ids = []
+        event_ticket_ids = []
+
+        for ticket in hydrated:
+            zendesk_metrics.capture('ticket')
+            ticket.pop('fields', None)
+            if self.is_selected():
+                yield (self.stream, ticket)
+
+            if ticket.get('status') == 'deleted':
+                continue
+
+            if metrics_stream.is_selected() and ticket.get('metric_set'):
+                zendesk_metrics.capture('ticket_metric')
+                metrics_stream.count += 1
+                yield (metrics_stream.stream, ticket['metric_set'])
+
+            if events_selected:
+                event_ticket_ids.append(ticket['id'])
+
+            if side_conversations_stream.is_selected():
+                yield from side_conversations_stream.sync(state=state, parent_obj=ticket)
+
+            child_ticket_ids.append(ticket['id'])
+
+        if child_ticket_ids:
+            records = self.sync_ticket_audits_and_comments(
+                comments_stream, audits_stream, child_ticket_ids)
+            for audits, comments in records:
+                for audit in audits:
+                    yield audit
+                for comment in comments:
+                    yield comment
+
+        if event_ticket_ids:
+            for events in self.sync_ticket_metric_events(metric_events_stream, event_ticket_ids):
+                for event in events:
+                    zendesk_metrics.capture('ticket_metric_event')
+                    metric_events_stream.count += 1
+                    yield (metric_events_stream.stream, event)
 
     def sync_ticket_metric_events(self, metric_events_stream, ticket_ids):
         return asyncio.run(metric_events_stream.sync_in_bulk(ticket_ids))

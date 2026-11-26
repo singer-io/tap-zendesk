@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.12.0
+  * Backfill archived tickets through the `tickets` stream via Zendesk's Search API (ID discovery) and `/api/v2/tickets/show_many.json` (full payload hydration), so `ticket_audits`, `ticket_comments`, `ticket_metrics`, `ticket_metric_events`, and `side_conversations` populate for archived tickets via their existing per-ticket endpoints.
+  * A new per-stream bookmark `archived_tickets_updated_at` on the `tickets` state entry makes the archived pass incremental; steady-state daily syncs do not re-scan the archive end-to-end. Windows that overflow Zendesk's 1,000-result Search cap are bisected automatically.
+  * New config flag `search_archived_tickets` (default `true`). When `false`, behavior is identical to 2.11.0 and the Search endpoint is never called.
+
 ## 2.11.0
   * Add new field in `ticket_audits` schema and updated existing schema definition [#205](https://github.com/singer-io/tap-zendesk/pull/205)
 

@@ -14,12 +14,16 @@ Zendesk is retiring the Incremental APIs for third-party integrations, so the ta
 now uses the paginated replacements listed in Zendesk's
 [announcement](https://support.zendesk.com/hc/en-us/articles/11249701485338-Announcing-end-of-availability-of-Incremental-APIs-for-third-party-developers).
 
-- **Archived tickets are not synced.** `tickets` uses
-  [List Tickets](https://developer.zendesk.com/api-reference/ticketing/tickets/tickets/#list-tickets),
-  which excludes archived tickets (typically closed for about 120 days). Zendesk has no
-  non-incremental endpoint that includes them. Tickets, and their ticket metrics, metric
-  events, audits, comments and side conversations, are captured only while the ticket is
-  not yet archived, so a historical backfill of tickets older than that is incomplete.
+- **Archived tickets are backfilled through a second pass.** `tickets` uses
+  [List Tickets](https://developer.zendesk.com/api-reference/ticketing/tickets/tickets/#list-tickets)
+  for the current window; archived tickets (typically Closed ~120 days ago) are then
+  discovered via the [Search API](https://developer.zendesk.com/api-reference/ticketing/ticket-management/search/)
+  and hydrated through [Show Many Tickets](https://developer.zendesk.com/api-reference/ticketing/tickets/tickets/#show-many-tickets).
+  The archived pass tracks its own `archived_tickets_updated_at` bookmark, so steady-state
+  daily syncs issue only the Search calls needed for the day's archive window.
+  Set the config flag `search_archived_tickets` to `false` to disable the archived pass
+  (behavior then matches 2.11.0 — archived tickets, and their ticket metrics, metric events,
+  audits, comments and side conversations, are not synced).
 - **`ticket_metric_events`** is fetched per ticket with
   `GET /api/v2/tickets/{id}?include=metric_events`, because Zendesk documents that
   sideload for a single ticket only, instead of the retired incremental endpoint. This

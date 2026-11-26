@@ -2,7 +2,7 @@ import base64
 import re
 from time import sleep
 from asyncio import sleep as async_sleep
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urljoin
 import backoff
 import requests
 import singer
@@ -199,6 +199,71 @@ def get_cursor_based(url, access_token, request_timeout, page_size, cursor=None,
             raise ValueError("Repeated 'after_cursor' while 'has_more' is true.")
         seen_cursors.add(next_cursor)
         params['page[after]'] = next_cursor
+
+# Zendesk Search API caps results at 1,000 per query; windowed callers bisect on overflow.
+SEARCH_RESULT_CAP = 1000
+# Show Many Tickets accepts up to 100 ids per request.
+SHOW_MANY_BATCH_SIZE = 100
+
+
+def get_search_results(subdomain, access_token, request_timeout, query, page_size=100):
+    """
+    Paginate /api/v2/search.json for a single query. Yields the raw page JSONs.
+    The caller is responsible for windowing the query so it stays under
+    SEARCH_RESULT_CAP; this helper surfaces that via the response's `count` field
+    (echoed on the first page).
+    """
+    base_url = BASE_URL.format(subdomain=validate_subdomain(subdomain))
+    url = urljoin(base_url, 'search.json')
+    headers = build_headers(access_token=access_token)
+    params = {
+        'query': query,
+        'per_page': page_size,
+        'sort_by': 'updated_at',
+        'sort_order': 'asc',
+    }
+    next_url = url
+    while next_url:
+        validate_url(next_url, url)
+        response = call_api(
+            next_url,
+            request_timeout,
+            params=params if next_url == url else None,
+            headers=headers,
+        )
+        response_json = response.json()
+        yield response_json
+        next_url = response_json.get('next_page')
+        params = None
+
+
+def get_show_many_tickets(subdomain, access_token, request_timeout, ticket_ids):
+    """
+    Hydrate archived (or any) tickets by ID via /api/v2/tickets/show_many.json.
+    Batches ids into groups of SHOW_MANY_BATCH_SIZE. Yields ticket dicts with the
+    full List-Tickets payload shape, including `generated_timestamp` and sideloads.
+    """
+    base_url = BASE_URL.format(subdomain=validate_subdomain(subdomain))
+    url = urljoin(base_url, 'tickets/show_many.json')
+    headers = build_headers(access_token=access_token)
+    ids = list(ticket_ids)
+    for start in range(0, len(ids), SHOW_MANY_BATCH_SIZE):
+        batch = ids[start:start + SHOW_MANY_BATCH_SIZE]
+        params = {
+            'ids': ','.join(str(i) for i in batch),
+            'include': 'metric_sets',
+        }
+        response = call_api(url, request_timeout, params=params, headers=headers)
+        response_json = response.json()
+        metric_sets = {
+            m.get('ticket_id'): m
+            for m in response_json.get('metric_sets') or []
+        }
+        for ticket in response_json.get('tickets') or []:
+            if not ticket.get('metric_set') and ticket.get('id') in metric_sets:
+                ticket['metric_set'] = metric_sets[ticket['id']]
+            yield ticket
+
 
 def get_offset_based(url, access_token, request_timeout, page_size, **kwargs):
     """
