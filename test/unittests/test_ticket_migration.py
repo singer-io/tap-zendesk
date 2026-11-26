@@ -18,12 +18,16 @@ CONFIG = {
     "start_date": "2023-01-01T00:00:00Z",
     "subdomain": "example",
     "access_token": "token",
+    # The archived-ticket backfill makes additional Search + Show Many requests
+    # that these tests do not mock; those paths have dedicated tests elsewhere.
+    "search_archived_tickets": False,
 }
 API_TOKEN_CONFIG = {
     "start_date": "2023-01-01T00:00:00Z",
     "subdomain": "example",
     "email": "user@example.com",
     "api_token": "secret",
+    "search_archived_tickets": False,
 }
 API_TOKEN_HEADER = "Basic " + base64.b64encode(b"user@example.com/token:secret").decode()
 
