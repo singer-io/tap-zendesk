@@ -22,7 +22,11 @@ from tap_zendesk.streams.ticket_metrics import TicketMetrics
 # step; initial backfill walks the archive in wider windows that bisect on overflow.
 ARCHIVED_BOOKMARK_KEY = "archived_tickets_updated_at"
 ARCHIVED_SEARCH_STEP_DAYS = 7
-ARCHIVED_SEARCH_MIN_STEP_SECONDS = 60
+# Overlap applied when advancing the Search cursor past the 1,000-result cap,
+# so tickets sharing the same `updated_at` second as the last row of a page
+# are not missed. Duplicates across overlapping queries are handled by the
+# caller's `seen_ticket_ids` dedup set.
+ARCHIVED_SEARCH_OVERLAP_SECONDS = 1
 
 
 class Tickets(PaginatedStream):
@@ -233,47 +237,71 @@ class Tickets(PaginatedStream):
     def _search_archived_ticket_ids(self, window_start, window_end):
         """
         Yield (id, updated_at) tuples for archived tickets whose `updated_at` falls
-        inside [window_start, window_end). If a window's result set hits Zendesk's
-        1,000-result cap, the window is bisected recursively until each sub-window
-        fits. The caller is expected to pass UTC datetimes.
+        inside [window_start, window_end). Results are read sorted by updated_at asc;
+        when a page would overflow Zendesk's 1,000-result Search cap, the cursor is
+        advanced to the last row's `updated_at` and the window is re-queried from
+        there, so bursts clustered inside the original span are drained deterministically
+        instead of being split by a midpoint that could still overflow. Both sides of
+        the window are UTC datetimes.
         """
-        start_iso = window_start.strftime('%Y-%m-%dT%H:%M:%SZ')
-        end_iso = window_end.strftime('%Y-%m-%dT%H:%M:%SZ')
-        query = (
-            f"type:ticket status:closed "
-            f"updated>={start_iso} updated<{end_iso}"
-        )
-        pages = http.get_search_results(
-            subdomain=self.config['subdomain'],
-            access_token=http.get_credential(self.config),
-            request_timeout=self.request_timeout,
-            query=query,
-            page_size=self.page_size,
-        )
-        total_count = None
-        for page in pages:
-            if total_count is None:
-                total_count = page.get('count', 0)
-                if total_count >= http.SEARCH_RESULT_CAP:
-                    # Overflow: bisect the window and retry both halves. Stop
-                    # bisecting if the window is already smaller than the floor.
-                    span_seconds = (window_end - window_start).total_seconds()
-                    if span_seconds <= ARCHIVED_SEARCH_MIN_STEP_SECONDS:
-                        LOGGER.warning(
-                            "Archived-ticket search window %s to %s hit the "
-                            "result cap at minimum step; results beyond %s may be missed.",
-                            start_iso, end_iso, http.SEARCH_RESULT_CAP,
-                        )
-                    else:
-                        midpoint = window_start + (window_end - window_start) / 2
-                        yield from self._search_archived_ticket_ids(window_start, midpoint)
-                        yield from self._search_archived_ticket_ids(midpoint, window_end)
-                        return
-            for result in page.get('results') or []:
-                ticket_id = result.get('id')
-                updated_at = result.get('updated_at')
-                if ticket_id is not None and updated_at is not None:
+        cursor = window_start
+        last_cursor = None
+        while cursor < window_end:
+            # If a prior iteration couldn't advance the cursor (e.g. 1000+ tickets
+            # share the same `updated_at` second), bail on this window to avoid a
+            # fixed-point loop; the gap is logged and the outer bookmark still moves.
+            if last_cursor is not None and cursor <= last_cursor:
+                LOGGER.warning(
+                    "Archived-ticket search cursor did not advance past %s; "
+                    "results beyond %s matches at that instant may be missed.",
+                    last_cursor.isoformat(), http.SEARCH_RESULT_CAP,
+                )
+                return
+            last_cursor = cursor
+
+            start_iso = cursor.strftime('%Y-%m-%dT%H:%M:%SZ')
+            end_iso = window_end.strftime('%Y-%m-%dT%H:%M:%SZ')
+            query = (
+                f"type:ticket status:closed "
+                f"updated>={start_iso} updated<{end_iso}"
+            )
+            pages = http.get_search_results(
+                subdomain=self.config['subdomain'],
+                access_token=http.get_credential(self.config),
+                request_timeout=self.request_timeout,
+                query=query,
+                page_size=self.page_size,
+            )
+
+            overflow = False
+            last_updated_at = None
+            total_count = None
+            for page in pages:
+                if total_count is None:
+                    total_count = page.get('count', 0)
+                    overflow = total_count >= http.SEARCH_RESULT_CAP
+                for result in page.get('results') or []:
+                    ticket_id = result.get('id')
+                    updated_at = result.get('updated_at')
+                    if ticket_id is None or updated_at is None:
+                        continue
                     yield ticket_id, updated_at
+                    last_updated_at = updated_at
+
+            if not overflow:
+                return
+
+            # Zendesk stopped at the 1,000-result cap. Advance the cursor to just
+            # BEFORE the last row's updated_at so any tickets sharing that second
+            # with the 1,000th row (which would otherwise be cut off at the cap)
+            # are re-included on the next query. Duplicates across the overlap are
+            # handled by the caller's seen_ids set. The outer "cursor did not
+            # advance" guard still trips if a burst at a single instant exceeds
+            # the cap and the cursor cannot move forward at all.
+            if last_updated_at is None:
+                return
+            cursor = (utils.strptime_with_tz(last_updated_at)
+                      - timedelta(seconds=ARCHIVED_SEARCH_OVERLAP_SECONDS))
 
     def _sync_archived_tickets(self, state, seen_ticket_ids, audits_stream,
                                metrics_stream, metric_events_stream,

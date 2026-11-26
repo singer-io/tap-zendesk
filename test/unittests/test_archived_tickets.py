@@ -188,30 +188,54 @@ class TestArchivedTicketSync(unittest.TestCase):
         last_bookmark = state_writes[-1]["bookmarks"]["tickets"].get("archived_tickets_updated_at")
         self.assertIsNotNone(last_bookmark)
 
-    def test_overflow_bisects_the_window(self):
-        """A window that reports count >= SEARCH_RESULT_CAP triggers recursive bisection."""
+    def test_overflow_advances_cursor_with_overlap(self):
+        """
+        When a page returns count >= SEARCH_RESULT_CAP, the next Search query
+        starts ARCHIVED_SEARCH_OVERLAP_SECONDS before the last row's updated_at,
+        so tickets sharing that exact second with the 1,000th row are picked up
+        on the next query. Duplicates across the overlap dedup through seen_ids.
+        """
+        from tap_zendesk.streams.tickets import ARCHIVED_SEARCH_OVERLAP_SECONDS
         stream_obj = streams.Tickets(config=CONFIG)
-        overflow = mock_response({"count": http.SEARCH_RESULT_CAP, "results": []})
-        small = mock_response({"count": 0, "results": []})
-        with patch("tap_zendesk.http.call_api", side_effect=[overflow, small, small]) as mock_call:
+        overflow_page = mock_response({
+            "count": http.SEARCH_RESULT_CAP,
+            "results": [
+                {"id": 1, "updated_at": "2026-11-02T00:00:00Z"},
+                {"id": 2, "updated_at": "2026-11-02T12:00:00Z"},
+            ],
+        })
+        drained = mock_response({"count": 0, "results": []})
+        with patch("tap_zendesk.http.call_api", side_effect=[overflow_page, drained]) as mock_call:
             from datetime import datetime, timedelta, timezone
             start = datetime(2026, 11, 1, tzinfo=timezone.utc)
             end = start + timedelta(days=4)
-            list(stream_obj._search_archived_ticket_ids(start, end))
-        # 1 overflow + 2 bisected halves = 3 calls
-        self.assertEqual(mock_call.call_count, 3)
+            results = list(stream_obj._search_archived_ticket_ids(start, end))
+        self.assertEqual([tid for tid, _ in results], [1, 2])
 
-    def test_overflow_at_min_step_logs_warning_without_recursing(self):
-        """At or below the minimum step size, overflow is logged but not bisected further."""
+        second_call_params = (mock_call.call_args_list[1].kwargs.get("params")
+                              or mock_call.call_args_list[1][1].get("params", {}))
+        # Expected cursor = last_updated_at - overlap = 2026-11-02T11:59:59Z (for 1s overlap).
+        last_dt = datetime(2026, 11, 2, 12, 0, 0, tzinfo=timezone.utc)
+        expected_cursor_iso = (last_dt - timedelta(seconds=ARCHIVED_SEARCH_OVERLAP_SECONDS)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        self.assertIn(expected_cursor_iso, second_call_params["query"])
+
+    def test_overflow_bails_when_cursor_cannot_advance(self):
+        """
+        If 1000+ tickets share the exact same updated_at second, the cursor cannot
+        advance; the stream logs and stops reading that window rather than looping.
+        """
         stream_obj = streams.Tickets(config=CONFIG)
-        overflow = mock_response({"count": http.SEARCH_RESULT_CAP, "results": []})
-        with patch("tap_zendesk.http.call_api", side_effect=[overflow]) as mock_call, \
+        stuck_page = mock_response({
+            "count": http.SEARCH_RESULT_CAP,
+            "results": [{"id": 1, "updated_at": "2026-11-01T00:00:00Z"}],
+        })
+        with patch("tap_zendesk.http.call_api", side_effect=[stuck_page, stuck_page]) as mock_call, \
              patch("tap_zendesk.streams.tickets.LOGGER.warning") as mock_warn:
             from datetime import datetime, timedelta, timezone
             start = datetime(2026, 11, 1, tzinfo=timezone.utc)
-            end = start + timedelta(seconds=30)  # below the 60-second floor
+            end = start + timedelta(days=1)
             list(stream_obj._search_archived_ticket_ids(start, end))
-        self.assertEqual(mock_call.call_count, 1)
+        self.assertLessEqual(mock_call.call_count, 2)
         self.assertTrue(mock_warn.called)
 
     def test_hydrated_ticket_dedup_against_seen_ids(self):
