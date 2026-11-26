@@ -259,7 +259,8 @@ class TestASyncTicketAudits(unittest.TestCase):
         config = {
             'start_date': '2024-01-01T00:00:00Z',
             'subdomain': 'dummy',
-            'access_token': 'dummy token'
+            'access_token': 'dummy token',
+            'search_archived_tickets': False,
         }
 
         # Create an instance of the Tickets class
@@ -326,7 +327,8 @@ class TestASyncTicketAudits(unittest.TestCase):
         config = {
             'start_date': '2024-01-01T00:00:00Z',
             'subdomain': '34',
-            'access_token': 'df'
+            'access_token': 'df',
+            'search_archived_tickets': False,
         }
         # Create an instance of the Tickets class
         instance = streams.Tickets(None, config)
@@ -515,6 +517,7 @@ class TestASyncTicketAudits(unittest.TestCase):
             'start_date': '2024-01-01T00:00:00Z',
             'subdomain': 'dummy',
             'access_token': 'dummy token',
+            'search_archived_tickets': False,
         }
         instance = streams.Tickets(None, config)
         instance.is_selected = MagicMock(return_value=False)
@@ -559,6 +562,7 @@ class TestASyncTicketAudits(unittest.TestCase):
             'start_date': '2024-01-01T00:00:00Z',
             'subdomain': 'dummy',
             'access_token': 'dummy token',
+            'search_archived_tickets': False,
         }
         instance = streams.Tickets(None, config)
         instance.is_selected = MagicMock(return_value=False)
@@ -618,6 +622,7 @@ class TestASyncTicketAudits(unittest.TestCase):
             'start_date': '2024-01-01T00:00:00Z',
             'subdomain': 'dummy',
             'access_token': 'dummy token',
+            'search_archived_tickets': False,
         }
         instance = streams.Tickets(None, config)
         instance.is_selected = MagicMock(return_value=True)
@@ -643,6 +648,7 @@ class TestASyncTicketAudits(unittest.TestCase):
             'start_date': '2024-01-01T00:00:00Z',
             'subdomain': 'dummy',
             'access_token': 'dummy token',
+            'search_archived_tickets': False,
         }
         instance = streams.Tickets(None, config)
         comments_stream = MagicMock()
